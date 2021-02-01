@@ -79,7 +79,6 @@ class Monitor:
         return results
 
 
-
 class Trace:
     values: Dict[PathType, TimeSeries]
 
@@ -137,4 +136,8 @@ class Trace:
         else:
             for e in element:
                 self.record(e, timestamp=timestamp)
+
+    def __setitem__(self, key: Atom, value: Tuple[int, Any]):
+        t, v = value
+        self.values[key.id][t] = v
 
