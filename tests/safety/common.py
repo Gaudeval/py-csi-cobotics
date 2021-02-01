@@ -1,0 +1,2 @@
+class SafetyTest:
+    pass
