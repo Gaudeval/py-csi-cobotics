@@ -37,7 +37,7 @@ hazards = {
             reduce(
                 operator.__or__,
                 (
-                    (P.cobot.velocity > P.constraints.cobot.velocity)
+                    (P.cobot.velocity > getattr(P.constraints.cobot.velocity, i))
                     & (getattr(P.cobot.position, i))
                     for i in ["in_bench", "in_workspace", "in_tool"]
                 ),

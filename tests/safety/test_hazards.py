@@ -1,6 +1,6 @@
 from tests.safety.common import SafetyTest
-from csi.monitor import Trace
-from scenarios import hazards
+from csi.monitor import Trace, Monitor
+from scenarios.tcx import hazards, P
 
 
 class HazardTest(SafetyTest):
@@ -18,9 +18,9 @@ class HazardTest(SafetyTest):
 
     def evaluate(self, trace, expected=True):
         hazard = self.hazard
-        trace += hazard.condition
-        assert len(trace.undefined_terms) == 0, trace.undefined_terms
-        occurs = trace.evaluate(hazard.condition)
+        monitor = Monitor({hazard.condition})
+        assert len(monitor.atoms() - trace.atoms()) == 0
+        occurs = monitor.evaluate(trace, hazard.condition)
         assert occurs is not None
         assert occurs == expected
 
@@ -31,19 +31,19 @@ class TestH1(HazardTest):
 
     def setup_trace(self):
         trace = Trace()
-        trace.terms.constraints.cobot.distance.proximity @= (0, 100)
-        trace.terms.constraints.cobot.velocity.oob @= (0, 100)
-        trace.terms.constraints.cobot.velocity.in_bench @= (0, 100)
-        trace.terms.constraints.cobot.velocity.in_tool @= (0, 100)
-        trace.terms.constraints.cobot.velocity.in_workspace @= (0, 100)
-        trace.terms.constraints.cobot.velocity.proximity @= (0, 100)
-        trace.terms.cobot.distance @= (0, 0)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.position.in_tool @= (0, False)
-        trace.terms.cobot.position.in_bench @= (0, False)
-        trace.terms.cobot.position.in_workspace @= (0, False)
-        trace.terms.cobot.velocity @= (0, 0)
-        trace.terms.operator.has_assembly @= (0, False)
+        trace[P.constraints.cobot.distance.proximity] = (0, 100)
+        trace[P.constraints.cobot.velocity.oob] = (0, 100)
+        trace[P.constraints.cobot.velocity.in_bench] = (0, 100)
+        trace[P.constraints.cobot.velocity.in_tool] = (0, 100)
+        trace[P.constraints.cobot.velocity.in_workspace] = (0, 100)
+        trace[P.constraints.cobot.velocity.proximity] = (0, 100)
+        trace[P.cobot.distance] = (0, 0)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.position.in_tool] = (0, False)
+        trace[P.cobot.position.in_bench] = (0, False)
+        trace[P.cobot.position.in_workspace] = (0, False)
+        trace[P.cobot.velocity] = (0, 0)
+        trace[P.operator.has_assembly] = (0, False)
         return trace
 
     def test_nominal(self):
@@ -54,8 +54,8 @@ class TestH1(HazardTest):
         # Two manipulators hold on the assembly
         trace = self.setup_trace()
         #
-        trace.terms.operator.has_assembly @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, True)
+        trace[P.operator.has_assembly] = (0, True)
+        trace[P.cobot.has_assembly] = (0, True)
         #
         self.evaluate(trace)
 
@@ -63,124 +63,124 @@ class TestH1(HazardTest):
         # Two manipulators hold on the assembly
         trace = self.setup_trace()
         #
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.operator.has_assembly @= (0, True)
-        trace.terms.operator.has_assembly @= (1, False)
-        trace.terms.cobot.has_assembly @= (2, True)
-        trace.terms.cobot.has_assembly @= (3, False)
-        trace.terms.operator.has_assembly @= (4, True)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.operator.has_assembly] = (0, True)
+        trace[P.operator.has_assembly] = (1, False)
+        trace[P.cobot.has_assembly] = (2, True)
+        trace[P.cobot.has_assembly] = (3, False)
+        trace[P.operator.has_assembly] = (4, True)
         #
         self.evaluate(trace, expected=False)
 
     def test_nominal_velocity(self):
         # Cobot moving faster than authorised at specific locations
         trace = self.setup_trace()
-        trace.terms.constraints.cobot.velocity.tool @= (0, 10)
-        trace.terms.constraints.cobot.velocity.workspace @= (0, 10)
-        trace.terms.constraints.cobot.velocity.bench @= (0, 10)
-        trace.terms.cobot.velocity @= (0, 1)
-        trace.terms.cobot.position.in_bench @= (0, True)
-        trace.terms.cobot.position.in_bench @= (1, False)
-        trace.terms.cobot.position.in_tool @= (1, True)
-        trace.terms.cobot.position.in_tool @= (2, False)
-        trace.terms.cobot.position.in_workspace @= (2, True)
+        trace[P.constraints.cobot.velocity.in_tool] = (0, 10)
+        trace[P.constraints.cobot.velocity.in_workspace] = (0, 10)
+        trace[P.constraints.cobot.velocity.in_bench] = (0, 10)
+        trace[P.cobot.velocity] = (0, 1)
+        trace[P.cobot.position.in_bench] = (0, True)
+        trace[P.cobot.position.in_bench] = (1, False)
+        trace[P.cobot.position.in_tool] = (1, True)
+        trace[P.cobot.position.in_tool] = (2, False)
+        trace[P.cobot.position.in_workspace] = (2, True)
         self.evaluate(trace, expected=False)
 
     def test_occurs_passing_velocity(self):
         # Cobot moving faster than authorised at specific locations
         trace = self.setup_trace()
-        trace.terms.constraints.cobot.velocity.in_tool @= (0, 10)
-        trace.terms.constraints.cobot.velocity.in_workspace @= (0, 0)
-        trace.terms.constraints.cobot.velocity.in_bench @= (0, 10)
-        trace.terms.cobot.velocity @= (0, 1)
-        trace.terms.cobot.position.in_bench @= (0, True)
-        trace.terms.cobot.position.in_bench @= (1, False)
-        trace.terms.cobot.position.in_tool @= (1, True)
-        trace.terms.cobot.position.in_tool @= (2, False)
-        trace.terms.cobot.position.in_workspace @= (2, True)
+        trace[P.constraints.cobot.velocity.in_tool] = (0, 10)
+        trace[P.constraints.cobot.velocity.in_workspace] = (0, 0)
+        trace[P.constraints.cobot.velocity.in_bench] = (0, 10)
+        trace[P.cobot.velocity] = (0, 1)
+        trace[P.cobot.position.in_bench] = (0, True)
+        trace[P.cobot.position.in_bench] = (1, False)
+        trace[P.cobot.position.in_tool] = (1, True)
+        trace[P.cobot.position.in_tool] = (2, False)
+        trace[P.cobot.position.in_workspace] = (2, True)
         self.evaluate(trace)
 
     def test_occurs_velocity_bench(self):
         # Cobot moving faster than authorised at specific locations
         trace = self.setup_trace()
-        trace.terms.constraints.cobot.velocity.in_tool @= (0, 10)
-        trace.terms.constraints.cobot.velocity.in_workspace @= (0, 10)
-        trace.terms.constraints.cobot.velocity.in_bench @= (0, 0)
-        trace.terms.cobot.position.in_bench @= (0, True)
-        trace.terms.cobot.velocity @= (0, 1)
+        trace[P.constraints.cobot.velocity.in_tool] = (0, 10)
+        trace[P.constraints.cobot.velocity.in_workspace] = (0, 10)
+        trace[P.constraints.cobot.velocity.in_bench] = (0, 0)
+        trace[P.cobot.position.in_bench] = (0, True)
+        trace[P.cobot.velocity] = (0, 1)
         self.evaluate(trace)
 
     def test_occurs_velocity_tool(self):
         # Cobot moving faster than authorised at specific locations
         trace = self.setup_trace()
-        trace.terms.constraints.cobot.velocity.in_tool @= (0, 0)
-        trace.terms.constraints.cobot.velocity.in_workspace @= (0, 10)
-        trace.terms.constraints.cobot.velocity.in_bench @= (0, 10)
-        trace.terms.cobot.position.in_tool @= (0, True)
-        trace.terms.cobot.velocity @= (0, 1)
+        trace[P.constraints.cobot.velocity.in_tool] = (0, 0)
+        trace[P.constraints.cobot.velocity.in_workspace] = (0, 10)
+        trace[P.constraints.cobot.velocity.in_bench] = (0, 10)
+        trace[P.cobot.position.in_tool] = (0, True)
+        trace[P.cobot.velocity] = (0, 1)
         self.evaluate(trace)
 
     def test_occurs_velocity_workspace(self):
         # Cobot moving faster than authorised at specific locations
         trace = self.setup_trace()
-        trace.terms.constraints.cobot.velocity.in_tool @= (0, 10)
-        trace.terms.constraints.cobot.velocity.in_workspace @= (0, 0)
-        trace.terms.constraints.cobot.velocity.in_bench @= (0, 10)
-        trace.terms.cobot.position.in_workspace @= (0, True)
-        trace.terms.cobot.velocity @= (0, 1)
+        trace[P.constraints.cobot.velocity.in_tool] = (0, 10)
+        trace[P.constraints.cobot.velocity.in_workspace] = (0, 0)
+        trace[P.constraints.cobot.velocity.in_bench] = (0, 10)
+        trace[P.cobot.position.in_workspace] = (0, True)
+        trace[P.cobot.velocity] = (0, 1)
         self.evaluate(trace)
 
     def test_occurs_velocity_proximity(self):
         # Cobot moving faster than authorised in close proximity
         trace = self.setup_trace()
-        trace.terms.constraints.cobot.distance.proximity @= (0, 10)
-        trace.terms.constraints.cobot.velocity.proximity @= (0, 0)
-        trace.terms.cobot.distance @= (0, 0)
-        trace.terms.cobot.velocity @= (0, 1)
+        trace[P.constraints.cobot.distance.proximity] = (0, 10)
+        trace[P.constraints.cobot.velocity.proximity] = (0, 0)
+        trace[P.cobot.distance] = (0, 0)
+        trace[P.cobot.velocity] = (0, 1)
         self.evaluate(trace)
 
     def test_nominal_velocity_proximity(self):
         # Cobot moving faster than authorised in close proximity
         trace = self.setup_trace()
-        trace.terms.constraints.cobot.distance.proximity @= (0, 10)
-        trace.terms.constraints.cobot.velocity.proximity @= (0, 10)
-        trace.terms.cobot.distance @= (0, 0)
-        trace.terms.cobot.velocity @= (0, 5)
+        trace[P.constraints.cobot.distance.proximity] = (0, 10)
+        trace[P.constraints.cobot.velocity.proximity] = (0, 10)
+        trace[P.cobot.distance] = (0, 0)
+        trace[P.cobot.velocity] = (0, 5)
         self.evaluate(trace, expected=False)
 
     def test_nominal_velocity_no_proximity(self):
         # Cobot moving faster than authorised in close proximity
         trace = self.setup_trace()
-        trace.terms.constraints.cobot.distance.proximity @= (0, 10)
-        trace.terms.constraints.cobot.velocity.proximity @= (0, 0)
-        trace.terms.cobot.distance @= (0, 20)
-        trace.terms.cobot.velocity @= (0, 5)
+        trace[P.constraints.cobot.distance.proximity] = (0, 10)
+        trace[P.constraints.cobot.velocity.proximity] = (0, 0)
+        trace[P.cobot.distance] = (0, 20)
+        trace[P.cobot.velocity] = (0, 5)
         self.evaluate(trace, expected=False)
 
     def test_occurs_proximity_change(self):
         # Cobot moving faster than authorised in close proximity
         trace = self.setup_trace()
-        trace.terms.constraints.cobot.distance.proximity @= (0, 10)
-        trace.terms.constraints.cobot.velocity.proximity @= (0, 0)
-        trace.terms.cobot.distance @= (0, 20)
-        trace.terms.cobot.velocity @= (0, 5)
-        trace.terms.cobot.distance @= (1, 0)
+        trace[P.constraints.cobot.distance.proximity] = (0, 10)
+        trace[P.constraints.cobot.velocity.proximity] = (0, 0)
+        trace[P.cobot.distance] = (0, 20)
+        trace[P.cobot.velocity] = (0, 5)
+        trace[P.cobot.distance] = (1, 0)
         self.evaluate(trace)
 
     def test_nominal_proximity_change(self):
         # Cobot moving faster than authorised in close proximity
         trace = self.setup_trace()
-        trace.terms.constraints.cobot.distance.proximity @= (0, 10)
-        trace.terms.constraints.cobot.velocity.proximity @= (0, 5)
+        trace[P.constraints.cobot.distance.proximity] = (0, 10)
+        trace[P.constraints.cobot.velocity.proximity] = (0, 5)
         #
-        trace.terms.cobot.distance @= (0, 20)
-        trace.terms.cobot.velocity @= (0, 10)
+        trace[P.cobot.distance] = (0, 20)
+        trace[P.cobot.velocity] = (0, 10)
         #
-        trace.terms.cobot.distance @= (1, 5)
-        trace.terms.cobot.velocity @= (1, 1)
+        trace[P.cobot.distance] = (1, 5)
+        trace[P.cobot.velocity] = (1, 1)
         #
-        trace.terms.cobot.distance @= (2, 20)
-        trace.terms.cobot.velocity @= (2, 30)
+        trace[P.cobot.distance] = (2, 20)
+        trace[P.cobot.velocity] = (2, 30)
         self.evaluate(trace, expected=False)
 
 
@@ -190,49 +190,49 @@ class TestH2(HazardTest):
 
     def setup_trace(self):
         trace = Trace()
-        trace.terms.constraints.tool.distance.operation @= (0, 10)
-        trace.terms.tool.distance @= (0, 0)
-        trace.terms.tool.is_running @= (0, False)
+        trace[P.constraints.tool.distance.operation] = (0, 10)
+        trace[P.tool.distance] = (0, 0)
+        trace[P.tool.is_running] = (0, False)
         return trace
 
     def test_occurs(self):
         trace = self.setup_trace()
-        trace.terms.constraints.tool.distance.operation @= (0, 10)
-        trace.terms.tool.distance @= (0, 0)
-        trace.terms.tool.is_running @= (0, True)
+        trace[P.constraints.tool.distance.operation] = (0, 10)
+        trace[P.tool.distance] = (0, 0)
+        trace[P.tool.is_running] = (0, True)
         self.evaluate(trace)
 
     def test_nominal_safety_distance(self):
         trace = self.setup_trace()
-        trace.terms.constraints.tool.distance.operation @= (0, 10)
-        trace.terms.tool.distance @= (0, 20)
-        trace.terms.tool.is_running @= (0, True)
+        trace[P.constraints.tool.distance.operation] = (0, 10)
+        trace[P.tool.distance] = (0, 20)
+        trace[P.tool.is_running] = (0, True)
         self.evaluate(trace, expected=False)
 
     def test_nominal_stopped(self):
         trace = self.setup_trace()
-        trace.terms.constraints.tool.distance.operation @= (0, 10)
-        trace.terms.tool.distance @= (0, 0)
-        trace.terms.tool.is_running @= (0, False)
+        trace[P.constraints.tool.distance.operation] = (0, 10)
+        trace[P.tool.distance] = (0, 0)
+        trace[P.tool.is_running] = (0, False)
         self.evaluate(trace, expected=False)
 
     def test_nominal_proximity_stop(self):
         trace = self.setup_trace()
-        trace.terms.constraints.tool.distance.operation @= (0, 10)
-        trace.terms.tool.distance @= (0, 20)
-        trace.terms.tool.is_running @= (0, True)
-        trace.terms.tool.distance @= (1, 0)
-        trace.terms.tool.is_running @= (1, False)
-        trace.terms.tool.distance @= (2, 20)
-        trace.terms.tool.is_running @= (2, True)
+        trace[P.constraints.tool.distance.operation] = (0, 10)
+        trace[P.tool.distance] = (0, 20)
+        trace[P.tool.is_running] = (0, True)
+        trace[P.tool.distance] = (1, 0)
+        trace[P.tool.is_running] = (1, False)
+        trace[P.tool.distance] = (2, 20)
+        trace[P.tool.is_running] = (2, True)
         self.evaluate(trace, expected=False)
 
     def test_nominal_start(self):
         trace = self.setup_trace()
-        trace.terms.constraints.tool.distance.operation @= (0, 10)
-        trace.terms.tool.distance @= (0, 0)
-        trace.terms.tool.is_running @= (0, False)
-        trace.terms.tool.is_running @= (1, True)
+        trace[P.constraints.tool.distance.operation] = (0, 10)
+        trace[P.tool.distance] = (0, 0)
+        trace[P.tool.is_running] = (0, False)
+        trace[P.tool.is_running] = (1, True)
         self.evaluate(trace)
 
 
@@ -242,30 +242,30 @@ class TestH3(HazardTest):
 
     def setup_trace(self):
         trace = Trace()
-        trace.terms.assembly.is_damaged @= (0, False)
-        trace.terms.cobot.is_damaged @= (0, False)
-        trace.terms.operator.is_damaged @= (0, False)
-        trace.terms.tool.is_damaged @= (0, False)
+        trace[P.assembly.is_damaged] = (0, False)
+        trace[P.cobot.is_damaged] = (0, False)
+        trace[P.operator.is_damaged] = (0, False)
+        trace[P.tool.is_damaged] = (0, False)
         return trace
 
     def test_occurs_assembly(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_damaged @= (1, True)
+        trace[P.assembly.is_damaged] = (1, True)
         self.evaluate(trace)
 
     def test_occurs_cobot(self):
         trace = self.setup_trace()
-        trace.terms.cobot.is_damaged @= (1, True)
+        trace[P.cobot.is_damaged] = (1, True)
         self.evaluate(trace)
 
     def test_occurs_operator(self):
         trace = self.setup_trace()
-        trace.terms.operator.is_damaged @= (1, True)
+        trace[P.operator.is_damaged] = (1, True)
         self.evaluate(trace)
 
     def test_occurs_tool(self):
         trace = self.setup_trace()
-        trace.terms.tool.is_damaged @= (1, True)
+        trace[P.tool.is_damaged] = (1, True)
         self.evaluate(trace)
 
     def test_nominal(self):
@@ -275,7 +275,7 @@ class TestH3(HazardTest):
     def test_nominal_initial(self):
         # FIXME No tolerance currently for damaged assembly on start
         trace = self.setup_trace()
-        trace.terms.assembly.is_damaged @= (0, True)
+        trace[P.assembly.is_damaged] = (0, True)
         self.evaluate(trace, expected=False)
 
 
@@ -285,52 +285,52 @@ class TestH4(HazardTest):
 
     def setup_trace(self):
         trace = Trace()
-        trace.terms.assembly.is_damaged @= (0, False)
-        trace.terms.assembly.is_orientation_valid @= (0, True)
-        trace.terms.assembly.is_valid @= (0, True)
-        trace.terms.assembly.under_processing @= (0, False)
+        trace[P.assembly.is_damaged] = (0, False)
+        trace[P.assembly.is_orientation_valid] = (0, True)
+        trace[P.assembly.is_valid] = (0, True)
+        trace[P.assembly.under_processing] = (0, False)
         return trace
 
     def test_occurs_damaged(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_damaged @= (0, True)
-        trace.terms.assembly.under_processing @= (0, True)
+        trace[P.assembly.is_damaged] = (0, True)
+        trace[P.assembly.under_processing] = (0, True)
         self.evaluate(trace)
 
     def test_occurs_orientation(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_orientation_valid @= (0, False)
-        trace.terms.assembly.under_processing @= (0, True)
+        trace[P.assembly.is_orientation_valid] = (0, False)
+        trace[P.assembly.under_processing] = (0, True)
         self.evaluate(trace)
 
     def test_occurs_valid(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_valid @= (0, False)
-        trace.terms.assembly.under_processing @= (0, True)
+        trace[P.assembly.is_valid] = (0, False)
+        trace[P.assembly.under_processing] = (0, True)
         self.evaluate(trace)
 
     def test_nominal(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_damaged @= (0, False)
-        trace.terms.assembly.is_orientation_valid @= (0, True)
-        trace.terms.assembly.is_valid @= (0, True)
-        trace.terms.assembly.under_processing @= (0, True)
+        trace[P.assembly.is_damaged] = (0, False)
+        trace[P.assembly.is_orientation_valid] = (0, True)
+        trace[P.assembly.is_valid] = (0, True)
+        trace[P.assembly.under_processing] = (0, True)
         self.evaluate(trace, expected=False)
 
     def test_nominal_no_processing(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_damaged @= (0, False)
-        trace.terms.assembly.is_orientation_valid @= (0, True)
-        trace.terms.assembly.is_valid @= (0, True)
-        trace.terms.assembly.under_processing @= (0, False)
+        trace[P.assembly.is_damaged] = (0, False)
+        trace[P.assembly.is_orientation_valid] = (0, True)
+        trace[P.assembly.is_valid] = (0, True)
+        trace[P.assembly.under_processing] = (0, False)
         self.evaluate(trace, expected=False)
 
     def test_nominal_damaged_after(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_damaged @= (0, False)
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.assembly.under_processing @= (1, False)
-        trace.terms.assembly.is_damaged @= (2, True)
+        trace[P.assembly.is_damaged] = (0, False)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.assembly.under_processing] = (1, False)
+        trace[P.assembly.is_damaged] = (2, True)
         self.evaluate(trace, expected=False)
 
 
@@ -344,40 +344,40 @@ class TestH5(HazardTest):
 
     def test_occurs(self):
         trace = self.setup_trace()
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.position.in_tool @= (0, True)
-        trace.terms.tool.is_running @= (0, True)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.position.in_tool] = (0, True)
+        trace[P.tool.is_running] = (0, True)
         self.evaluate(trace)
 
     def test_occurs_drop(self):
         trace = self.setup_trace()
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.position.in_tool @= (0, True)
-        trace.terms.tool.is_running @= (0, True)
-        trace.terms.cobot.has_assembly @= (1, False)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.position.in_tool] = (0, True)
+        trace[P.tool.is_running] = (0, True)
+        trace[P.cobot.has_assembly] = (1, False)
         self.evaluate(trace)
 
     def test_nominal(self):
         trace = self.setup_trace()
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.position.in_tool @= (0, True)
-        trace.terms.tool.is_running @= (0, True)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.position.in_tool] = (0, True)
+        trace[P.tool.is_running] = (0, True)
         self.evaluate(trace, expected=False)
 
     def test_nominal_with_release(self):
         trace = self.setup_trace()
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.position.in_tool @= (0, True)
-        trace.terms.tool.is_running @= (0, True)
-        trace.terms.tool.is_running @= (2, False)
-        trace.terms.cobot.has_assembly @= (3, False)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.position.in_tool] = (0, True)
+        trace[P.tool.is_running] = (0, True)
+        trace[P.tool.is_running] = (2, False)
+        trace[P.cobot.has_assembly] = (3, False)
         self.evaluate(trace, expected=False)
 
     def test_occurs_wrong_position(self):
         trace = self.setup_trace()
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.position.in_tool @= (0, False)
-        trace.terms.tool.is_running @= (0, True)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.position.in_tool] = (0, False)
+        trace[P.tool.is_running] = (0, True)
         self.evaluate(trace)
 
 
@@ -387,37 +387,37 @@ class TestH6(HazardTest):
 
     def setup_trace(self):
         trace = Trace()
-        trace.terms.assembly.is_moving @= (0, False)
-        trace.terms.assembly.is_secured @= (0, True)
-        trace.terms.assembly.under_processing @= (0, False)
+        trace[P.assembly.is_moving] = (0, False)
+        trace[P.assembly.is_secured] = (0, True)
+        trace[P.assembly.under_processing] = (0, False)
         return trace
 
     def test_occurs_moving(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_moving @= (0, True)
-        trace.terms.assembly.is_secured @= (0, False)
-        trace.terms.assembly.under_processing @= (0, False)
+        trace[P.assembly.is_moving] = (0, True)
+        trace[P.assembly.is_secured] = (0, False)
+        trace[P.assembly.under_processing] = (0, False)
         self.evaluate(trace)
 
     def test_occurs_processing(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_moving @= (0, False)
-        trace.terms.assembly.is_secured @= (0, False)
-        trace.terms.assembly.under_processing @= (0, True)
+        trace[P.assembly.is_moving] = (0, False)
+        trace[P.assembly.is_secured] = (0, False)
+        trace[P.assembly.under_processing] = (0, True)
         self.evaluate(trace)
 
     def test_nominal_moving(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_moving @= (0, True)
-        trace.terms.assembly.is_secured @= (0, True)
-        trace.terms.assembly.under_processing @= (0, False)
+        trace[P.assembly.is_moving] = (0, True)
+        trace[P.assembly.is_secured] = (0, True)
+        trace[P.assembly.under_processing] = (0, False)
         self.evaluate(trace, expected=False)
 
     def test_nominal_processing(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_moving @= (0, False)
-        trace.terms.assembly.is_secured @= (0, True)
-        trace.terms.assembly.under_processing @= (0, True)
+        trace[P.assembly.is_moving] = (0, False)
+        trace[P.assembly.is_secured] = (0, True)
+        trace[P.assembly.under_processing] = (0, True)
         self.evaluate(trace, expected=False)
 
 
@@ -427,10 +427,10 @@ class TestH7(HazardTest):
 
     def setup_trace(self):
         trace = Trace()
-        trace.terms.assembly.position.in_bench @= (0, True)
-        trace.terms.assembly.is_processed @= (0, False)
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.operator.has_assembly @= (0, False)
+        trace[P.assembly.position.in_bench] = (0, True)
+        trace[P.assembly.is_processed] = (0, False)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.operator.has_assembly] = (0, False)
         return trace
 
     def test_occurs(self):
@@ -439,15 +439,15 @@ class TestH7(HazardTest):
 
     def test_nominal(self):
         trace = self.setup_trace()
-        trace.terms.assembly.position.in_bench @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, False)
+        trace[P.assembly.position.in_bench] = (0, True)
+        trace[P.cobot.has_assembly] = (0, False)
         #
-        trace.terms.operator.has_assembly @= (0, True)
-        trace.terms.operator.has_assembly @= (1, False)
+        trace[P.operator.has_assembly] = (0, True)
+        trace[P.operator.has_assembly] = (1, False)
         #
-        trace.terms.cobot.has_assembly @= (2, True)
+        trace[P.cobot.has_assembly] = (2, True)
         #
-        trace.terms.assembly.is_processed @= (3, True)
+        trace[P.assembly.is_processed] = (3, True)
         #
-        trace.terms.cobot.has_assembly @= (4, False)
+        trace[P.cobot.has_assembly] = (4, False)
         self.evaluate(trace, expected=False)

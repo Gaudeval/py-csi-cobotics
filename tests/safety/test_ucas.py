@@ -1,7 +1,8 @@
 import pytest
 
 from tests.safety.common import SafetyTest
-from csi.monitor import Trace
+from csi.monitor import Monitor, Trace
+from scenarios.tcx.monitor import P
 
 
 class UCATest(SafetyTest):
@@ -13,7 +14,7 @@ class UCATest(SafetyTest):
 
     @staticmethod
     def identify(uca_id):
-        from scenarios import unsafe_control_actions
+        from scenarios.tcx import unsafe_control_actions
 
         for uca in unsafe_control_actions:
             if uca.uid == uca_id:
@@ -21,11 +22,9 @@ class UCATest(SafetyTest):
 
     def evaluate(self, trace, expected=True):
         uca = self.identify(self.uca_id)
-        trace += uca.condition
-        assert len(trace.undefined_terms) == 0, "Undefined terms: {}".format(
-            [".".join(t) for t in trace.undefined_terms]
-        )
-        occurs = trace.evaluate(uca.condition)
+        monitor = Monitor({uca.condition})
+        assert len(monitor.atoms() - trace.atoms()) == 0
+        occurs = monitor.evaluate(trace, uca.condition)
         assert occurs is not None
         assert occurs == expected
 
@@ -39,43 +38,43 @@ class Test4D1(UCATest):
     def test_grab(self):
         trace = Trace()
         #
-        trace.terms.operator.has_assembly @= (0, False)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.is_moving @= (0, False)
+        trace[P.operator.has_assembly] = (0, False)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.is_moving] = (0, False)
         #
-        trace.terms.cobot.is_moving @= (1, True)
-        trace.terms.cobot.is_moving @= (2, False)
-        trace.terms.operator.has_assembly @= (2, True)
-        trace.terms.cobot.has_assembly @= (3, True)
-        trace.terms.cobot.is_moving @= (4, True)
+        trace[P.cobot.is_moving] = (1, True)
+        trace[P.cobot.is_moving] = (2, False)
+        trace[P.operator.has_assembly] = (2, True)
+        trace[P.cobot.has_assembly] = (3, True)
+        trace[P.cobot.is_moving] = (4, True)
         self.evaluate(trace)
 
     def test_operator_release(self):
         trace = Trace()
         #
-        trace.terms.operator.has_assembly @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.is_moving @= (0, False)
+        trace[P.operator.has_assembly] = (0, True)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.is_moving] = (0, False)
         #
-        trace.terms.cobot.is_moving @= (1, True)
-        trace.terms.cobot.is_moving @= (2, False)
-        trace.terms.operator.has_assembly @= (2, False)
-        trace.terms.cobot.has_assembly @= (3, True)
-        trace.terms.cobot.is_moving @= (4, True)
+        trace[P.cobot.is_moving] = (1, True)
+        trace[P.cobot.is_moving] = (2, False)
+        trace[P.operator.has_assembly] = (2, False)
+        trace[P.cobot.has_assembly] = (3, True)
+        trace[P.cobot.is_moving] = (4, True)
         self.evaluate(trace, expected=False)
 
     def test_cobot_release(self):
         trace = Trace()
         #
-        trace.terms.operator.has_assembly @= (0, False)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.is_moving @= (0, True)
-        trace.terms.cobot.is_moving @= (1, False)
+        trace[P.operator.has_assembly] = (0, False)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.is_moving] = (0, True)
+        trace[P.cobot.is_moving] = (1, False)
         #
-        trace.terms.cobot.has_assembly @= (1, True)
-        trace.terms.operator.has_assembly @= (2, True)
-        trace.terms.cobot.has_assembly @= (3, False)
-        trace.terms.cobot.is_moving @= (4, True)
+        trace[P.cobot.has_assembly] = (1, True)
+        trace[P.operator.has_assembly] = (2, True)
+        trace[P.cobot.has_assembly] = (3, False)
+        trace[P.cobot.is_moving] = (4, True)
         self.evaluate(trace, expected=False)
 
 
@@ -85,48 +84,48 @@ class Test4D2(UCATest):
 
     def test_occurs(self):
         trace = Trace()
-        trace.terms.assembly.is_secured @= (0, False)
-        trace.terms.operator.has_assembly @= (0, True)
-        trace.terms.operator.has_assembly @= (1, False)
+        trace[P.assembly.is_secured] = (0, False)
+        trace[P.operator.has_assembly] = (0, True)
+        trace[P.operator.has_assembly] = (1, False)
         self.evaluate(trace)
 
     def test_nominal(self):
         trace = Trace()
-        trace.terms.assembly.is_secured @= (0, True)
-        trace.terms.operator.has_assembly @= (0, True)
-        trace.terms.operator.has_assembly @= (1, False)
+        trace[P.assembly.is_secured] = (0, True)
+        trace[P.operator.has_assembly] = (0, True)
+        trace[P.operator.has_assembly] = (1, False)
         self.evaluate(trace, expected=False)
 
     def test_multiple_occurs(self):
         trace = Trace()
-        trace.terms.assembly.is_secured @= (0, True)
-        trace.terms.operator.has_assembly @= (0, True)
-        trace.terms.operator.has_assembly @= (1, False)
-        trace.terms.assembly.is_secured @= (2, False)
-        trace.terms.operator.has_assembly @= (3, True)
-        trace.terms.operator.has_assembly @= (4, False)
+        trace[P.assembly.is_secured] = (0, True)
+        trace[P.operator.has_assembly] = (0, True)
+        trace[P.operator.has_assembly] = (1, False)
+        trace[P.assembly.is_secured] = (2, False)
+        trace[P.operator.has_assembly] = (3, True)
+        trace[P.operator.has_assembly] = (4, False)
         self.evaluate(trace)
 
     def test_no_release(self):
         trace = Trace()
-        trace.terms.assembly.is_secured @= (0, False)
-        trace.terms.operator.has_assembly @= (0, True)
+        trace[P.assembly.is_secured] = (0, False)
+        trace[P.operator.has_assembly] = (0, True)
         self.evaluate(trace, expected=False)
 
     def test_unsecured_after(self):
         trace = Trace()
-        trace.terms.assembly.is_secured @= (0, True)
-        trace.terms.operator.has_assembly @= (0, True)
-        trace.terms.operator.has_assembly @= (1, False)
-        trace.terms.assembly.is_secured @= (1, False)
+        trace[P.assembly.is_secured] = (0, True)
+        trace[P.operator.has_assembly] = (0, True)
+        trace[P.operator.has_assembly] = (1, False)
+        trace[P.assembly.is_secured] = (1, False)
         self.evaluate(trace, expected=False)
 
     def test_becomes_unsecured(self):
         trace = Trace()
-        trace.terms.assembly.is_secured @= (0, True)
-        trace.terms.assembly.is_secured @= (5, False)
-        trace.terms.operator.has_assembly @= (10, True)
-        trace.terms.operator.has_assembly @= (11, False)
+        trace[P.assembly.is_secured] = (0, True)
+        trace[P.assembly.is_secured] = (5, False)
+        trace[P.operator.has_assembly] = (10, True)
+        trace[P.operator.has_assembly] = (11, False)
         self.evaluate(trace)
 
 
@@ -136,94 +135,94 @@ class Test4N1(UCATest):
 
     def setup_trace(self):
         trace = Trace()
-        trace.terms.operator.provides_assembly @= (0, False)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.position.in_tool @= (0, True)
-        trace.terms.operator.has_assembly @= (0, False)
+        trace[P.operator.provides_assembly] = (0, False)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.position.in_tool] = (0, True)
+        trace[P.operator.has_assembly] = (0, False)
         return trace
 
     def test_occurs(self):
         trace = self.setup_trace()
-        trace.terms.operator.provides_assembly @= (0, False)
-        trace.terms.operator.has_assembly @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.position.in_bench @= (0, True)
+        trace[P.operator.provides_assembly] = (0, False)
+        trace[P.operator.has_assembly] = (0, True)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.position.in_bench] = (0, True)
         self.evaluate(trace)
 
     def test_nominal(self):
         trace = self.setup_trace()
-        trace.terms.operator.has_assembly @= (0, True)
-        trace.terms.operator.provides_assembly @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.position.in_bench @= (0, True)
-        trace.terms.operator.has_assembly @= (1, False)
+        trace[P.operator.has_assembly] = (0, True)
+        trace[P.operator.provides_assembly] = (0, True)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.position.in_bench] = (0, True)
+        trace[P.operator.has_assembly] = (1, False)
         self.evaluate(trace, expected=False)
 
     def test_cobot_busy(self):
         trace = self.setup_trace()
-        trace.terms.operator.provides_assembly @= (0, False)
-        trace.terms.operator.has_assembly @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.position.in_bench @= (0, True)
+        trace[P.operator.provides_assembly] = (0, False)
+        trace[P.operator.has_assembly] = (0, True)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.position.in_bench] = (0, True)
         self.evaluate(trace, expected=False)
 
     def test_no_assembly(self):
         trace = Trace()
-        trace.terms.operator.provides_assembly @= (0, False)
-        trace.terms.operator.has_assembly @= (0, False)
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.position.in_bench @= (0, True)
+        trace[P.operator.provides_assembly] = (0, False)
+        trace[P.operator.has_assembly] = (0, False)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.position.in_bench] = (0, True)
         self.evaluate(trace, expected=False)
 
     def test_nominal_multiple(self):
         trace = self.setup_trace()
         # Cobot in position
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.position.in_bench @= (0, True)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.position.in_bench] = (0, True)
         # Operator ready for handover
-        trace.terms.operator.has_assembly @= (0, True)
-        trace.terms.operator.provides_assembly @= (0, True)
+        trace[P.operator.has_assembly] = (0, True)
+        trace[P.operator.provides_assembly] = (0, True)
         # Handover
-        trace.terms.operator.has_assembly @= (1, False)
-        trace.terms.operator.provides_assembly @= (1, False)
+        trace[P.operator.has_assembly] = (1, False)
+        trace[P.operator.provides_assembly] = (1, False)
         # Cobot releases assembly
-        trace.terms.cobot.has_assembly @= (1, True)
-        trace.terms.cobot.has_assembly @= (2, False)
+        trace[P.cobot.has_assembly] = (1, True)
+        trace[P.cobot.has_assembly] = (2, False)
         # Operator picks assembly
-        trace.terms.operator.has_assembly @= (3, True)
-        trace.terms.operator.provides_assembly @= (4, True)
+        trace[P.operator.has_assembly] = (3, True)
+        trace[P.operator.provides_assembly] = (4, True)
         # Handover
-        trace.terms.operator.has_assembly @= (5, False)
-        trace.terms.operator.provides_assembly @= (5, False)
+        trace[P.operator.has_assembly] = (5, False)
+        trace[P.operator.provides_assembly] = (5, False)
         self.evaluate(trace, expected=False)
 
     def test_occurs_after_nominal(self):
         trace = self.setup_trace()
         # Nominal handover
-        trace.terms.operator.has_assembly @= (0, True)
-        trace.terms.operator.provides_assembly @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.position.in_bench @= (0, True)
-        trace.terms.operator.has_assembly @= (1, False)
+        trace[P.operator.has_assembly] = (0, True)
+        trace[P.operator.provides_assembly] = (0, True)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.position.in_bench] = (0, True)
+        trace[P.operator.has_assembly] = (1, False)
         # Cobot release, no handover
-        trace.terms.operator.provides_assembly @= (2, False)
-        trace.terms.cobot.has_assembly @= (2, True)
-        trace.terms.cobot.has_assembly @= (3, False)
-        trace.terms.operator.has_assembly @= (3, True)
+        trace[P.operator.provides_assembly] = (2, False)
+        trace[P.cobot.has_assembly] = (2, True)
+        trace[P.cobot.has_assembly] = (3, False)
+        trace[P.operator.has_assembly] = (3, True)
         self.evaluate(trace)
 
     def test_occurs_before_nominal(self):
         trace = self.setup_trace()
-        trace.terms.operator.provides_assembly @= (0, False)
-        trace.terms.operator.has_assembly @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.position.in_bench @= (0, True)
+        trace[P.operator.provides_assembly] = (0, False)
+        trace[P.operator.has_assembly] = (0, True)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.position.in_bench] = (0, True)
         # Nominal handover
-        trace.terms.operator.has_assembly @= (5, True)
-        trace.terms.operator.provides_assembly @= (5, True)
-        trace.terms.cobot.has_assembly @= (5, False)
-        trace.terms.cobot.position.in_bench @= (5, True)
-        trace.terms.operator.has_assembly @= (6, False)
+        trace[P.operator.has_assembly] = (5, True)
+        trace[P.operator.provides_assembly] = (5, True)
+        trace[P.cobot.has_assembly] = (5, False)
+        trace[P.cobot.position.in_bench] = (5, True)
+        trace[P.operator.has_assembly] = (6, False)
         self.evaluate(trace, expected=False)
 
 
@@ -233,26 +232,26 @@ class Test4P1(UCATest):
 
     def setup_trace(self):
         trace = Trace()
-        trace.terms.assembly.is_valid @= (0, False)
-        trace.terms.operator.provides_assembly @= (0, False)
+        trace[P.assembly.is_valid] = (0, False)
+        trace[P.operator.provides_assembly] = (0, False)
         return trace
 
     def test_occurs(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_valid @= (0, False)
-        trace.terms.operator.provides_assembly @= (0, True)
+        trace[P.assembly.is_valid] = (0, False)
+        trace[P.operator.provides_assembly] = (0, True)
         self.evaluate(trace)
 
     def test_assembly_valid(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_valid @= (0, True)
-        trace.terms.operator.provides_assembly @= (0, True)
+        trace[P.assembly.is_valid] = (0, True)
+        trace[P.operator.provides_assembly] = (0, True)
         self.evaluate(trace, expected=False)
 
     def test_no_provision(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_valid @= (0, True)
-        trace.terms.operator.provides_assembly @= (0, False)
+        trace[P.assembly.is_valid] = (0, True)
+        trace[P.operator.provides_assembly] = (0, False)
         self.evaluate(trace, expected=False)
 
 
@@ -262,26 +261,26 @@ class Test4P2(UCATest):
 
     def setup_trace(self):
         trace = Trace()
-        trace.terms.assembly.is_damaged @= (0, False)
-        trace.terms.operator.provides_assembly @= (0, False)
+        trace[P.assembly.is_damaged] = (0, False)
+        trace[P.operator.provides_assembly] = (0, False)
         return trace
 
     def test_occurs(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_damaged @= (0, True)
-        trace.terms.operator.provides_assembly @= (0, True)
+        trace[P.assembly.is_damaged] = (0, True)
+        trace[P.operator.provides_assembly] = (0, True)
         self.evaluate(trace)
 
     def test_assembly_valid(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_damaged @= (0, False)
-        trace.terms.operator.provides_assembly @= (0, True)
+        trace[P.assembly.is_damaged] = (0, False)
+        trace[P.operator.provides_assembly] = (0, True)
         self.evaluate(trace, expected=False)
 
     def test_no_provision(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_damaged @= (0, True)
-        trace.terms.operator.provides_assembly @= (0, False)
+        trace[P.assembly.is_damaged] = (0, True)
+        trace[P.operator.provides_assembly] = (0, False)
         self.evaluate(trace, expected=False)
 
 
@@ -291,26 +290,26 @@ class Test4P3(UCATest):
 
     def setup_trace(self):
         trace = Trace()
-        trace.terms.assembly.is_orientation_valid @= (0, False)
-        trace.terms.operator.provides_assembly @= (0, False)
+        trace[P.assembly.is_orientation_valid] = (0, False)
+        trace[P.operator.provides_assembly] = (0, False)
         return trace
 
     def test_occurs(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_orientation_valid @= (0, False)
-        trace.terms.operator.provides_assembly @= (0, True)
+        trace[P.assembly.is_orientation_valid] = (0, False)
+        trace[P.operator.provides_assembly] = (0, True)
         self.evaluate(trace)
 
     def test_assembly_valid(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_orientation_valid @= (0, True)
-        trace.terms.operator.provides_assembly @= (0, True)
+        trace[P.assembly.is_orientation_valid] = (0, True)
+        trace[P.operator.provides_assembly] = (0, True)
         self.evaluate(trace, expected=False)
 
     def test_no_provision(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_orientation_valid @= (0, False)
-        trace.terms.operator.provides_assembly @= (0, False)
+        trace[P.assembly.is_orientation_valid] = (0, False)
+        trace[P.operator.provides_assembly] = (0, False)
         self.evaluate(trace, expected=False)
 
 
@@ -321,15 +320,15 @@ class Test4T1(UCATest):
     def test_occurs(self):
         trace = Trace()
         #
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.operator.provides_assembly @= (0, True)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.operator.provides_assembly] = (0, True)
         self.evaluate(trace)
 
     def test_no_provision(self):
         trace = Trace()
         #
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.operator.provides_assembly @= (0, False)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.operator.provides_assembly] = (0, False)
         self.evaluate(trace, expected=False)
 
 
@@ -339,39 +338,39 @@ class Test4T2(UCATest):
 
     def setup_trace(self):
         trace = Trace()
-        trace.terms.cobot.is_moving @= (0, False)
-        # trace.terms.cobot.position @= (0, EntityPosition.OOB)
-        trace.terms.operator.provides_assembly @= (0, False)
+        trace[P.cobot.is_moving] = (0, False)
+        # trace[P.cobot.position] = (0, EntityPosition.OOB)
+        trace[P.operator.provides_assembly] = (0, False)
         return trace
 
     def test_occurs(self):
         trace = self.setup_trace()
-        trace.terms.cobot.is_moving @= (0, True)
-        trace.terms.cobot.position.in_bench @= (0, True)
-        trace.terms.operator.provides_assembly @= (1, True)
+        trace[P.cobot.is_moving] = (0, True)
+        trace[P.cobot.position.in_bench] = (0, True)
+        trace[P.operator.provides_assembly] = (1, True)
         self.evaluate(trace)
 
     def test_no_delivery(self):
         trace = self.setup_trace()
         #
-        trace.terms.cobot.is_moving @= (0, True)
-        trace.terms.cobot.position.in_tool @= (0, True)
-        trace.terms.cobot.position.in_tool @= (1, False)
-        trace.terms.cobot.position.in_bench @= (1, True)
-        trace.terms.cobot.position.in_bench @= (2, False)
-        trace.terms.cobot.position.in_tool @= (2, True)
-        trace.terms.operator.provides_assembly @= (0, False)
+        trace[P.cobot.is_moving] = (0, True)
+        trace[P.cobot.position.in_tool] = (0, True)
+        trace[P.cobot.position.in_tool] = (1, False)
+        trace[P.cobot.position.in_bench] = (1, True)
+        trace[P.cobot.position.in_bench] = (2, False)
+        trace[P.cobot.position.in_tool] = (2, True)
+        trace[P.operator.provides_assembly] = (0, False)
         self.evaluate(trace, expected=False)
 
     def test_cobot_leaving(self):
         trace = self.setup_trace()
-        trace.terms.cobot.is_moving @= (0, True)
-        trace.terms.cobot.position.in_tool @= (0, True)
-        trace.terms.cobot.position.in_tool @= (1, False)
-        trace.terms.cobot.position.in_bench @= (1, True)
-        trace.terms.cobot.position.in_bench @= (2, False)
-        trace.terms.cobot.position.in_tool @= (2, True)
-        trace.terms.operator.provides_assembly @= (2, True)
+        trace[P.cobot.is_moving] = (0, True)
+        trace[P.cobot.position.in_tool] = (0, True)
+        trace[P.cobot.position.in_tool] = (1, False)
+        trace[P.cobot.position.in_bench] = (1, True)
+        trace[P.cobot.position.in_bench] = (2, False)
+        trace[P.cobot.position.in_tool] = (2, True)
+        trace[P.operator.provides_assembly] = (2, True)
         self.evaluate(trace, expected=False)
 
 
@@ -383,38 +382,38 @@ class Test4T3(UCATest):
 
     def setup_trace(self):
         trace = Trace()
-        trace.terms.operator.provides_assembly @= (0, False)
-        trace.terms.controller.is_configured @= (0, False)
+        trace[P.operator.provides_assembly] = (0, False)
+        trace[P.controller.is_configured] = (0, False)
         return trace
 
     def test_occurs(self):
         trace = self.setup_trace()
-        trace.terms.controller.is_configured @= (0, False)
-        trace.terms.operator.provides_assembly @= (0, True)
+        trace[P.controller.is_configured] = (0, False)
+        trace[P.operator.provides_assembly] = (0, True)
         self.evaluate(trace)
 
     def test_configured(self):
         trace = self.setup_trace()
-        trace.terms.controller.is_configured @= (0, True)
-        trace.terms.operator.provides_assembly @= (0, True)
+        trace[P.controller.is_configured] = (0, True)
+        trace[P.operator.provides_assembly] = (0, True)
         self.evaluate(trace, expected=False)
 
     def test_delayed_configuration(self):
         trace = self.setup_trace()
         #
-        trace.terms.controller.is_configured @= (0, False)
-        trace.terms.controller.is_configured @= (5, True)
-        trace.terms.operator.provides_assembly @= (6, True)
+        trace[P.controller.is_configured] = (0, False)
+        trace[P.controller.is_configured] = (5, True)
+        trace[P.operator.provides_assembly] = (6, True)
         self.evaluate(trace, expected=False)
 
     def test_configuration_removed(self):
         trace = self.setup_trace()
         #
-        trace.terms.controller.is_configured @= (0, False)
-        trace.terms.controller.is_configured @= (1, True)
-        trace.terms.operator.provides_assembly @= (2, True)
-        trace.terms.operator.provides_assembly @= (3, False)
-        trace.terms.controller.is_configured @= (5, False)
+        trace[P.controller.is_configured] = (0, False)
+        trace[P.controller.is_configured] = (1, True)
+        trace[P.operator.provides_assembly] = (2, True)
+        trace[P.operator.provides_assembly] = (3, False)
+        trace[P.controller.is_configured] = (5, False)
         self.evaluate(trace, expected=False)
 
 
@@ -425,37 +424,37 @@ class Test5D1(UCATest):
     def test_occurs(self):
         trace = Trace()
         #
-        trace.terms.assembly.is_secured @= (0, False)
-        trace.terms.operator.has_assembly @= (0, True)
-        trace.terms.operator.has_assembly @= (1, False)
+        trace[P.assembly.is_secured] = (0, False)
+        trace[P.operator.has_assembly] = (0, True)
+        trace[P.operator.has_assembly] = (1, False)
         self.evaluate(trace)
 
     def test_secured(self):
         trace = Trace()
         #
-        trace.terms.assembly.is_secured @= (0, True)
-        trace.terms.operator.has_assembly @= (0, True)
-        trace.terms.operator.has_assembly @= (1, False)
+        trace[P.assembly.is_secured] = (0, True)
+        trace[P.operator.has_assembly] = (0, True)
+        trace[P.operator.has_assembly] = (1, False)
         self.evaluate(trace, expected=False)
 
     def test_secured_release(self):
         trace = Trace()
         #
-        trace.terms.assembly.is_secured @= (0, False)
-        trace.terms.operator.has_assembly @= (0, True)
-        trace.terms.assembly.is_secured @= (1, True)
-        trace.terms.operator.has_assembly @= (2, False)
+        trace[P.assembly.is_secured] = (0, False)
+        trace[P.operator.has_assembly] = (0, True)
+        trace[P.assembly.is_secured] = (1, True)
+        trace[P.operator.has_assembly] = (2, False)
         self.evaluate(trace, expected=False)
 
     def test_occurs_once(self):
         trace = Trace()
         #
-        trace.terms.assembly.is_secured @= (0, True)
-        trace.terms.operator.has_assembly @= (0, True)
-        trace.terms.operator.has_assembly @= (1, False)
-        trace.terms.assembly.is_secured @= (10, False)
-        trace.terms.operator.has_assembly @= (10, True)
-        trace.terms.operator.has_assembly @= (11, False)
+        trace[P.assembly.is_secured] = (0, True)
+        trace[P.operator.has_assembly] = (0, True)
+        trace[P.operator.has_assembly] = (1, False)
+        trace[P.assembly.is_secured] = (10, False)
+        trace[P.operator.has_assembly] = (10, True)
+        trace[P.operator.has_assembly] = (11, False)
         self.evaluate(trace)
 
 
@@ -465,42 +464,42 @@ class Test5P1(UCATest):
 
     def test_occurs(self):
         trace = Trace()
-        trace.terms.assembly.is_secured @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.operator.has_assembly @= (0, False)
-        trace.terms.operator.has_assembly @= (1, True)
+        trace[P.assembly.is_secured] = (0, True)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.operator.has_assembly] = (0, False)
+        trace[P.operator.has_assembly] = (1, True)
         self.evaluate(trace)
 
     def test_nominal(self):
         trace = Trace()
-        trace.terms.assembly.is_secured @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.operator.has_assembly @= (0, False)
-        trace.terms.operator.has_assembly @= (1, True)
+        trace[P.assembly.is_secured] = (0, True)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.operator.has_assembly] = (0, False)
+        trace[P.operator.has_assembly] = (1, True)
         self.evaluate(trace, expected=False)
 
     def test_unsecured(self):
         trace = Trace()
-        trace.terms.assembly.is_secured @= (0, False)
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.operator.has_assembly @= (0, False)
-        trace.terms.operator.has_assembly @= (1, True)
+        trace[P.assembly.is_secured] = (0, False)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.operator.has_assembly] = (0, False)
+        trace[P.operator.has_assembly] = (1, True)
         self.evaluate(trace, expected=False)
 
     def test_no_retrieve(self):
         trace = Trace()
-        trace.terms.assembly.is_secured @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.operator.has_assembly @= (0, False)
+        trace[P.assembly.is_secured] = (0, True)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.operator.has_assembly] = (0, False)
         self.evaluate(trace, expected=False)
 
     def test_cobot_release(self):
         trace = Trace()
-        trace.terms.assembly.is_secured @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.has_assembly @= (1, False)
-        trace.terms.operator.has_assembly @= (0, False)
-        trace.terms.operator.has_assembly @= (2, False)
+        trace[P.assembly.is_secured] = (0, True)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.has_assembly] = (1, False)
+        trace[P.operator.has_assembly] = (0, False)
+        trace[P.operator.has_assembly] = (2, False)
         self.evaluate(trace, expected=False)
 
 
@@ -510,30 +509,30 @@ class Test5P2(UCATest):
 
     def setup_trace(self):
         trace = Trace()
-        trace.terms.operator.has_assembly @= (0, True)
-        trace.terms.assembly.under_processing @= (0, False)
+        trace[P.operator.has_assembly] = (0, True)
+        trace[P.assembly.under_processing] = (0, False)
         return trace
 
     def test_occurs(self):
         trace = self.setup_trace()
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.operator.has_assembly @= (0, False)
-        trace.terms.operator.has_assembly @= (1, True)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.operator.has_assembly] = (0, False)
+        trace[P.operator.has_assembly] = (1, True)
         self.evaluate(trace)
 
     def test_nominal(self):
         trace = self.setup_trace()
-        trace.terms.assembly.under_processing @= (0, False)
-        trace.terms.operator.has_assembly @= (0, False)
-        trace.terms.operator.has_assembly @= (1, True)
+        trace[P.assembly.under_processing] = (0, False)
+        trace[P.operator.has_assembly] = (0, False)
+        trace[P.operator.has_assembly] = (1, True)
         self.evaluate(trace, expected=False)
 
     def test_after_processing(self):
         trace = self.setup_trace()
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.assembly.under_processing @= (1, False)
-        trace.terms.operator.has_assembly @= (1, False)
-        trace.terms.operator.has_assembly @= (2, True)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.assembly.under_processing] = (1, False)
+        trace[P.operator.has_assembly] = (1, False)
+        trace[P.operator.has_assembly] = (2, True)
         self.evaluate(trace, expected=False)
 
 
@@ -543,57 +542,57 @@ class Test5P3(UCATest):
 
     def setup_trace(self):
         trace = Trace()
-        trace.terms.operator.has_assembly @= (0, False)
-        trace.terms.assembly.is_processed @= (0, False)
+        trace[P.operator.has_assembly] = (0, False)
+        trace[P.assembly.is_processed] = (0, False)
         return trace
 
     def test_occurs(self):
         trace = self.setup_trace()
-        trace.terms.operator.has_assembly @= (0, False)
-        trace.terms.assembly.is_processed @= (0, False)
-        trace.terms.operator.has_assembly @= (1, True)
+        trace[P.operator.has_assembly] = (0, False)
+        trace[P.assembly.is_processed] = (0, False)
+        trace[P.operator.has_assembly] = (1, True)
         self.evaluate(trace)
 
     def test_nominal(self):
         trace = self.setup_trace()
-        trace.terms.operator.has_assembly @= (0, False)
-        trace.terms.assembly.is_processed @= (0, True)
-        trace.terms.operator.has_assembly @= (1, True)
+        trace[P.operator.has_assembly] = (0, False)
+        trace[P.assembly.is_processed] = (0, True)
+        trace[P.operator.has_assembly] = (1, True)
         self.evaluate(trace, expected=False)
 
     def test_multiple_occurs(self):
         trace = self.setup_trace()
         # Grab processed
-        trace.terms.operator.has_assembly @= (0, False)
-        trace.terms.assembly.is_processed @= (0, True)
-        trace.terms.operator.has_assembly @= (1, True)
+        trace[P.operator.has_assembly] = (0, False)
+        trace[P.assembly.is_processed] = (0, True)
+        trace[P.operator.has_assembly] = (1, True)
         # Grab non-processed
-        trace.terms.operator.has_assembly @= (2, False)
-        trace.terms.assembly.is_processed @= (True, False)
-        trace.terms.operator.has_assembly @= (4, True)
+        trace[P.operator.has_assembly] = (2, False)
+        trace[P.assembly.is_processed] = (True, False)
+        trace[P.operator.has_assembly] = (4, True)
         self.evaluate(trace)
 
     def test_processed_no_grab(self):
         trace = self.setup_trace()
         # Grab non-processed
-        trace.terms.operator.has_assembly @= (0, False)
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.position.in_tool @= (0, True)
-        trace.terms.tool.is_running @= (0, False)
-        trace.terms.operator.has_assembly @= (1, True)
+        trace[P.operator.has_assembly] = (0, False)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.position.in_tool] = (0, True)
+        trace[P.tool.is_running] = (0, False)
+        trace[P.operator.has_assembly] = (1, True)
         # Processed non-grabbed
-        trace.terms.operator.has_assembly @= (2, False)
-        trace.terms.cobot.has_assembly @= (2, True)
-        trace.terms.cobot.position.in_tool @= (2, True)
-        trace.terms.tool.is_running @= (2, True)
+        trace[P.operator.has_assembly] = (2, False)
+        trace[P.cobot.has_assembly] = (2, True)
+        trace[P.cobot.position.in_tool] = (2, True)
+        trace[P.tool.is_running] = (2, True)
         self.evaluate(trace)
 
     def test_no_grab(self):
         trace = self.setup_trace()
-        trace.terms.operator.has_assembly @= (0, False)
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.position.in_tool @= (0, True)
-        trace.terms.tool.is_running @= (0, False)
+        trace[P.operator.has_assembly] = (0, False)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.position.in_tool] = (0, True)
+        trace[P.tool.is_running] = (0, False)
         self.evaluate(trace, expected=False)
 
 
@@ -605,35 +604,35 @@ class Test5T1(UCATest):
 
     def test_occurs(self):
         trace = Trace()
-        trace.terms.operator.has_assembly @= (0, False)
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.is_moving @= (0, True)
-        trace.terms.operator.has_assembly @= (1, True)
+        trace[P.operator.has_assembly] = (0, False)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.is_moving] = (0, True)
+        trace[P.operator.has_assembly] = (1, True)
         self.evaluate(trace)
 
     def test_nominal(self):
         trace = Trace()
-        trace.terms.operator.has_assembly @= (0, False)
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.is_moving @= (0, True)
-        trace.terms.cobot.is_moving @= (1, False)
-        trace.terms.operator.has_assembly @= (2, True)
+        trace[P.operator.has_assembly] = (0, False)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.is_moving] = (0, True)
+        trace[P.cobot.is_moving] = (1, False)
+        trace[P.operator.has_assembly] = (2, True)
         self.evaluate(trace, expected=False)
 
     def test_to_tool(self):
         trace = Trace()
-        trace.terms.operator.has_assembly @= (0, False)
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.is_moving @= (0, True)
-        trace.terms.operator.has_assembly @= (1, True)
+        trace[P.operator.has_assembly] = (0, False)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.is_moving] = (0, True)
+        trace[P.operator.has_assembly] = (1, True)
         self.evaluate(trace)
 
     def test_no_handover(self):
         trace = Trace()
-        trace.terms.operator.has_assembly @= (0, False)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.is_moving @= (0, True)
-        trace.terms.operator.has_assembly @= (1, True)
+        trace[P.operator.has_assembly] = (0, False)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.is_moving] = (0, True)
+        trace[P.operator.has_assembly] = (1, True)
         self.evaluate(trace, expected=False)
 
 
@@ -645,35 +644,35 @@ class Test5T2(UCATest):
 
     def test_occurs(self):
         trace = Trace()
-        trace.terms.assembly.is_secured @= (0, False)
-        trace.terms.operator.has_assembly @= (0, False)
-        trace.terms.operator.has_assembly @= (1, True)
+        trace[P.assembly.is_secured] = (0, False)
+        trace[P.operator.has_assembly] = (0, False)
+        trace[P.operator.has_assembly] = (1, True)
         self.evaluate(trace)
 
     def test_nominal(self):
         trace = Trace()
-        trace.terms.assembly.is_secured @= (0, True)
-        trace.terms.operator.has_assembly @= (0, False)
-        trace.terms.operator.has_assembly @= (1, True)
+        trace[P.assembly.is_secured] = (0, True)
+        trace[P.operator.has_assembly] = (0, False)
+        trace[P.operator.has_assembly] = (1, True)
         self.evaluate(trace, expected=False)
 
     def test_occurs_once(self):
         trace = Trace()
-        trace.terms.assembly.is_secured @= (0, True)
-        trace.terms.operator.has_assembly @= (0, False)
-        trace.terms.operator.has_assembly @= (1, True)
-        trace.terms.operator.has_assembly @= (2, False)
-        trace.terms.assembly.is_secured @= (2, False)
-        trace.terms.operator.has_assembly @= (3, True)
+        trace[P.assembly.is_secured] = (0, True)
+        trace[P.operator.has_assembly] = (0, False)
+        trace[P.operator.has_assembly] = (1, True)
+        trace[P.operator.has_assembly] = (2, False)
+        trace[P.assembly.is_secured] = (2, False)
+        trace[P.operator.has_assembly] = (3, True)
         self.evaluate(trace)
 
     def test_occurs_nominal(self):
         trace = Trace()
-        trace.terms.assembly.is_secured @= (0, True)
-        trace.terms.operator.has_assembly @= (0, False)
-        trace.terms.operator.has_assembly @= (1, True)
-        trace.terms.operator.has_assembly @= (2, False)
-        trace.terms.operator.has_assembly @= (3, True)
+        trace[P.assembly.is_secured] = (0, True)
+        trace[P.operator.has_assembly] = (0, False)
+        trace[P.operator.has_assembly] = (1, True)
+        trace[P.operator.has_assembly] = (2, False)
+        trace[P.operator.has_assembly] = (3, True)
         self.evaluate(trace, expected=False)
 
 
@@ -684,31 +683,31 @@ class Test7D1(UCATest):
     def test_occurs(self):
         trace = Trace()
         #
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.position.in_bench @= (0, True)
-        trace.terms.cobot.position.in_bench @= (1, False)
-        trace.terms.cobot.position.in_tool @= (1, True)
-        trace.terms.cobot.has_assembly @= (2, False)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.position.in_bench] = (0, True)
+        trace[P.cobot.position.in_bench] = (1, False)
+        trace[P.cobot.position.in_tool] = (1, True)
+        trace[P.cobot.has_assembly] = (2, False)
         self.evaluate(trace)
 
     def test_bench_release(self):
         trace = Trace()
         #
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.position.in_bench @= (0, True)
-        trace.terms.cobot.has_assembly @= (1, False)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.position.in_bench] = (0, True)
+        trace[P.cobot.has_assembly] = (1, False)
         self.evaluate(trace, expected=False)
 
     def test_round(self):
         trace = Trace()
         #
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.position.in_bench @= (0, True)
-        trace.terms.cobot.position.in_bench @= (1, False)
-        trace.terms.cobot.position.in_tool @= (1, True)
-        trace.terms.cobot.position.in_tool @= (2, False)
-        trace.terms.cobot.position.in_bench @= (2, True)
-        trace.terms.cobot.has_assembly @= (3, False)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.position.in_bench] = (0, True)
+        trace[P.cobot.position.in_bench] = (1, False)
+        trace[P.cobot.position.in_tool] = (1, True)
+        trace[P.cobot.position.in_tool] = (2, False)
+        trace[P.cobot.position.in_bench] = (2, True)
+        trace[P.cobot.has_assembly] = (3, False)
         self.evaluate(trace, expected=False)
 
 
@@ -722,65 +721,65 @@ class Test7N1(UCATest):
     def test_occurs(self):
         trace = Trace()
         #
-        trace.terms.assembly.position.in_bench @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.position.in_bench @= (0, True)
+        trace[P.assembly.position.in_bench] = (0, True)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.position.in_bench] = (0, True)
         self.evaluate(trace)
 
     def test_cobot_grab(self):
         trace = Trace()
         #
-        trace.terms.assembly.position.in_bench @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.position.in_bench @= (0, True)
+        trace[P.assembly.position.in_bench] = (0, True)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.position.in_bench] = (0, True)
         self.evaluate(trace, expected=False)
 
     def test_cobot_away(self):
         trace = Trace()
         #
-        trace.terms.assembly.position.in_bench @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.position.in_tool @= (0, True)
-        trace.terms.cobot.position.in_bench @= (0, False)
+        trace[P.assembly.position.in_bench] = (0, True)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.position.in_tool] = (0, True)
+        trace[P.cobot.position.in_bench] = (0, False)
         self.evaluate(trace, expected=False)
 
     def test_occurs_move(self):
         trace = Trace()
         #
-        trace.terms.assembly.position.in_bench @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.position.in_tool @= (0, True)
-        trace.terms.cobot.position.in_tool @= (5, False)
-        trace.terms.cobot.position.in_bench @= (5, True)
-        trace.terms.cobot.position.in_bench @= (10, False)
-        trace.terms.cobot.position.in_tool @= (10, True)
+        trace[P.assembly.position.in_bench] = (0, True)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.position.in_tool] = (0, True)
+        trace[P.cobot.position.in_tool] = (5, False)
+        trace[P.cobot.position.in_bench] = (5, True)
+        trace[P.cobot.position.in_bench] = (10, False)
+        trace[P.cobot.position.in_tool] = (10, True)
         self.evaluate(trace)
 
     def test_delayed_grab(self):
         trace = Trace()
         #
-        trace.terms.assembly.position.in_bench @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.position.in_tool @= (0, True)
-        trace.terms.cobot.position.in_tool @= (3, False)
-        trace.terms.cobot.position.in_bench @= (3, True)
-        trace.terms.cobot.has_assembly @= (5, True)
+        trace[P.assembly.position.in_bench] = (0, True)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.position.in_tool] = (0, True)
+        trace[P.cobot.position.in_tool] = (3, False)
+        trace[P.cobot.position.in_bench] = (3, True)
+        trace[P.cobot.has_assembly] = (5, True)
         self.evaluate(trace, expected=False)
 
     def test_multiple_occurrences(self):
         trace = Trace()
         #
-        trace.terms.assembly.position.in_bench @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.position.in_tool @= (0, True)
-        trace.terms.cobot.position.in_tool @= (5, True)
-        trace.terms.cobot.position.in_bench @= (5, True)
-        trace.terms.cobot.has_assembly @= (10, True)
-        trace.terms.cobot.position.in_bench @= (5, False)
-        trace.terms.cobot.position.in_tool @= (15, True)
-        trace.terms.cobot.has_assembly @= (16, False)
-        trace.terms.cobot.position.in_tool @= (20, False)
-        trace.terms.cobot.position.in_bench @= (20, True)
+        trace[P.assembly.position.in_bench] = (0, True)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.position.in_tool] = (0, True)
+        trace[P.cobot.position.in_tool] = (5, True)
+        trace[P.cobot.position.in_bench] = (5, True)
+        trace[P.cobot.has_assembly] = (10, True)
+        trace[P.cobot.position.in_bench] = (5, False)
+        trace[P.cobot.position.in_tool] = (15, True)
+        trace[P.cobot.has_assembly] = (16, False)
+        trace[P.cobot.position.in_tool] = (20, False)
+        trace[P.cobot.position.in_bench] = (20, True)
         self.evaluate(trace)
 
 
@@ -790,54 +789,54 @@ class Test7P1(UCATest):
 
     def setup_trace(self):
         trace = Trace()
-        trace.terms.constraints.cobot.velocity.in_bench @= (0, 10)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.velocity @= (0, 0)
+        trace[P.constraints.cobot.velocity.in_bench] = (0, 10)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.velocity] = (0, 0)
         return trace
 
     def test_occurs(self):
         trace = self.setup_trace()
         #
-        trace.terms.constraints.cobot.velocity.in_bench @= (0, 10)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.velocity @= (0, False)
-        trace.terms.cobot.velocity @= (1, 20)
-        trace.terms.cobot.has_assembly @= (2, True)
+        trace[P.constraints.cobot.velocity.in_bench] = (0, 10)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.velocity] = (0, False)
+        trace[P.cobot.velocity] = (1, 20)
+        trace[P.cobot.has_assembly] = (2, True)
         self.evaluate(trace)
 
     def test_slow(self):
         trace = self.setup_trace()
         #
-        trace.terms.constraints.cobot.velocity.in_bench @= (0, 10)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.velocity @= (0, False)
-        trace.terms.cobot.velocity @= (1, 5)
-        trace.terms.cobot.has_assembly @= (2, True)
+        trace[P.constraints.cobot.velocity.in_bench] = (0, 10)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.velocity] = (0, False)
+        trace[P.cobot.velocity] = (1, 5)
+        trace[P.cobot.has_assembly] = (2, True)
         self.evaluate(trace, expected=False)
 
     def test_alternate_velocity(self):
         trace = self.setup_trace()
         #
-        trace.terms.constraints.cobot.velocity.in_bench @= (0, 10)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.velocity @= (0, False)
-        trace.terms.cobot.velocity @= (1, 5)
-        trace.terms.cobot.has_assembly @= (2, True)
-        trace.terms.cobot.has_assembly @= (10, False)
-        trace.terms.cobot.velocity @= (10, False)
-        trace.terms.cobot.velocity @= (11, 50)
-        trace.terms.cobot.has_assembly @= (12, True)
+        trace[P.constraints.cobot.velocity.in_bench] = (0, 10)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.velocity] = (0, False)
+        trace[P.cobot.velocity] = (1, 5)
+        trace[P.cobot.has_assembly] = (2, True)
+        trace[P.cobot.has_assembly] = (10, False)
+        trace[P.cobot.velocity] = (10, False)
+        trace[P.cobot.velocity] = (11, 50)
+        trace[P.cobot.has_assembly] = (12, True)
         self.evaluate(trace)
 
     def test_slowdown(self):
         trace = self.setup_trace()
         #
-        trace.terms.constraints.cobot.velocity.in_bench @= (0, 10)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.velocity @= (0, 20)
-        trace.terms.cobot.velocity @= (1, 5)
-        trace.terms.cobot.has_assembly @= (2, True)
-        trace.terms.cobot.velocity @= (3, 40)
+        trace[P.constraints.cobot.velocity.in_bench] = (0, 10)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.velocity] = (0, 20)
+        trace[P.cobot.velocity] = (1, 5)
+        trace[P.cobot.has_assembly] = (2, True)
+        trace[P.cobot.velocity] = (3, 40)
         self.evaluate(trace, expected=False)
 
 
@@ -849,40 +848,40 @@ class Test7T1(UCATest):
 
     def test_occurs(self):
         trace = Trace()
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.has_assembly @= (1, True)
-        trace.terms.operator.has_assembly @= (0, True)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.has_assembly] = (1, True)
+        trace[P.operator.has_assembly] = (0, True)
         self.evaluate(trace)
 
     def test_nominal(self):
         trace = Trace()
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.has_assembly @= (1, True)
-        trace.terms.operator.has_assembly @= (0, False)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.has_assembly] = (1, True)
+        trace[P.operator.has_assembly] = (0, False)
         self.evaluate(trace, expected=False)
 
     def test_releases(self):
         trace = Trace()
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.has_assembly @= (2, True)
-        trace.terms.operator.has_assembly @= (0, True)
-        trace.terms.operator.has_assembly @= (1, False)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.has_assembly] = (2, True)
+        trace[P.operator.has_assembly] = (0, True)
+        trace[P.operator.has_assembly] = (1, False)
         self.evaluate(trace, expected=False)
 
     def test_operator_grabs(self):
         trace = Trace()
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.has_assembly @= (1, True)
-        trace.terms.operator.has_assembly @= (0, False)
-        trace.terms.operator.has_assembly @= (1, True)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.has_assembly] = (1, True)
+        trace[P.operator.has_assembly] = (0, False)
+        trace[P.operator.has_assembly] = (1, True)
         self.evaluate(trace)
 
     def test_operator_releases(self):
         trace = Trace()
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.has_assembly @= (1, True)
-        trace.terms.operator.has_assembly @= (0, True)
-        trace.terms.operator.has_assembly @= (1, False)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.has_assembly] = (1, True)
+        trace[P.operator.has_assembly] = (0, True)
+        trace[P.operator.has_assembly] = (1, False)
         self.evaluate(trace)
 
 
@@ -895,37 +894,37 @@ class Test8D1(UCATest):
     def test_occurs(self):
         trace = Trace()
         #
-        trace.terms.assembly.is_secured @= (0, False)
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.has_assembly @= (1, False)
+        trace[P.assembly.is_secured] = (0, False)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.has_assembly] = (1, False)
         self.evaluate(trace)
 
     def test_secured(self):
         trace = Trace()
         #
-        trace.terms.assembly.is_secured @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.has_assembly @= (1, False)
+        trace[P.assembly.is_secured] = (0, True)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.has_assembly] = (1, False)
         self.evaluate(trace, expected=False)
 
     def test_secured_release(self):
         trace = Trace()
         #
-        trace.terms.assembly.is_secured @= (0, False)
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.assembly.is_secured @= (1, True)
-        trace.terms.cobot.has_assembly @= (2, False)
+        trace[P.assembly.is_secured] = (0, False)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.assembly.is_secured] = (1, True)
+        trace[P.cobot.has_assembly] = (2, False)
         self.evaluate(trace, expected=False)
 
     def test_occurs_once(self):
         trace = Trace()
         #
-        trace.terms.assembly.is_secured @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.has_assembly @= (1, False)
-        trace.terms.assembly.is_secured @= (10, False)
-        trace.terms.cobot.has_assembly @= (10, True)
-        trace.terms.cobot.has_assembly @= (11, False)
+        trace[P.assembly.is_secured] = (0, True)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.has_assembly] = (1, False)
+        trace[P.assembly.is_secured] = (10, False)
+        trace[P.cobot.has_assembly] = (10, True)
+        trace[P.cobot.has_assembly] = (11, False)
         self.evaluate(trace)
 
 
@@ -935,37 +934,37 @@ class Test8N1(UCATest):
 
     def setup_trace(self):
         trace = Trace()
-        trace.terms.assembly.is_processed @= (0, False)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.position.in_bench @= (0, True)
+        trace[P.assembly.is_processed] = (0, False)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.position.in_bench] = (0, True)
         return trace
 
     def test_occurs_processed(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_processed @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.position.in_bench @= (0, True)
+        trace[P.assembly.is_processed] = (0, True)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.position.in_bench] = (0, True)
         self.evaluate(trace)
 
     def test_nominal(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_processed @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.position.in_bench @= (0, True)
+        trace[P.assembly.is_processed] = (0, True)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.position.in_bench] = (0, True)
         self.evaluate(trace, expected=False)
 
     def test_not_processed(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_processed @= (0, False)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.position.in_bench @= (0, True)
+        trace[P.assembly.is_processed] = (0, False)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.position.in_bench] = (0, True)
         self.evaluate(trace, expected=False)
 
     def test_wrong_release(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_processed @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.position.in_tool @= (0, True)
+        trace[P.assembly.is_processed] = (0, True)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.position.in_tool] = (0, True)
         self.evaluate(trace)
 
 
@@ -975,37 +974,37 @@ class Test8T1(UCATest):
 
     def test_occurs(self):
         trace = Trace()
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.position.in_tool @= (0, True)
-        trace.terms.tool.is_running @= (0, True)
-        trace.terms.cobot.has_assembly @= (1, False)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.position.in_tool] = (0, True)
+        trace[P.tool.is_running] = (0, True)
+        trace[P.cobot.has_assembly] = (1, False)
         self.evaluate(trace)
 
     def test_release_after(self):
         trace = Trace()
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.position.in_tool @= (0, True)
-        trace.terms.tool.is_running @= (0, True)
-        trace.terms.tool.is_running @= (1, False)
-        trace.terms.cobot.has_assembly @= (2, False)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.position.in_tool] = (0, True)
+        trace[P.tool.is_running] = (0, True)
+        trace[P.tool.is_running] = (1, False)
+        trace[P.cobot.has_assembly] = (2, False)
         self.evaluate(trace, expected=False)
 
     def test_release_bench(self):
         trace = Trace()
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.position.in_bench @= (0, True)
-        trace.terms.cobot.position.in_tool @= (0, False)
-        trace.terms.tool.is_running @= (0, True)
-        trace.terms.cobot.has_assembly @= (1, False)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.position.in_bench] = (0, True)
+        trace[P.cobot.position.in_tool] = (0, False)
+        trace[P.tool.is_running] = (0, True)
+        trace[P.cobot.has_assembly] = (1, False)
         self.evaluate(trace, expected=False)
 
     def test_release_before(self):
         trace = Trace()
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.position.in_tool @= (0, True)
-        trace.terms.cobot.has_assembly @= (1, False)
-        trace.terms.tool.is_running @= (0, False)
-        trace.terms.tool.is_running @= (2, True)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.position.in_tool] = (0, True)
+        trace[P.cobot.has_assembly] = (1, False)
+        trace[P.tool.is_running] = (0, False)
+        trace[P.tool.is_running] = (2, True)
         self.evaluate(trace, expected=False)
 
 
@@ -1015,60 +1014,60 @@ class Test9N1(UCATest):
 
     def test_occurs(self):
         trace = Trace()
-        trace.terms.cobot.has_target @= (0, True)
-        trace.terms.cobot.reaches_target @= (0, False)
+        trace[P.cobot.has_target] = (0, True)
+        trace[P.cobot.reaches_target] = (0, False)
         self.evaluate(trace)
 
     def test_reaches_target(self):
         trace = Trace()
-        trace.terms.cobot.has_target @= (0, True)
-        trace.terms.cobot.reaches_target @= (1, True)
-        trace.terms.cobot.has_target @= (1, False)
+        trace[P.cobot.has_target] = (0, True)
+        trace[P.cobot.reaches_target] = (1, True)
+        trace[P.cobot.has_target] = (1, False)
         self.evaluate(trace, expected=False)
 
     def test_delayed_reach(self):
         trace = Trace()
-        trace.terms.cobot.has_target @= (0, True)
-        trace.terms.cobot.reaches_target @= (25000, True)
+        trace[P.cobot.has_target] = (0, True)
+        trace[P.cobot.reaches_target] = (25000, True)
         self.evaluate(trace, expected=False)
 
     def test_multiple_targets(self):
         trace = Trace()
-        trace.terms.cobot.has_target @= (0, True)
-        trace.terms.cobot.reaches_target @= (1, True)
-        trace.terms.cobot.has_target @= (2, False)
-        trace.terms.cobot.has_target @= (3, True)
-        trace.terms.cobot.reaches_target @= (4, True)
-        trace.terms.cobot.has_target @= (5, False)
+        trace[P.cobot.has_target] = (0, True)
+        trace[P.cobot.reaches_target] = (1, True)
+        trace[P.cobot.has_target] = (2, False)
+        trace[P.cobot.has_target] = (3, True)
+        trace[P.cobot.reaches_target] = (4, True)
+        trace[P.cobot.has_target] = (5, False)
         self.evaluate(trace, expected=False)
 
     def test_multiple_occurs(self):
         trace = Trace()
-        trace.terms.cobot.has_target @= (0, True)
-        trace.terms.cobot.reaches_target @= (1, True)
-        trace.terms.cobot.has_target @= (1, False)
-        trace.terms.cobot.reaches_target @= (2, False)
-        trace.terms.cobot.has_target @= (3, True)
-        trace.terms.cobot.has_target @= (5, False)
+        trace[P.cobot.has_target] = (0, True)
+        trace[P.cobot.reaches_target] = (1, True)
+        trace[P.cobot.has_target] = (1, False)
+        trace[P.cobot.reaches_target] = (2, False)
+        trace[P.cobot.has_target] = (3, True)
+        trace[P.cobot.has_target] = (5, False)
         self.evaluate(trace)
 
     def test_multiple_passes(self):
         trace = Trace()
-        trace.terms.cobot.has_target @= (0, True)
-        trace.terms.cobot.reaches_target @= (1, True)
-        trace.terms.cobot.has_target @= (1, False)
-        trace.terms.cobot.reaches_target @= (2, False)
-        trace.terms.cobot.has_target @= (3, True)
-        trace.terms.cobot.reaches_target @= (4, True)
-        trace.terms.cobot.has_target @= (5, False)
-        trace.terms.cobot.reaches_target @= (5, False)
+        trace[P.cobot.has_target] = (0, True)
+        trace[P.cobot.reaches_target] = (1, True)
+        trace[P.cobot.has_target] = (1, False)
+        trace[P.cobot.reaches_target] = (2, False)
+        trace[P.cobot.has_target] = (3, True)
+        trace[P.cobot.reaches_target] = (4, True)
+        trace[P.cobot.has_target] = (5, False)
+        trace[P.cobot.reaches_target] = (5, False)
         self.evaluate(trace, expected=False)
 
     def test_target_loss(self):
         trace = Trace()
-        trace.terms.cobot.reaches_target @= (0, False)
-        trace.terms.cobot.has_target @= (0, True)
-        trace.terms.cobot.has_target @= (2, False)
+        trace[P.cobot.reaches_target] = (0, False)
+        trace[P.cobot.has_target] = (0, True)
+        trace[P.cobot.has_target] = (2, False)
         self.evaluate(trace)
 
 
@@ -1078,22 +1077,22 @@ class Test9P2(UCATest):
 
     def setup_trace(self):
         trace = Trace()
-        trace.terms.cobot.is_moving @= (0, False)
-        # FIXME Obstruction detected from operator position trace.terms.workspace.has_obstruction @= (0, False)
-        trace.terms.operator.position.in_workspace @= (0, False)
+        trace[P.cobot.is_moving] = (0, False)
+        # FIXME Obstruction detected from operator position trace[P.workspace.has_obstruction] = (0, False)
+        trace[P.operator.position.in_workspace] = (0, False)
         return trace
 
     def test_occurs(self):
         trace = self.setup_trace()
-        trace.terms.cobot.is_moving @= (0, True)
-        trace.terms.operator.position.in_workspace @= (0, True)
+        trace[P.cobot.is_moving] = (0, True)
+        trace[P.operator.position.in_workspace] = (0, True)
         self.evaluate(trace)
 
     def test_obstruction_leaves(self):
         trace = self.setup_trace()
-        trace.terms.operator.position.in_workspace @= (0, True)
-        trace.terms.operator.position.in_workspace @= (1, False)
-        trace.terms.cobot.is_moving @= (1, True)
+        trace[P.operator.position.in_workspace] = (0, True)
+        trace[P.operator.position.in_workspace] = (1, False)
+        trace[P.cobot.is_moving] = (1, True)
         self.evaluate(trace, expected=False)
 
 
@@ -1103,39 +1102,39 @@ class Test9P3(UCATest):
 
     def test_occurs(self):
         trace = Trace()
-        trace.terms.assembly.is_secured @= (0, False)
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.is_moving @= (0, True)
+        trace[P.assembly.is_secured] = (0, False)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.is_moving] = (0, True)
         self.evaluate(trace)
 
     def test_secured(self):
         trace = Trace()
-        trace.terms.assembly.is_secured @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.is_moving @= (0, True)
+        trace[P.assembly.is_secured] = (0, True)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.is_moving] = (0, True)
         self.evaluate(trace, expected=False)
 
     def test_secured_on_move(self):
         trace = Trace()
-        trace.terms.assembly.is_secured @= (0, False)
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.is_moving @= (0, False)
-        trace.terms.assembly.is_secured @= (1, True)
-        trace.terms.cobot.is_moving @= (2, True)
+        trace[P.assembly.is_secured] = (0, False)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.is_moving] = (0, False)
+        trace[P.assembly.is_secured] = (1, True)
+        trace[P.cobot.is_moving] = (2, True)
         self.evaluate(trace, expected=False)
 
     def test_no_assembly(self):
         trace = Trace()
-        trace.terms.assembly.is_secured @= (0, False)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.is_moving @= (0, True)
+        trace[P.assembly.is_secured] = (0, False)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.is_moving] = (0, True)
         self.evaluate(trace, expected=False)
 
     def test_no_move(self):
         trace = Trace()
-        trace.terms.assembly.is_secured @= (0, False)
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.is_moving @= (0, False)
+        trace[P.assembly.is_secured] = (0, False)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.is_moving] = (0, False)
         self.evaluate(trace, expected=False)
 
 
@@ -1147,56 +1146,56 @@ class Test9T1(UCATest):
 
     def test_occurs(self):
         trace = Trace()
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.is_moving @= (0, True)
-        trace.terms.cobot.position.in_bench @= (0, True)
-        trace.terms.cobot.position.in_bench @= (1, False)
-        trace.terms.cobot.position.in_tool @= (1, True)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.is_moving] = (0, True)
+        trace[P.cobot.position.in_bench] = (0, True)
+        trace[P.cobot.position.in_bench] = (1, False)
+        trace[P.cobot.position.in_tool] = (1, True)
         self.evaluate(trace)
 
     def test_has_assembly(self):
         trace = Trace()
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.is_moving @= (0, True)
-        trace.terms.cobot.position.in_bench @= (0, True)
-        trace.terms.cobot.position.in_bench @= (1, False)
-        trace.terms.cobot.position.in_tool @= (1, True)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.is_moving] = (0, True)
+        trace[P.cobot.position.in_bench] = (0, True)
+        trace[P.cobot.position.in_bench] = (1, False)
+        trace[P.cobot.position.in_tool] = (1, True)
         self.evaluate(trace, expected=False)
 
     def test_occurs_from_workspace(self):
         trace = Trace()
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.is_moving @= (0, True)
-        trace.terms.cobot.position.in_workspace @= (0, True)
-        trace.terms.cobot.position.in_workspace @= (1, False)
-        trace.terms.cobot.position.in_tool @= (1, True)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.is_moving] = (0, True)
+        trace[P.cobot.position.in_workspace] = (0, True)
+        trace[P.cobot.position.in_workspace] = (1, False)
+        trace[P.cobot.position.in_tool] = (1, True)
         self.evaluate(trace)
 
     def test_valid_move(self):
         trace = Trace()
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.is_moving @= (0, False)
-        trace.terms.cobot.is_moving @= (1, True)
-        trace.terms.cobot.position.in_tool @= (0, True)
-        trace.terms.cobot.position.in_tool @= (1, False)
-        trace.terms.cobot.position.in_workspace @= (1, True)
-        trace.terms.cobot.position.in_workspace @= (2, False)
-        trace.terms.cobot.position.in_bench @= (2, True)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.is_moving] = (0, False)
+        trace[P.cobot.is_moving] = (1, True)
+        trace[P.cobot.position.in_tool] = (0, True)
+        trace[P.cobot.position.in_tool] = (1, False)
+        trace[P.cobot.position.in_workspace] = (1, True)
+        trace[P.cobot.position.in_workspace] = (2, False)
+        trace[P.cobot.position.in_bench] = (2, True)
         self.evaluate(trace, expected=False)
 
     def test_assembly_pickup(self):
         trace = Trace()
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.is_moving @= (0, False)
-        trace.terms.cobot.is_moving @= (1, True)
-        trace.terms.cobot.position.in_tool @= (0, True)
-        trace.terms.cobot.position.in_tool @= (1, False)
-        trace.terms.cobot.position.in_bench @= (1, True)
-        trace.terms.cobot.position.in_bench @= (2, False)
-        trace.terms.cobot.has_assembly @= (1, True)
-        trace.terms.cobot.position.in_workspace @= (2, True)
-        trace.terms.cobot.position.in_workspace @= (3, False)
-        trace.terms.cobot.position.in_tool @= (3, True)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.is_moving] = (0, False)
+        trace[P.cobot.is_moving] = (1, True)
+        trace[P.cobot.position.in_tool] = (0, True)
+        trace[P.cobot.position.in_tool] = (1, False)
+        trace[P.cobot.position.in_bench] = (1, True)
+        trace[P.cobot.position.in_bench] = (2, False)
+        trace[P.cobot.has_assembly] = (1, True)
+        trace[P.cobot.position.in_workspace] = (2, True)
+        trace[P.cobot.position.in_workspace] = (3, False)
+        trace[P.cobot.position.in_tool] = (3, True)
         self.evaluate(trace, expected=False)
 
 
@@ -1206,23 +1205,23 @@ class Test9T2(UCATest):
 
     def test_occurs(self):
         trace = Trace()
-        trace.terms.cobot.is_moving @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.has_assembly @= (1, True)
+        trace[P.cobot.is_moving] = (0, True)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.has_assembly] = (1, True)
         self.evaluate(trace)
 
     def test_no_grab(self):
         trace = Trace()
-        trace.terms.cobot.is_moving @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, False)
+        trace[P.cobot.is_moving] = (0, True)
+        trace[P.cobot.has_assembly] = (0, False)
         self.evaluate(trace, expected=False)
 
     def test_nominal(self):
         trace = Trace()
-        trace.terms.cobot.is_moving @= (0, False)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.has_assembly @= (1, True)
-        trace.terms.cobot.is_moving @= (2, True)
+        trace[P.cobot.is_moving] = (0, False)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.has_assembly] = (1, True)
+        trace[P.cobot.is_moving] = (2, True)
         self.evaluate(trace, expected=False)
 
 
@@ -1232,45 +1231,45 @@ class Test10P1(UCATest):
 
     def setup_trace(self):
         trace = Trace()
-        trace.terms.assembly.is_damaged @= (0, False)
-        trace.terms.assembly.under_processing @= (0, False)
+        trace[P.assembly.is_damaged] = (0, False)
+        trace[P.assembly.under_processing] = (0, False)
         return trace
 
     def test_occurs(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_damaged @= (0, True)
-        trace.terms.assembly.under_processing @= (0, True)
+        trace[P.assembly.is_damaged] = (0, True)
+        trace[P.assembly.under_processing] = (0, True)
         self.evaluate(trace)
 
     def test_occurs_multiple(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_damaged @= (0, False)
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.assembly.under_processing @= (1, False)
-        trace.terms.assembly.is_damaged @= (2, True)
-        trace.terms.assembly.under_processing @= (2, True)
-        trace.terms.assembly.under_processing @= (3, False)
+        trace[P.assembly.is_damaged] = (0, False)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.assembly.under_processing] = (1, False)
+        trace[P.assembly.is_damaged] = (2, True)
+        trace[P.assembly.under_processing] = (2, True)
+        trace[P.assembly.under_processing] = (3, False)
         self.evaluate(trace)
 
     def test_damaged_during(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_damaged @= (0, False)
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.assembly.is_damaged @= (1, True)
+        trace[P.assembly.is_damaged] = (0, False)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.assembly.is_damaged] = (1, True)
         self.evaluate(trace)
 
     def test_nominal(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_damaged @= (0, False)
-        trace.terms.assembly.under_processing @= (0, True)
+        trace[P.assembly.is_damaged] = (0, False)
+        trace[P.assembly.under_processing] = (0, True)
         self.evaluate(trace, expected=False)
 
     def test_damaged_after(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_damaged @= (0, False)
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.assembly.under_processing @= (1, False)
-        trace.terms.assembly.is_damaged @= (2, True)
+        trace[P.assembly.is_damaged] = (0, False)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.assembly.under_processing] = (1, False)
+        trace[P.assembly.is_damaged] = (2, True)
         self.evaluate(trace, expected=False)
 
 
@@ -1282,44 +1281,44 @@ class Test10P2(UCATest):
 
     def setup_trace(self):
         trace = Trace()
-        trace.terms.assembly.is_valid @= (0, False)
-        trace.terms.assembly.under_processing @= (0, False)
+        trace[P.assembly.is_valid] = (0, False)
+        trace[P.assembly.under_processing] = (0, False)
         return trace
 
     def test_occurs(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_valid @= (0, False)
-        trace.terms.assembly.under_processing @= (0, True)
+        trace[P.assembly.is_valid] = (0, False)
+        trace[P.assembly.under_processing] = (0, True)
         self.evaluate(trace)
 
     def test_occurs_multiple(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_valid @= (0, True)
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.assembly.under_processing @= (1, False)
-        trace.terms.assembly.is_valid @= (2, False)
-        trace.terms.assembly.under_processing @= (2, True)
+        trace[P.assembly.is_valid] = (0, True)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.assembly.under_processing] = (1, False)
+        trace[P.assembly.is_valid] = (2, False)
+        trace[P.assembly.under_processing] = (2, True)
         self.evaluate(trace)
 
     def test_valid_during(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_valid @= (0, True)
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.assembly.is_valid @= (1, False)
+        trace[P.assembly.is_valid] = (0, True)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.assembly.is_valid] = (1, False)
         self.evaluate(trace)
 
     def test_nominal(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_valid @= (0, True)
-        trace.terms.assembly.under_processing @= (0, True)
+        trace[P.assembly.is_valid] = (0, True)
+        trace[P.assembly.under_processing] = (0, True)
         self.evaluate(trace, expected=False)
 
     def test_invalid_after(self):
         trace = self.setup_trace()
-        trace.terms.assembly.is_valid @= (0, True)
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.assembly.under_processing @= (1, False)
-        trace.terms.assembly.is_valid @= (2, False)
+        trace[P.assembly.is_valid] = (0, True)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.assembly.under_processing] = (1, False)
+        trace[P.assembly.is_valid] = (2, False)
         self.evaluate(trace, expected=False)
 
 
@@ -1329,43 +1328,43 @@ class Test10P3(UCATest):
 
     def setup_trace(self):
         trace = Trace()
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.position.in_tool @= (0, True)
-        trace.terms.tool.is_running @= (0, False)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.position.in_tool] = (0, True)
+        trace[P.tool.is_running] = (0, False)
         return trace
 
     def test_occurs(self):
         trace = self.setup_trace()
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.position.in_tool @= (0, True)
-        trace.terms.tool.is_running @= (0, False)
-        trace.terms.tool.is_running @= (1, True)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.position.in_tool] = (0, True)
+        trace[P.tool.is_running] = (0, False)
+        trace[P.tool.is_running] = (1, True)
         self.evaluate(trace)
 
     def test_nominal(self):
         trace = self.setup_trace()
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.position.in_tool @= (0, True)
-        trace.terms.tool.is_running @= (0, False)
-        trace.terms.tool.is_running @= (1, True)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.position.in_tool] = (0, True)
+        trace[P.tool.is_running] = (0, False)
+        trace[P.tool.is_running] = (1, True)
         self.evaluate(trace, expected=False)
 
     def test_drop_after(self):
         trace = self.setup_trace()
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.position.in_tool @= (0, True)
-        trace.terms.tool.is_running @= (0, False)
-        trace.terms.tool.is_running @= (1, True)
-        trace.terms.cobot.has_assembly @= (1, False)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.position.in_tool] = (0, True)
+        trace[P.tool.is_running] = (0, False)
+        trace[P.tool.is_running] = (1, True)
+        trace[P.cobot.has_assembly] = (1, False)
         self.evaluate(trace, expected=False)
 
     def test_drop_before(self):
         trace = self.setup_trace()
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.position.in_tool @= (0, True)
-        trace.terms.tool.is_running @= (0, False)
-        trace.terms.cobot.has_assembly @= (1, False)
-        trace.terms.tool.is_running @= (2, True)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.position.in_tool] = (0, True)
+        trace[P.tool.is_running] = (0, False)
+        trace[P.cobot.has_assembly] = (1, False)
+        trace[P.tool.is_running] = (2, True)
         self.evaluate(trace)
 
 
@@ -1375,51 +1374,51 @@ class Test10P4(UCATest):
 
     def setup_trace(self):
         trace = Trace()
-        trace.terms.assembly.under_processing @= (0, False)
-        trace.terms.constraints.tool.distance.operation @= (0, 10)
-        trace.terms.tool.distance @= (0, 0)
+        trace[P.assembly.under_processing] = (0, False)
+        trace[P.constraints.tool.distance.operation] = (0, 10)
+        trace[P.tool.distance] = (0, 0)
         return trace
 
     def test_occurs(self):
         trace = self.setup_trace()
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.constraints.tool.distance.operation @= (0, 10)
-        trace.terms.tool.distance @= (0, 0)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.constraints.tool.distance.operation] = (0, 10)
+        trace[P.tool.distance] = (0, 0)
         self.evaluate(trace)
 
     def test_nominal(self):
         trace = self.setup_trace()
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.constraints.tool.distance.operation @= (0, 10)
-        trace.terms.tool.distance @= (0, 20)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.constraints.tool.distance.operation] = (0, 10)
+        trace[P.tool.distance] = (0, 20)
         self.evaluate(trace, expected=False)
 
     def test_leaves(self):
         trace = self.setup_trace()
-        trace.terms.assembly.under_processing @= (0, False)
-        trace.terms.constraints.tool.distance.operation @= (0, 10)
-        trace.terms.tool.distance @= (0, 0)
-        trace.terms.assembly.under_processing @= (1, True)
-        trace.terms.tool.distance @= (0, 20)
+        trace[P.assembly.under_processing] = (0, False)
+        trace[P.constraints.tool.distance.operation] = (0, 10)
+        trace[P.tool.distance] = (0, 0)
+        trace[P.assembly.under_processing] = (1, True)
+        trace[P.tool.distance] = (0, 20)
         self.evaluate(trace, expected=False)
 
     def test_enters(self):
         trace = self.setup_trace()
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.constraints.tool.distance.operation @= (0, 10)
-        trace.terms.tool.distance @= (0, 20)
-        trace.terms.tool.distance @= (1, 1)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.constraints.tool.distance.operation] = (0, 10)
+        trace[P.tool.distance] = (0, 20)
+        trace[P.tool.distance] = (1, 1)
         self.evaluate(trace)
 
     def test_multiple(self):
         trace = self.setup_trace()
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.constraints.tool.distance.operation @= (0, 10)
-        trace.terms.tool.distance @= (0, 20)
-        trace.terms.assembly.under_processing @= (1, False)
-        trace.terms.tool.distance @= (1, 0)
-        trace.terms.tool.distance @= (2, 60)
-        trace.terms.assembly.under_processing @= (3, True)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.constraints.tool.distance.operation] = (0, 10)
+        trace[P.tool.distance] = (0, 20)
+        trace[P.assembly.under_processing] = (1, False)
+        trace[P.tool.distance] = (1, 0)
+        trace[P.tool.distance] = (2, 60)
+        trace[P.assembly.under_processing] = (3, True)
         self.evaluate(trace, expected=False)
 
 
@@ -1429,47 +1428,47 @@ class Test10P5(UCATest):
 
     def setup_trace(self):
         trace = Trace()
-        trace.terms.assembly.under_processing @= (0, False)
-        trace.terms.operator.position.in_workspace @= (0, True)
+        trace[P.assembly.under_processing] = (0, False)
+        trace[P.operator.position.in_workspace] = (0, True)
         return trace
 
     def test_occurs(self):
         trace = self.setup_trace()
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.operator.position.in_bench @= (0, False)
-        trace.terms.operator.position.in_workspace @= (0, True)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.operator.position.in_bench] = (0, False)
+        trace[P.operator.position.in_workspace] = (0, True)
         self.evaluate(trace)
 
     def test_operator_enters(self):
         trace = self.setup_trace()
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.operator.position.in_bench @= (0, True)
-        trace.terms.operator.position.in_bench @= (1, False)
-        trace.terms.operator.position.in_workspace @= (1, True)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.operator.position.in_bench] = (0, True)
+        trace[P.operator.position.in_bench] = (1, False)
+        trace[P.operator.position.in_workspace] = (1, True)
         self.evaluate(trace)
 
     def test_operator_leaves(self):
         trace = self.setup_trace()
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.operator.position.in_bench @= (0, False)
-        trace.terms.operator.position.in_workspace @= (0, True)
-        trace.terms.operator.position.in_workspace @= (1, False)
-        trace.terms.operator.position.in_bench @= (1, True)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.operator.position.in_bench] = (0, False)
+        trace[P.operator.position.in_workspace] = (0, True)
+        trace[P.operator.position.in_workspace] = (1, False)
+        trace[P.operator.position.in_bench] = (1, True)
         self.evaluate(trace)
 
     def test_tool_stops(self):
         trace = self.setup_trace()
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.operator.position.in_bench @= (0, True)
-        trace.terms.assembly.under_processing @= (1, False)
-        trace.terms.operator.position.in_bench @= (1, False)
-        trace.terms.operator.position.in_workspace @= (1, True)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.operator.position.in_bench] = (0, True)
+        trace[P.assembly.under_processing] = (1, False)
+        trace[P.operator.position.in_bench] = (1, False)
+        trace[P.operator.position.in_workspace] = (1, True)
         self.evaluate(trace, expected=False)
 
     def test_nominal(self):
         trace = self.setup_trace()
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.operator.position.in_bench @= (0, True)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.operator.position.in_bench] = (0, True)
         self.evaluate(trace, expected=False)
 
 
@@ -1479,42 +1478,42 @@ class Test10T1(UCATest):
 
     def setup_trace(self):
         trace = Trace()
-        trace.terms.assembly.under_processing @= (0, False)
-        trace.terms.controller.is_configured @= (0, False)
+        trace[P.assembly.under_processing] = (0, False)
+        trace[P.controller.is_configured] = (0, False)
         return trace
 
     def test_occurs(self):
         trace = self.setup_trace()
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.controller.is_configured @= (0, False)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.controller.is_configured] = (0, False)
         self.evaluate(trace)
 
     def test_nominal(self):
         trace = self.setup_trace()
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.controller.is_configured @= (0, True)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.controller.is_configured] = (0, True)
         self.evaluate(trace, expected=False)
 
     def test_no_process(self):
         trace = self.setup_trace()
-        trace.terms.assembly.under_processing @= (0, False)
-        trace.terms.controller.is_configured @= (0, False)
+        trace[P.assembly.under_processing] = (0, False)
+        trace[P.controller.is_configured] = (0, False)
         self.evaluate(trace, expected=False)
 
     def test_remove_configuration(self):
         trace = self.setup_trace()
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.controller.is_configured @= (0, True)
-        trace.terms.assembly.under_processing @= (1, True)
-        trace.terms.controller.is_configured @= (1, False)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.controller.is_configured] = (0, True)
+        trace[P.assembly.under_processing] = (1, True)
+        trace[P.controller.is_configured] = (1, False)
         self.evaluate(trace, expected=False)
 
     def test_late_configure(self):
         trace = self.setup_trace()
-        trace.terms.assembly.under_processing @= (0, False)
-        trace.terms.controller.is_configured @= (0, False)
-        trace.terms.assembly.under_processing @= (1, True)
-        trace.terms.controller.is_configured @= (1, True)
+        trace[P.assembly.under_processing] = (0, False)
+        trace[P.controller.is_configured] = (0, False)
+        trace[P.assembly.under_processing] = (1, True)
+        trace[P.controller.is_configured] = (1, True)
         self.evaluate(trace, expected=False)
 
 
@@ -1524,47 +1523,47 @@ class Test10T3(UCATest):
 
     def setup_trace(self):
         trace = Trace()
-        trace.terms.constraints.cobot.velocity.in_tool @= (0, 1)
-        trace.terms.assembly.under_processing @= (0, False)
-        trace.terms.cobot.velocity @= (0, 10)
+        trace[P.constraints.cobot.velocity.in_tool] = (0, 1)
+        trace[P.assembly.under_processing] = (0, False)
+        trace[P.cobot.velocity] = (0, 10)
         return trace
 
     def test_occurs(self):
         trace = self.setup_trace()
-        trace.terms.constraints.cobot.velocity.in_tool @= (0, 1)
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.cobot.velocity @= (0, 10)
+        trace[P.constraints.cobot.velocity.in_tool] = (0, 1)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.cobot.velocity] = (0, 10)
         self.evaluate(trace)
 
     def test_nominal(self):
         trace = self.setup_trace()
-        trace.terms.constraints.cobot.velocity.in_tool @= (0, 1)
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.cobot.velocity @= (0, 0)
+        trace[P.constraints.cobot.velocity.in_tool] = (0, 1)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.cobot.velocity] = (0, 0)
         self.evaluate(trace, expected=False)
 
     def test_no_process(self):
         trace = self.setup_trace()
-        trace.terms.constraints.cobot.velocity.in_tool @= (0, 1)
-        trace.terms.assembly.under_processing @= (0, False)
-        trace.terms.cobot.velocity @= (0, 10)
+        trace[P.constraints.cobot.velocity.in_tool] = (0, 1)
+        trace[P.assembly.under_processing] = (0, False)
+        trace[P.cobot.velocity] = (0, 10)
         self.evaluate(trace, expected=False)
 
     def test_speeds_after(self):
         trace = self.setup_trace()
-        trace.terms.constraints.cobot.velocity.in_tool @= (0, 1)
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.cobot.velocity @= (0, 0)
-        trace.terms.assembly.under_processing @= (1, False)
-        trace.terms.cobot.velocity @= (1, 10)
+        trace[P.constraints.cobot.velocity.in_tool] = (0, 1)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.cobot.velocity] = (0, 0)
+        trace[P.assembly.under_processing] = (1, False)
+        trace[P.cobot.velocity] = (1, 10)
         self.evaluate(trace, expected=False)
 
     def test_speeds_up(self):
         trace = self.setup_trace()
-        trace.terms.constraints.cobot.velocity.in_tool @= (0, 1)
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.cobot.velocity @= (0, 0)
-        trace.terms.cobot.velocity @= (1, 10)
+        trace[P.constraints.cobot.velocity.in_tool] = (0, 1)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.cobot.velocity] = (0, 0)
+        trace[P.cobot.velocity] = (1, 10)
         self.evaluate(trace)
 
 
@@ -1574,28 +1573,28 @@ class Test10T4(UCATest):
 
     def setup_trace(self):
         trace = Trace()
-        trace.terms.assembly.under_processing @= (0, False)
-        trace.terms.assembly.is_secured @= (0, False)
+        trace[P.assembly.under_processing] = (0, False)
+        trace[P.assembly.is_secured] = (0, False)
         return trace
 
     def test_occurs(self):
         trace = self.setup_trace()
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.assembly.is_secured @= (0, False)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.assembly.is_secured] = (0, False)
         self.evaluate(trace)
 
     def test_nominal(self):
         trace = self.setup_trace()
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.assembly.is_secured @= (0, True)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.assembly.is_secured] = (0, True)
         self.evaluate(trace, expected=False)
 
     def test_release(self):
         trace = self.setup_trace()
-        trace.terms.assembly.under_processing @= (0, True)
-        trace.terms.assembly.is_secured @= (0, True)
-        trace.terms.assembly.under_processing @= (1, False)
-        trace.terms.assembly.is_secured @= (1, False)
+        trace[P.assembly.under_processing] = (0, True)
+        trace[P.assembly.is_secured] = (0, True)
+        trace[P.assembly.under_processing] = (1, False)
+        trace[P.assembly.is_secured] = (1, False)
         self.evaluate(trace, expected=False)
 
 
@@ -1605,58 +1604,58 @@ class Test11N1(UCATest):
 
     def test_occurs_move(self):
         trace = Trace()
-        trace.terms.controller.is_configured @= (0, False)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.is_moving @= (0, True)
+        trace[P.controller.is_configured] = (0, False)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.is_moving] = (0, True)
         self.evaluate(trace)
 
     def test_occurs_grab(self):
         trace = Trace()
-        trace.terms.controller.is_configured @= (0, False)
-        trace.terms.cobot.has_assembly @= (0, False)
-        trace.terms.cobot.has_assembly @= (1, True)
-        trace.terms.cobot.is_moving @= (0, False)
+        trace[P.controller.is_configured] = (0, False)
+        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.has_assembly] = (1, True)
+        trace[P.cobot.is_moving] = (0, False)
         self.evaluate(trace)
 
     def test_occurs_release(self):
         trace = Trace()
-        trace.terms.controller.is_configured @= (0, False)
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.has_assembly @= (1, False)
-        trace.terms.cobot.is_moving @= (0, False)
+        trace[P.controller.is_configured] = (0, False)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.has_assembly] = (1, False)
+        trace[P.cobot.is_moving] = (0, False)
         self.evaluate(trace)
 
     def test_nominal(self):
         trace = Trace()
-        trace.terms.controller.is_configured @= (0, True)
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.has_assembly @= (1, False)
-        trace.terms.cobot.has_assembly @= (2, True)
-        trace.terms.cobot.is_moving @= (0, True)
-        trace.terms.cobot.is_moving @= (1, False)
+        trace[P.controller.is_configured] = (0, True)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.has_assembly] = (1, False)
+        trace[P.cobot.has_assembly] = (2, True)
+        trace[P.cobot.is_moving] = (0, True)
+        trace[P.cobot.is_moving] = (1, False)
         self.evaluate(trace, expected=False)
 
     def test_delayed_configuration(self):
         trace = Trace()
-        trace.terms.controller.is_configured @= (0, False)
-        trace.terms.controller.is_configured @= (10, True)
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.has_assembly @= (15, False)
-        trace.terms.cobot.has_assembly @= (20, True)
-        trace.terms.cobot.is_moving @= (0, False)
-        trace.terms.cobot.is_moving @= (10, True)
+        trace[P.controller.is_configured] = (0, False)
+        trace[P.controller.is_configured] = (10, True)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.has_assembly] = (15, False)
+        trace[P.cobot.has_assembly] = (20, True)
+        trace[P.cobot.is_moving] = (0, False)
+        trace[P.cobot.is_moving] = (10, True)
         self.evaluate(trace, expected=False)
 
     def test_never_configured(self):
         trace = Trace()
-        trace.terms.controller.is_configured @= (0, False)
-        trace.terms.cobot.has_assembly @= (0, True)
-        trace.terms.cobot.is_moving @= (0, False)
-        trace.terms.operator.position.in_bench @= (0, True)
-        trace.terms.operator.position.in_bench @= (10, False)
-        trace.terms.operator.position.in_tool @= (10, True)
-        trace.terms.operator.position.in_tool @= (20, True)
-        trace.terms.operator.position.in_workspace @= (20, True)
+        trace[P.controller.is_configured] = (0, False)
+        trace[P.cobot.has_assembly] = (0, True)
+        trace[P.cobot.is_moving] = (0, False)
+        trace[P.operator.position.in_bench] = (0, True)
+        trace[P.operator.position.in_bench] = (10, False)
+        trace[P.operator.position.in_tool] = (10, True)
+        trace[P.operator.position.in_tool] = (20, True)
+        trace[P.operator.position.in_workspace] = (20, True)
         self.evaluate(trace, expected=False)
 
 

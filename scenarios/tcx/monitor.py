@@ -13,15 +13,24 @@ class Entity(Context):
     has_assembly = Term()
     is_damaged = Term()
     is_running = Term()
-    grabs_assembly = Term()
+    provides_assembly = Term()
     releases_assembly = Term()
+    grabs_assembly = Term()
     is_moving = Term()
     velocity = Term()
+    has_target = Term()
+    reaches_target = Term()
+    starts = Term()
+    acts = Term()
 
 
 class ConstraintProximity(Context):
     proximity = Term()
     operation = Term()
+    in_bench = Term()
+    in_tool = Term()
+    in_workspace = Term()
+    oob = Term()
 
 
 class ConstraintCobot(Context):
@@ -41,10 +50,13 @@ class Assembly(Entity):
     is_valid = Term()
     is_orientation_valid = Term()
     is_secured = Term()
+    needs_secured = Term()
+    is_delivered = Term()
 
 
 class Controller(Context):
     is_configured = Term()
+    gets_configured = Term()
 
 
 class Workspace(Context):

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import attr
 import funcy
-from lenses import bind
 from traces import TimeSeries
 from typing import (
     Any,
@@ -11,10 +10,8 @@ from typing import (
     Mapping,
     Optional,
     Tuple,
-    Union,
     Iterable,
     Set,
-    TypeVar,
     FrozenSet,
     Dict,
     MutableMapping,
@@ -107,6 +104,8 @@ class Monitor:
                 results[phi] = r
             else:
                 results[phi] = None
+        if condition is not None:
+            return next(iter(results.values()))
         return results
 
 
