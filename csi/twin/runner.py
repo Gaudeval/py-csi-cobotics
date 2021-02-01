@@ -10,8 +10,7 @@ from typing import List, Optional, Tuple, Union
 
 from csi.configuration import ConfigurationManager
 from csi.experiment import Experiment
-from csi.monitor import Monitor
-from csi.monitor.trace import Trace
+from csi.monitor import Monitor, Trace
 from csi.safety import SafetyCondition
 from csi.twin.converter import (
     ObstructionDetection,
@@ -23,10 +22,9 @@ from csi.twin.converter import (
 )
 from csi.twin.importer import DBMessageImporter
 from csi.twin.orm import DataBase
-from csi.scenarios.tcx.safety.hazards import hazards
-from csi.scenarios.tcx.safety.ucas import unsafe_control_actions
-from csi.scenarios.tcx.safety.entities import EntityPosition
-from csi.scenarios.tcx.configuration import WorldData
+from scenarios import hazards
+from scenarios.tcx.safety.ucas import unsafe_control_actions
+from scenarios import WorldData
 
 
 @dataclasses.dataclass
@@ -119,11 +117,6 @@ class BuildRunner(Experiment):
             "Spot Welder Assembly_StaticEntity_0": "tool",
             "Component Assembly_StaticEntity_2": "assembly",
         }
-        region_aliases = {
-            "Enclosure Region": EntityPosition.WORKSPACE,
-            "Spot Welder Region": EntityPosition.TOOL,
-            "Loading Platform Region": EntityPosition.BENCH,
-        }
         region_names = {
             "Enclosure Region": "workspace",
             "Spot Welder Region": "tool",
@@ -148,10 +141,6 @@ class BuildRunner(Experiment):
             (
                 (lambda m: (m["__table__"] == "regionstatus")),
                 RegionConverter("region", "entity_id", region_names),
-            ),
-            (
-                (lambda m: (m["__table__"] == "positionstatus")),
-                RegionConverter("region", "position", region_aliases),
             ),
             (None, DropTable("triggerregionexitevent", "triggerregionenterevent")),
             (
