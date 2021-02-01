@@ -4,8 +4,21 @@ import attr
 import funcy
 from lenses import bind
 from traces import TimeSeries
-from typing import Any, Callable, List, Mapping, Optional, Tuple, Union, Iterable, Set, TypeVar, FrozenSet, Dict, \
-    MutableMapping
+from typing import (
+    Any,
+    Callable,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Union,
+    Iterable,
+    Set,
+    TypeVar,
+    FrozenSet,
+    Dict,
+    MutableMapping,
+)
 
 from csi.safety import Atom, Node
 
@@ -22,7 +35,7 @@ PathType = Tuple[str]
     hash=True,
 )
 class Context:
-    path: PathType
+    path: PathType = attr.ib(tuple())
 
     def __set_name__(self, owner, name):
         self.name = name
@@ -40,7 +53,7 @@ class Term:
         self._name = name
 
     def __get__(self, instance, owner):
-        return getattr(instance, "path", tuple()) + (self._name,)
+        return Atom(getattr(instance, "path", tuple()) + (self._name,))
 
 
 @attr.s(
@@ -55,7 +68,7 @@ class Term:
 class Monitor:
     """Group of conditions to verify """
 
-    conditions: FrozenSet[Node]
+    conditions: FrozenSet[Node] = attr.ib(frozenset())
 
     def __iadd__(self, other: Node) -> Monitor:
         return Monitor(self.conditions | {other})
@@ -67,26 +80,51 @@ class Monitor:
         return Monitor(self.conditions | other.conditions)
 
     def atoms(self, condition=None) -> Iterable[Atom]:
-        return bind(self.conditions if condition is None else {condition}).F(lambda c: c.walk()).Instance(Atom).collect()
+        reference = self.conditions if condition is None else {condition}
+        return {a for c in reference for a in c.walk() if isinstance(a, Atom)}
 
-    def evaluate(self, trace: Trace, condition: Optional[Node] = None, *, dt=1.0, time: Any = False) -> Mapping[Node, Optional[bool]]:
-        evaluated_conditions: Iterable[Node] = self.conditions if condition is None else {condition}
+    def evaluate(
+        self,
+        trace: Trace,
+        condition: Optional[Node] = None,
+        *,
+        dt=1.0,
+        time: Any = False
+    ) -> Mapping[Node, Optional[bool]]:
+        evaluated_conditions: Iterable[Node] = (
+            self.conditions if condition is None else {condition}
+        )
 
         results: MutableMapping[Node, Optional[bool]] = dict()
         for phi in evaluated_conditions:
-            results[phi] = phi(trace.project(self.atoms(phi)), dt=dt, time=time) # logic
-
+            atoms = trace.project(self.atoms(phi))
+            if all(a.id in atoms for a in Monitor().atoms(phi)):
+                r = phi(atoms, dt=dt, time=time)
+                if time is None:
+                    r = [(t, v > 0) for t, v in r]
+                else:
+                    r = r > 0
+                results[phi] = r
+            else:
+                results[phi] = None
         return results
 
 
 class Trace:
     values: Dict[PathType, TimeSeries]
 
+    def __init__(self):
+        self.values = {}
+
     def atoms(self) -> Iterable[Atom]:
         return {Atom(k) for k in self.values.keys()}
 
-    def project(self, atoms: Iterable[Atom]) -> Mapping[str: List[(int, Any)]]:
-        return {a.id: [(t, v) for t, v in self.values[a.id]] for a in atoms}
+    def project(self, atoms: Iterable[Atom]) -> Mapping[str : List[(int, Any)]]:
+        return {
+            a.id: [(t, v) for t, v in self.values[a.id]]
+            for a in atoms
+            if a.id in self.values
+        }
 
     @staticmethod
     def _merge_values(values: List[Optional[TimeSeries]]):
@@ -96,21 +134,25 @@ class Trace:
     def update(self, other: Trace) -> None:
         for t, s in other.values.items():
             if t in self.values:
-                self.values[t] = TimeSeries.merge([self.values[t], s], operation=self._merge_values)
+                self.values[t] = TimeSeries.merge(
+                    [self.values[t], s], operation=self._merge_values
+                )
             else:
                 self.values[t] = TimeSeries(s)
 
     def __ior__(self, other: Trace) -> Trace:
         return self | other
 
-    def __or__(self, other:  Trace) -> Trace:
+    def __or__(self, other: Trace) -> Trace:
         result = Trace()
         result.update(self)
         result.update(other)
         return result
 
     @classmethod
-    def _extract_atom_values(cls, element: Any, prefix: PathType = ()) -> Iterable[Tuple[PathType, Any]]:
+    def _extract_atom_values(
+        cls, element: Any, prefix: PathType = ()
+    ) -> Iterable[Tuple[PathType, Any]]:
         """Convert nested structure into flat list with tuple capturing nested paths."""
         if isinstance(element, dict):
             return funcy.cat(
@@ -139,5 +181,6 @@ class Trace:
 
     def __setitem__(self, key: Atom, value: Tuple[int, Any]):
         t, v = value
+        if key.id not in self.values:
+            self.values[key.id] = TimeSeries()
         self.values[key.id][t] = v
-

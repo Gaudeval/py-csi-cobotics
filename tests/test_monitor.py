@@ -2,11 +2,34 @@ import enum
 import mtl
 
 from pprint import pprint
-from csi.monitor import Monitor, P, Trace
+
+import pytest
+
+from csi.monitor import Context, Monitor, Trace, Term
+
+
+class Constraint(Context):
+    maximum_height = Term()
+
+
+class Operator(Context):
+    has_component = Term()
+    height = Term()
+    position = Term()
+
+
+class World(Context):
+    operator = Operator()
+    constraint = Constraint()
+    props = Operator()
+    height = Term()
+    speed = Term()
+    position = Term()
 
 
 class TestMonitor:
     def test_output(self):
+        P = World()
         w = Monitor()
 
         print("== Predicates test =====")
@@ -14,42 +37,42 @@ class TestMonitor:
         w += P.operator.has_component
         w += ~P.operator.has_component
 
-        w += P.operator.height == 5
+        w += P.operator.height.eq(5)
         w += P.operator.height < 42
         w += P.operator.height <= 42
         w += P.operator.height > 42
         w += P.operator.height >= 42
 
-        w += P.operator.height == P.constraint.maximum_height
+        w += P.operator.height.eq(P.constraint.maximum_height)
         w += P.operator.height < P.constraint.maximum_height
 
         w += (P.operator.height > 5) & (P.operator.height < P.constraint.maximum_height)
 
         assert len({P.operator.height, P.operator.height}) == 1
-        print((P.operator.height == 5) == (P.operator.height == 5))
-        assert len({P.operator.height == 5, P.operator.height == 5}) == 1
+        assert len({P.operator.height.eq(5), P.operator.height.eq(5)}) == 1
 
-        pprint(w.predicates)
-        pprint(w.terms())
+        pprint(w.atoms())
 
         print("== Trace insertion test =====")
-        t = Trace(w)
-        t.terms.constraint.maximum_height @= (0, 30)
-        t.terms.operator.height @= (5, 42)
-        t.terms.operator.height @= (6, 5)
-        t.terms.operator.height @= (7, 30)
-        t.terms.constraint.maximum_height @= (8, 40)
-        t.terms.unknown @= (9, True)
+        t = Trace()
+        t[P.constraint.maximum_height] = (0, 30)
+        t[P.operator.height] = (5, 42)
+        t[P.operator.height] = (6, 5)
+        t[P.operator.height] = (7, 30)
+        t[P.constraint.maximum_height] = (8, 40)
+        with pytest.raises(Exception):
+            t[P.unknown] = (9, True)
         pprint({s: list(v.items()) for s, v in t.values.items()})
 
         print("== Trace eval test =====")
         print("-- Dummy -----")
         p = mtl.parse("dummy_predicate")
         print(p)
-        print(t.evaluate(p))
+        print(w.evaluate(t, p))
         print("-- Op Height == 5 -----")
-        print((P.operator.height == 5).as_mtl())
-        print(t.evaluate((P.operator.height == 5)))
+        print((P.operator.height.eq(5)))
+        print(t.project({P.operator.height}))
+        print(w.evaluate(t, P.operator.height.eq(5), time=None))
 
         print("== Enum predicates =====")
 
@@ -58,28 +81,26 @@ class TestMonitor:
             BAR = enum.auto()
             BAZ = enum.auto()
 
-        n = P.operator.position != DummyEnum.FOO
-        t += n
-        f = P.operator.position == DummyEnum.FOO
-        t += f
-        t.terms.operator.position @= (0, DummyEnum.FOO)
-        t.terms.operator.position @= (10, DummyEnum.BAR)
+        n = ~(P.operator.position.eq(DummyEnum.FOO))
+        f = P.operator.position.eq(DummyEnum.FOO)
+        t[P.operator.position] = (0, DummyEnum.FOO)
+        t[P.operator.position] = (10, DummyEnum.BAR)
 
         print(n)
-        print(t.evaluate(n, at=None))
+        print(w.evaluate(t, n, time=None))
         print(f)
-        print(t.evaluate(f, at=None))
+        print(w.evaluate(t, f, time=None))
 
         print("== Test comparisons =====")
         i = Monitor()
         j = Monitor()
 
-        i += P.props.height == 5
-        j += P.props.height == 5
-        print(i == j)
+        i += P.props.height.eq(5)
+        j += P.props.height.eq(5)
+        assert i == j
 
         i += P.props.height < 5
-        print(i == j)
+        assert i != j
 
         print(hash(i), i)
         print(hash(j), j)
@@ -88,85 +109,84 @@ class TestMonitor:
         i = Monitor()
         j = Monitor()
 
-        i += P.height == 5
+        i += P.height.eq(5)
         j += P.height < 5
         print(i, j)
-        print((j | i).predicates)
+        assert (j | i).atoms() == j.atoms()
 
         j += P.height <= 5
-        print((j | i).predicates)
+        assert (j | i).atoms() == i.atoms()
 
         i += P.speed >= 4
-        print((i | j).predicates)
+        assert (j | i).atoms() == i.atoms()
 
         print("== Merge =====")
         u = Monitor()
         u += P.operator.height > 180
 
         v = Monitor()
-        v += P.operator.position == DummyEnum.FOO
+        v += P.operator.position.eq(DummyEnum.FOO)
 
         w = Monitor()
-        w += P.operator.position == DummyEnum.FOO
+        w += P.operator.position.eq(DummyEnum.FOO)
         w += P.operator.height < 170
 
-        print(w.predicates)
-        print((v | w).predicates)
-        print((w | v).predicates)
-        print((u | v).predicates)
+        print(w.atoms())
+        print((v | w).atoms())
+        print((w | v).atoms())
+        print((u | v).atoms())
 
-        s = Trace(u)
-        s.terms.operator.height @= (0, 170)
-        s.terms.operator.height @= (1, 160)
-        s.terms.operator.dummy @= (4, 42)
+        s = Trace()
+        s[P.operator.height] = (0, 170)
+        s[P.operator.height] = (1, 160)
 
-        print("s(rules):", [str(r) for r in s.ruleset.predicates])
         print("s:", {n: list(v) for n, v in s.values.items()})
-        print("s:", {n: list(v) for n, v in s.mtl_predicates.items()})
-        print("s|w:", {n: list(v) for n, v in (s | w).mtl_predicates.items()})
 
-        t = Trace(v)
-        t.terms.operator.position @= (0, DummyEnum.BAR)
-        t.terms.operator.height @= (0, 210)
-        t.terms.operator.position @= (5, DummyEnum.BAZ)
-        t.terms.operator.position @= (9, DummyEnum.FOO)
+        t = Trace()
+        t[P.position] = (0, DummyEnum.BAR)
+        t[P.operator.height] = (0, 210)
+        t[P.position] = (5, DummyEnum.BAZ)
+        t[P.position] = (9, DummyEnum.FOO)
 
         print("t:", t.values)
-        print("t:", t.mtl_predicates)
-        print("t|w:", (t | w).mtl_predicates)
-        print("t|s:", (t | s).mtl_predicates)
-        print("s|t:", (s | t).mtl_predicates)
         print("s|t:", list((s | t).values[("operator", "height")].items()))
+        print("t|s:", list((t | s).values[("operator", "height")].items()))
 
         print("== Out-of-order updates =====")
         w = Monitor()
         w += P.operator.height < 170
 
-        t = Trace(w)
-        t.terms.operator.height @= (0, 210)
-        t.terms.operator.height @= (10, 160)
-        t.terms.operator.height @= (50, 200)
-        t.terms.operator.height @= (25, 42)
-        t.terms.operator.height @= (5, 10)
+        t = Trace()
+        t[P.operator.height] = (0, 210)
+        t[P.operator.height] = (10, 160)
+        t[P.operator.height] = (50, 200)
+        t[P.operator.height] = (25, 42)
+        t[P.operator.height] = (5, 10)
 
         print(list(t.values[("operator", "height")].items()))
 
         print("== Overlapping updates =====")
-        w = Monitor()
-        w += P.operator.height > P.max_height
+        t = Trace()
+        t[P.operator.height] = (0, 210)
+        t[P.operator.height] = (5, 10)
+        t[P.operator.height] = (10, 160)
+        t[P.operator.height] = (25, 42)
+        t[P.operator.height] = (50, 200)
+        print(
+            list(
+                t.values[
+                    (
+                        "operator",
+                        "height",
+                    )
+                ].items()
+            )
+        )
 
-        t = Trace(w)
-        t.terms.operator.height @= (0, 210)
-        t.terms.operator.height @= (5, 10)
-        t.terms.operator.height @= (10, 160)
-        t.terms.operator.height @= (25, 42)
-        t.terms.operator.height @= (50, 200)
-        print(list(t.values[("operator", "height")].items()))
+        t[P.height] = (0, 100)
+        t[P.height] = (11, 161)
+        t[P.height] = (49, 40)
+        t[P.height] = (50, 150)
+        print(list(t.values[("height",)].items()))
 
-        t.terms.max_height @= (0, 100)
-        t.terms.max_height @= (11, 161)
-        t.terms.max_height @= (49, 40)
-        t.terms.max_height @= (50, 150)
-        print(list(t.values[("max_height",)].items()))
-
-        print(t.mtl_predicates)
+        print(t)
