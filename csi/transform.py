@@ -1,7 +1,5 @@
 from jsonpath2 import Path
 
-from csi.twin.orm import DataBase
-
 
 def extract_subscript(node):
     from jsonpath2.nodes.subscript import SubscriptNode
@@ -80,6 +78,7 @@ def json_match(path, contents):
 
 if __name__ == "__main__":
     import copy
+    from csi.twin.orm import DataBase
 
     x = Path.parse_str("$..[?(@.data and @.label and @.entries().length() = 2)]")
     db = DataBase("../tests/fixtures/csi-large.db")
