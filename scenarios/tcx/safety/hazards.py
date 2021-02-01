@@ -5,12 +5,19 @@ from functools import reduce
 
 from .aliases import damageable, manipulators
 from csi.safety.stpa import Hazard
-from csi.monitor import Monitor, P
+from csi.monitor import Monitor
 from mtl import BOT
+
+from ..monitor import P
+
+
+def __register_hazard(uid, description, condition):
+    """Register a new hazard"""
+    return Hazard(uid, condition, description)
 
 
 hazards = {
-    Hazard(
+    __register_hazard(
         1,
         "Violation of minimum separation requirements [Temp: Obstruction with moving Cobot])",
         # Two manipulators hold on the assembly
@@ -30,11 +37,8 @@ hazards = {
             reduce(
                 operator.__or__,
                 (
-                    (
-                        P.cobot.velocity
-                        > getattr(P.constraints.cobot.velocity, i.lower())
-                    )
-                    & (P.cobot.position[i])
+                    (P.cobot.velocity > P.constraints.cobot.velocity)
+                    & (getattr(P.cobot.position, i))
                     for i in ["in_bench", "in_workspace", "in_tool"]
                 ),
                 BOT,
@@ -50,7 +54,7 @@ hazards = {
         # TODO Add moving towards obstruction
         ,
     ),
-    Hazard(
+    __register_hazard(
         2,
         "Individual or Object in dangerous area [Temp: Obstruction with active Tool]",
         (
@@ -58,12 +62,12 @@ hazards = {
             & (P.tool.distance < P.constraints.tool.distance.operation)
         ).eventually(),
     ),
-    Hazard(
+    __register_hazard(
         3,
         "Equipment or Component subject to unnecessary stress",
         (reduce(operator.__or__, (d.is_damaged for d in damageable), BOT)).eventually(),
     ),
-    Hazard(
+    __register_hazard(
         4,
         "Supplied component cannot be correctly processed",  # TODO Only check if picked up/used by cobot?
         P.assembly.under_processing
@@ -73,14 +77,14 @@ hazards = {
             | ~P.assembly.is_orientation_valid
         ),
     ),
-    Hazard(
+    __register_hazard(
         5,
         "Equipment operated outside safe conditions [Temp: Tool running without assembly]",
         (
             P.tool.is_running & ~(P.cobot.has_assembly & P.cobot.position.in_tool)
         ).eventually(),
     ),
-    Hazard(
+    __register_hazard(
         6,
         "Components not secured during processing or transport",
         (
@@ -88,7 +92,7 @@ hazards = {
             & (P.assembly.under_processing | P.assembly.is_moving)
         ).eventually(),
     ),
-    Hazard(
+    __register_hazard(
         7,
         "Components do not move through the processing chain",
         ~(

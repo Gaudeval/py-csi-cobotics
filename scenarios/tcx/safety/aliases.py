@@ -1,5 +1,6 @@
-from csi.monitor import P
 from mtl import BOT
+
+from scenarios.tcx.monitor import P, World
 
 
 manipulators = [P.cobot, P.operator]

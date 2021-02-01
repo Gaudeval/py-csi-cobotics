@@ -79,7 +79,7 @@ class Monitor:
     def __or__(self, other: Monitor) -> Monitor:
         return Monitor(self.conditions | other.conditions)
 
-    def atoms(self, condition=None) -> Iterable[Atom]:
+    def atoms(self, condition=None) -> Set[Atom]:
         reference = self.conditions if condition is None else {condition}
         return {a for c in reference for a in c.walk() if isinstance(a, Atom)}
 
@@ -116,7 +116,7 @@ class Trace:
     def __init__(self):
         self.values = {}
 
-    def atoms(self) -> Iterable[Atom]:
+    def atoms(self) -> Set[Atom]:
         return {Atom(k) for k in self.values.keys()}
 
     def project(self, atoms: Iterable[Atom]) -> Mapping[str : List[(int, Any)]]:
