@@ -19,7 +19,9 @@ class HazardTest(SafetyTest):
     def evaluate(self, trace, expected=True):
         hazard = self.hazard
         monitor = Monitor({hazard.condition})
-        assert len(monitor.atoms() - trace.atoms()) == 0
+        assert len(monitor.atoms() - trace.atoms()) == 0, (
+            monitor.atoms() - trace.atoms()
+        )
         occurs = monitor.evaluate(trace, hazard.condition)
         assert occurs is not None
         assert occurs == expected
@@ -39,11 +41,14 @@ class TestH1(HazardTest):
         trace[P.constraints.cobot.velocity.proximity] = (0, 100)
         trace[P.cobot.distance] = (0, 0)
         trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.has_assembly] = (0, False)
         trace[P.cobot.position.in_tool] = (0, False)
         trace[P.cobot.position.in_bench] = (0, False)
         trace[P.cobot.position.in_workspace] = (0, False)
         trace[P.cobot.velocity] = (0, 0)
         trace[P.operator.has_assembly] = (0, False)
+        trace[P.assembly.has_assembly] = (0, False)
+        trace[P.tool.has_assembly] = (0, False)
         return trace
 
     def test_nominal(self):
@@ -431,6 +436,8 @@ class TestH7(HazardTest):
         trace[P.assembly.is_processed] = (0, False)
         trace[P.cobot.has_assembly] = (0, True)
         trace[P.operator.has_assembly] = (0, False)
+        trace[P.tool.has_assembly] = (0, False)
+        trace[P.assembly.has_assembly] = (0, False)
         return trace
 
     def test_occurs(self):

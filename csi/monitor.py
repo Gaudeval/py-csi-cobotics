@@ -136,9 +136,15 @@ class Trace:
         return {Atom(k) for k in self.values.keys()}
 
     def project(self, atoms: Iterable[Atom]) -> Mapping[str, List[(int, Any)]]:
-        return {
-            a.id: list(self.values[a.id].items()) for a in set(atoms) & self.atoms()
-        }
+        results = {}
+        for a in set(atoms) & self.atoms():
+            results[a.id] = []
+            for (t, v) in self.values[a.id].items():
+                if isinstance(v, bool):
+                    results[a.id].append((t, 1 if v else -1))
+                else:
+                    results[a.id].append((t, v))
+        return results
 
     @staticmethod
     def _merge_values(values: List[Optional[TimeSeries]]):
