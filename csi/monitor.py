@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import attr
 import funcy
+import lenses
 from traces import TimeSeries
 from typing import (
     Any,
@@ -43,6 +44,24 @@ class Context:
     @classmethod
     def __build(cls, path):
         return cls(path)
+
+
+@attr.s(
+    auto_attribs=True,
+    repr=True,
+    slots=True,
+    eq=True,
+    order=True,
+    hash=True,
+)
+class Alias:
+    condition: Node
+
+    def __get__(self, instance, owner):
+        path = getattr(instance, "path", tuple())
+        atoms = set(lenses.bind(self.condition.walk()).Each().Instance(Atom).collect())
+        v = {a.id: Atom(path + a.id) for a in atoms if isinstance(a.id, tuple)}
+        return self.condition[v]
 
 
 class Term:

@@ -3,9 +3,9 @@ import operator
 
 from functools import reduce
 
-from .aliases import damageable, manipulators
 from csi.safety.stpa import Hazard
 from csi.monitor import Monitor
+from ..monitor import Entities
 from mtl import BOT
 
 from ..monitor import P
@@ -26,7 +26,7 @@ hazards = {
                 operator.__or__,
                 (
                     i.has_assembly & j.has_assembly
-                    for i, j in itertools.combinations(manipulators, 2)
+                    for i, j in itertools.combinations(Entities, 2)
                 ),
                 BOT,
             )
@@ -65,7 +65,7 @@ hazards = {
     __register_hazard(
         3,
         "Equipment or Component subject to unnecessary stress",
-        (reduce(operator.__or__, (d.is_damaged for d in damageable), BOT)).eventually(),
+        (reduce(operator.__or__, (d.is_damaged for d in Entities), BOT)).eventually(),
     ),
     __register_hazard(
         4,
