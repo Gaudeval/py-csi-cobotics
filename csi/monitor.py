@@ -114,6 +114,8 @@ class Monitor:
         results: MutableMapping[Node, Optional[bool]] = dict()
         for phi in evaluated_conditions:
             signals = trace.project(self.atoms(phi))
+            # FIXME A default value is required by mtl even if no atoms required (TOP/BOT)
+            signals[None] = [(0, False)]
             if all(a.id in signals for a in self.atoms(phi)):
                 r = phi(signals, dt=dt, time=time)
                 if time is None:
@@ -186,6 +188,8 @@ class Trace:
             if t is None:
                 continue
             for path, value in self._extract_atom_values(e):
+                if path not in self.values:
+                    self.values[path] = TimeSeries()
                 self.values[path][t] = value
 
     def __setitem__(self, key: Atom, value: Tuple[int, Any]):
