@@ -113,19 +113,17 @@ class Monitor:
 
         results: MutableMapping[Node, Optional[bool]] = dict()
         for phi in evaluated_conditions:
-            atoms = trace.project(self.atoms(phi))
-            if all(a.id in atoms for a in Monitor().atoms(phi)):
-                r = phi(atoms, dt=dt, time=time)
+            signals = trace.project(self.atoms(phi))
+            if all(a.id in signals for a in self.atoms(phi)):
+                r = phi(signals, dt=dt, time=time)
                 if time is None:
-                    r = [(t, v > 0) for t, v in r]
+                    r = funcy.walk_values(lambda v: v > 0, r)
                 else:
                     r = r > 0
                 results[phi] = r
             else:
                 results[phi] = None
-        if condition is not None:
-            return next(iter(results.values()))
-        return results
+        return results if condition is None else funcy.first(results.values())
 
 
 class Trace:
@@ -137,42 +135,33 @@ class Trace:
     def atoms(self) -> Set[Atom]:
         return {Atom(k) for k in self.values.keys()}
 
-    def project(self, atoms: Iterable[Atom]) -> Mapping[str : List[(int, Any)]]:
+    def project(self, atoms: Iterable[Atom]) -> Mapping[str, List[(int, Any)]]:
         return {
-            a.id: [(t, v) for t, v in self.values[a.id]]
-            for a in atoms
-            if a.id in self.values
+            a.id: list(self.values[a.id].items()) for a in set(atoms) & self.atoms()
         }
 
     @staticmethod
     def _merge_values(values: List[Optional[TimeSeries]]):
-        n = [i for i in values if i is not None]
-        return n[-1] if n else None
+        return funcy.last(i for i in values if i is not None)
 
-    def update(self, other: Trace) -> None:
+    def update(self, other: Trace) -> Trace:
         for t, s in other.values.items():
-            if t in self.values:
-                self.values[t] = TimeSeries.merge(
-                    [self.values[t], s], operation=self._merge_values
-                )
-            else:
-                self.values[t] = TimeSeries(s)
+            c = self.values.get(t, TimeSeries())
+            self.values[t] = TimeSeries.merge([c, s], operation=self._merge_values)
+        return self
 
     def __ior__(self, other: Trace) -> Trace:
         return self | other
 
     def __or__(self, other: Trace) -> Trace:
-        result = Trace()
-        result.update(self)
-        result.update(other)
-        return result
+        return Trace().update(self).update(other)
 
     @classmethod
     def _extract_atom_values(
         cls, element: Any, prefix: PathType = ()
     ) -> Iterable[Tuple[PathType, Any]]:
         """Convert nested structure into flat list with tuple capturing nested paths."""
-        if isinstance(element, dict):
+        if isinstance(element, Mapping):
             return funcy.cat(
                 cls._extract_atom_values(v, prefix + (k,)) for k, v in element.items()
             )
@@ -183,19 +172,15 @@ class Trace:
             )
         return [(prefix, element)]
 
-    def _record(self, element: Any, timestamp: Callable[[Any], int]) -> None:
-        time = timestamp(element)
-        if time is None:
-            return
-        for path, value in self._extract_atom_values(element):
-            path @= (time, value)
-
     def record(self, element: Any, *, timestamp: Callable[[Mapping], int]) -> None:
-        if isinstance(element, dict):
-            self._record(element, timestamp)
-        else:
-            for e in element:
-                self.record(e, timestamp=timestamp)
+        if isinstance(element, Mapping):
+            element = [element]
+        for e in element:
+            t = timestamp(e)
+            if t is None:
+                continue
+            for path, value in self._extract_atom_values(e):
+                self.values[path][t] = value
 
     def __setitem__(self, key: Atom, value: Tuple[int, Any]):
         t, v = value
