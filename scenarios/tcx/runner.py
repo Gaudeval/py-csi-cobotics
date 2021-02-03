@@ -1,12 +1,13 @@
 import dataclasses
+import math
 from pathlib import Path
-from typing import Any, Union, Optional, List, Tuple
+from typing import Any, Union, Optional, List, Tuple, Mapping
 
 from traces import TimeSeries
 
 from csi.monitor import Trace, Monitor
 from csi.safety import SafetyCondition
-from csi.twin import DBMessageImporter
+from csi.transform import json_transform
 from csi.twin.converter import FilterType, ConverterType, RegionConverter, DropKey
 from csi.twin.orm import DataBase
 from csi.twin.runner import BuildRunnerConfiguration, BuildRunner
@@ -31,6 +32,13 @@ class TcxRunnerConfiguration(BuildRunnerConfiguration):
 
     world: Any = dataclasses.field(default_factory=WorldData)
     build: Path = dataclasses.field(default_factory=Path)
+
+
+def safety_timestamp(row: Mapping):
+    v = next(iter(row.values()))
+    if "timestamp" in v:
+        return int(math.floor(v.get("timestamp") * 1000))
+    return None
 
 
 class TcxBuildRunner(BuildRunner):
@@ -109,8 +117,31 @@ class TcxBuildRunner(BuildRunner):
         # Import trace
         database = DataBase(database_path)
         trace = Trace()
-        message_importer = DBMessageImporter(entity_aliases, converters)
-        message_importer.import_messages(trace, database)
+        for message in database.flatten_messages():
+            # Apply custom converters
+            for convert_condition, convert_op in converters:
+                if convert_condition is None or convert_condition(message):
+                    message = convert_op(message)
+                    if message is None:
+                        break
+            if message is None:
+                continue
+            # Normalise entity names
+            message = json_transform(
+                "$.entity_id", message, lambda d: d.replace("-", "_")
+            )
+            # Replace entity names with specified mapping
+            message = json_transform(
+                "$.entity_id", message, lambda d: entity_aliases.get(d, d)
+            )
+            # Prefix data with entity name
+            message = json_transform(
+                "$[?(@.entity_id)]",
+                message,
+                lambda d: {d["entity_id"] if d["entity_id"] else d["__table__"]: d},
+            )
+            trace.record(message, timestamp=safety_timestamp)
+
         # FIXME
         k = ("cobot", "reaches_target")
         for t, v in trace.values[k]:

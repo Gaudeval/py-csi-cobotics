@@ -1,9 +1,11 @@
 import collections
 import collections.abc
+import re
 import sqlite3
 from pathlib import Path
 from typing import Any, Generator, List, MutableMapping, Tuple, Union
 
+from csi.transform import json_transform
 
 structural_fields = {
     "id",
@@ -226,6 +228,35 @@ class DataBase:
     def messages(self) -> Generator[MutableMapping[str, Any], None, None]:
         for table in self.tables.values():
             yield from table.messages()
+
+    def flatten_messages(self) -> Generator[MutableMapping[str, Any], None, None]:
+        reduce_fk = lambda c: {
+            k: v for k, v in c.items() if k not in ["__table__", "__pk__"]
+        }
+        snake_case = lambda name: re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+        keys_case = (
+            lambda c: {snake_case(k): keys_case(v) for k, v in c.items()}
+            if isinstance(c, dict)
+            else c
+        )
+        for message in self.messages():
+            # Remove indexing by foreign table primary id
+            message = json_transform("$[*]..[?(@.__table__)]", message, reduce_fk)
+            # Flatten foreign tables with a single element
+            message = json_transform(
+                "$..[?(@.length() = 1 and @[0][?(@.__table__ and @.__pk__)])]",
+                message,
+                lambda d: d[0],
+            )
+            # Flatten tables containing only data
+            message = json_transform(
+                "$..[?(@.data and @.keys().length() = 1)]", message, lambda d: d["data"]
+            )
+            # Convert terms to snake_case
+            message = json_transform(
+                "$..[?(@.keys().length() > 0)]", message, keys_case
+            )
+            yield message
 
 
 # TODO Index the database when first accessed to fasten queries -> Compare cost of indexing+query vs. query
