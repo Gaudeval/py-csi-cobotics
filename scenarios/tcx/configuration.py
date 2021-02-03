@@ -32,7 +32,7 @@ class WorldData:
     version: str = "0.0.0.1"
 
     _encoded_fieldnames = {
-        "operator": "Tim-Operator-0",
+        "operator": "Tim-Operator",
         "timestamp": "$Generated",
         "version": "$version",
     }

@@ -8,10 +8,13 @@ import subprocess
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
+from traces import TimeSeries
+
 from csi.configuration import ConfigurationManager
 from csi.experiment import Experiment
 from csi.monitor import Monitor, Trace
 from csi.safety import SafetyCondition
+from csi.safety.stpa import Hazard, UnsafeControlAction
 from csi.twin.converter import (
     ObstructionDetection,
     RegionConverter,
@@ -22,9 +25,19 @@ from csi.twin.converter import (
 )
 from csi.twin.importer import DBMessageImporter
 from csi.twin.orm import DataBase
-from scenarios import hazards
-from scenarios.tcx.safety.ucas import unsafe_control_actions
-from scenarios import WorldData
+from scenarios.tcx import hazards, unsafe_control_actions, WorldData
+
+
+def cobot_reaches_target(m):
+    m["entity_id"] = "cobot"
+    m["reaches_target"] = True
+    return m
+
+
+def cobot_has_target(m):
+    m["entity_id"] = "cobot"
+    m["has_target"] = True
+    return m
 
 
 @dataclasses.dataclass
@@ -79,14 +92,14 @@ class BuildRunner(Experiment):
                 if saved.exists():
                     shutil.copy(saved, backup)
         # Restrict monitor to prototype hazard and uca
-        hazard = next((h for h in hazards if h.name == "H3"))
+        hazard = next((h for h in hazards if h.uid == 3))
         uca = next((u for u in unsafe_control_actions if u.uid == "UCA9-P-2"))
         # Check for hazard occurrence
         trace, conditions = self.process_output(twin_files["db"][1], [hazard, uca])
         report = {}
-        safety_condition: SafetyCondition
+        safety_condition: Union[Hazard, UnsafeControlAction]
         for safety_condition in conditions:
-            i = trace.evaluate(safety_condition.condition)
+            i = Monitor().evaluate(trace, safety_condition.condition)
             print(type(safety_condition), safety_condition.uid)
             print(safety_condition.description)
             print("Occurs: ", i)
@@ -97,35 +110,30 @@ class BuildRunner(Experiment):
     @staticmethod
     def process_output(
         database_path: Union[str, Path],
-        conditions: Optional[List[SafetyCondition]] = None,
+        safety_conditions: Optional[List[SafetyCondition]] = None,
     ) -> Tuple[Trace, List[SafetyCondition]]:
         """Extract values from simulation message trace"""
         # FIXME Move to twin-specific library for tcx case study
         # Load default conditions
-        if conditions is None:
-            conditions = []
-            conditions.extend(hazards)
-            conditions.extend(unsafe_control_actions)
+        if safety_conditions is None:
+            safety_conditions = []
+            safety_conditions.extend(hazards)
+            safety_conditions.extend(unsafe_control_actions)
         # Define safety monitor
         monitor = Monitor()
-        for safety_condition in conditions:
+        for safety_condition in safety_conditions:
             monitor += safety_condition.condition
         # Import configuration
         entity_aliases = {
-            "Tim_Operator_0": "operator",
-            "ur10_UR10_0": "cobot",
-            "Spot Welder Assembly_StaticEntity_0": "tool",
-            "Component Assembly_StaticEntity_2": "assembly",
+            "Tim_Operator": "operator",
+            "ur10_cobot": "cobot",
+            "Spot Welder Assembly_welder": "tool",
+            "TT7302_mandrel_assembly": "assembly",
         }
         region_names = {
-            "Enclosure Region": "workspace",
-            "Spot Welder Region": "tool",
-            "Loading Platform Region": "bench",
-        }
-        workspace_entities = {
-            k.replace("_", "-")
-            for k, v in entity_aliases.items()
-            if v in ["cobot", "tool"]
+            "Work Cell Region": "in_workspace",
+            "Spot Welder Region": "in_tool",
+            "Loading Platform Region": "in_bench",
         }
         converters: List[
             Tuple[
@@ -135,14 +143,31 @@ class BuildRunner(Experiment):
         ]
         converters = [
             (
-                (lambda m: (m["__table__"] == "regionstatus")),
-                ObstructionDetection("Enclosure Region", workspace_entities),
+                (lambda m: (m["__table__"] == "triggerregionenterevent")),
+                RegionConverter(region_names, default_value=True),
             ),
             (
-                (lambda m: (m["__table__"] == "regionstatus")),
-                RegionConverter("region", "entity_id", region_names),
+                (lambda m: (m["__table__"] == "triggerregionexitevent")),
+                RegionConverter(region_names, default_value=False),
             ),
-            (None, DropTable("triggerregionexitevent", "triggerregionenterevent")),
+            (
+                (
+                    lambda m: (
+                        m["__table__"] == "waypointnotification"
+                        and m["achiever"] == "ur10"
+                    )
+                ),
+                cobot_reaches_target,
+            ),
+            (
+                (
+                    lambda m: (
+                        m["__table__"] == "waypointrequest"
+                        and m["label"] == "cobot/next"
+                    )
+                ),
+                cobot_has_target,
+            ),
             (
                 None,
                 DropKey(
@@ -150,15 +175,30 @@ class BuildRunner(Experiment):
                     "collider",
                     "collision_force",
                     "parent_id",
-                    "entity",
-                    "region",
                     "entities",
                 ),
             ),
         ]
         # Import trace
         database = DataBase(database_path)
-        trace = Trace(monitor)
+        trace = Trace()
         message_importer = DBMessageImporter(entity_aliases, converters)
         message_importer.import_messages(trace, database)
-        return trace, conditions
+        # FIXME
+        k = ("cobot", "reaches_target")
+        for t, v in trace.values[k]:
+            if v and t + 1 not in trace.values[k]:
+                trace.values[k][t + 1] = False
+
+        # Initialise position defaults
+        t = min(next(iter(s))[0] for s in trace.values.values())
+        for entity in entity_aliases.values():
+            for region in region_names.values():
+                position_key = (entity, "position", region)
+                if position_key in trace.values:
+                    if trace.values[position_key][t] is not None:
+                        continue
+                else:
+                    trace.values[position_key] = TimeSeries()
+                trace.values[position_key][t] = False
+        return trace, safety_conditions
