@@ -6,12 +6,12 @@ import shutil
 import subprocess
 
 from pathlib import Path
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union, Set
 
 from csi.configuration import ConfigurationManager
 from csi.experiment import Experiment
 from csi.monitor import Monitor, Trace
-from csi.safety import SafetyCondition
+from csi.safety import SafetyCondition, Atom
 
 
 @dataclasses.dataclass

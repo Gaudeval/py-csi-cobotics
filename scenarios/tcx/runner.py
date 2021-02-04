@@ -8,10 +8,12 @@ from traces import TimeSeries
 from csi.monitor import Trace, Monitor
 from csi.safety import SafetyCondition
 from csi.transform import json_transform
-from csi.twin.converter import FilterType, ConverterType, RegionConverter, DropKey
+from csi.twin.importer import (
+    as_object,
+)
 from csi.twin.orm import DataBase
 from csi.twin.runner import BuildRunnerConfiguration, BuildRunner
-from scenarios.tcx import hazards, unsafe_control_actions, WorldData
+from scenarios.tcx import hazards, unsafe_control_actions, WorldData, P
 
 
 def cobot_reaches_target(m):
@@ -42,121 +44,70 @@ def safety_timestamp(row: Mapping):
 
 
 class TcxBuildRunner(BuildRunner):
-    @staticmethod
-    def process_output(
-        database_path: Union[str, Path],
-        safety_conditions: Optional[List[SafetyCondition]] = None,
-    ) -> Tuple[Trace, List[SafetyCondition]]:
+    entity = {
+        "ur10-cobot": P.cobot,
+        "Tim-Operator": P.operator,
+        "TT7302-mandrel-assembly": P.assembly,
+        "Spot Welder Assembly-welder": P.tool,
+    }
+
+    region = {
+        "Work Cell Region": "in_workspace",
+        "Loading Platform Region": "in_bench",
+        "Spot Welder Region": "in_tool",
+    }
+
+    def process_output(self, database_path, safety_conditions=None):
         """Extract values from simulation message trace"""
-        # FIXME Move to twin-specific library for tcx case study
-        # Load default conditions
-        if safety_conditions is None:
-            safety_conditions = []
-            safety_conditions.extend(hazards)
-            safety_conditions.extend(unsafe_control_actions)
         # Define safety monitor
         monitor = Monitor()
         for safety_condition in safety_conditions:
             monitor += safety_condition.condition
-        # Import configuration
-        entity_aliases = {
-            "Tim_Operator": "operator",
-            "ur10_cobot": "cobot",
-            "Spot Welder Assembly_welder": "tool",
-            "TT7302_mandrel_assembly": "assembly",
-        }
-        region_names = {
-            "Work Cell Region": "in_workspace",
-            "Spot Welder Region": "in_tool",
-            "Loading Platform Region": "in_bench",
-        }
-        converters: List[
-            Tuple[
-                Optional[FilterType],
-                ConverterType,
-            ]
-        ]
-        converters = [
-            (
-                (lambda m: (m["__table__"] == "triggerregionenterevent")),
-                RegionConverter(region_names, default_value=True),
-            ),
-            (
-                (lambda m: (m["__table__"] == "triggerregionexitevent")),
-                RegionConverter(region_names, default_value=False),
-            ),
-            (
-                (
-                    lambda m: (
-                        m["__table__"] == "waypointnotification"
-                        and m["achiever"] == "ur10"
-                    )
-                ),
-                cobot_reaches_target,
-            ),
-            (
-                (
-                    lambda m: (
-                        m["__table__"] == "waypointrequest"
-                        and m["label"] == "cobot/next"
-                    )
-                ),
-                cobot_has_target,
-            ),
-            (
-                None,
-                DropKey(
-                    "id",
-                    "collider",
-                    "collision_force",
-                    "parent_id",
-                    "entities",
-                ),
-            ),
-        ]
         # Import trace
-        database = DataBase(database_path)
+        db = DataBase(database_path)
         trace = Trace()
-        for message in database.flatten_messages():
-            # Apply custom converters
-            for convert_condition, convert_op in converters:
-                if convert_condition is None or convert_condition(message):
-                    message = convert_op(message)
-                    if message is None:
-                        break
-            if message is None:
-                continue
-            # Normalise entity names
-            message = json_transform(
-                "$.entity_id", message, lambda d: d.replace("-", "_")
-            )
-            # Replace entity names with specified mapping
-            message = json_transform(
-                "$.entity_id", message, lambda d: entity_aliases.get(d, d)
-            )
-            # Prefix data with entity name
-            message = json_transform(
-                "$[?(@.entity_id)]",
-                message,
-                lambda d: {d["entity_id"] if d["entity_id"] else d["__table__"]: d},
-            )
-            trace.record(message, timestamp=safety_timestamp)
 
-        # FIXME
-        k = ("cobot", "reaches_target")
-        for t, v in trace.values[k]:
-            if v and t + 1 not in trace.values[k]:
-                trace.values[k][t + 1] = False
+        def from_table(*table):
+            return map(as_object, db.flatten_messages(*table))
 
-        # Initialise position defaults
-        t = min(next(iter(s))[0] for s in trace.values.values())
-        for entity in entity_aliases.values():
-            for region in region_names.values():
-                position_key = (entity, "position", region)
-                if position_key in trace.values:
-                    if trace.values[position_key][t] is not None:
-                        continue
-                else:
-                    trace.values[position_key] = TimeSeries()
-                trace.values[position_key][t] = False
+        # Entity.reaches_target
+        for m in from_table("waypointnotification"):
+            if m.achiever == "ur10":
+                trace[P.cobot.reaches_target] = (m.timestamp, True)
+                trace[P.cobot.has_target] = (m.timestamp, False)
+                trace[P.cobot.reaches_target] = (m.timestamp + 0.1, False)
+
+        # Entity.has_target
+        for m in from_table("waypointrequest"):
+            trace[P.cobot.has_target] = (m.timestamp, True)
+
+        # Entity.is_damaged
+        for m in from_table("damageablestatus"):
+            trace[self.entity[m.entity].is_damaged] = (m.timestamp, m.is_damaged)
+
+        # Entity.position
+        # Initialise all position all entities to False
+        for e in self.entity.values():
+            for p in self.region.values():
+                trace[getattr(e.position, p)] = (0.0, False)
+        # Collect position from message
+        for m in from_table("triggerregionenterevent", "triggerregionexitevent"):
+            v = "enter" in m.__table__
+            p = getattr(self.entity[m.entity].position, self.region[m.region])
+            trace[p] = (m.timestamp, v)
+
+        # Entity.is_moving
+        for m in from_table("movablestatus"):
+            trace[self.entity[m.entity].is_moving] = (m.timestamp, m.is_moving)
+
+        # Define constraints
+        trace[P.constraints.cobot.velocity.in_bench] = (0.0, 0.5)
+        trace[P.constraints.cobot.velocity.in_tool] = (0.0, 0.5)
+        trace[P.constraints.cobot.velocity.in_workspace] = (0.0, 2.0)
+        trace[P.constraints.cobot.velocity.proximity] = (0.0, 0.5)
+        trace[P.constraints.cobot.distance.proximity] = (0.0, 0.5)
+        trace[P.constraints.tool.distance.operation] = (0.0, 0.5)
+
+        missing_atoms = sorted(a.id for a in monitor.atoms() - trace.atoms())
+
         return trace, safety_conditions
