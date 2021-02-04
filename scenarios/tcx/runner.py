@@ -1,31 +1,12 @@
 import dataclasses
 import math
 from pathlib import Path
-from typing import Any, Union, Optional, List, Tuple, Mapping
-
-from traces import TimeSeries
+from typing import Any, Mapping
 
 from csi.monitor import Trace, Monitor
-from csi.safety import SafetyCondition
-from csi.transform import json_transform
-from csi.twin.importer import (
-    as_object,
-)
-from csi.twin.orm import DataBase
-from csi.twin.runner import BuildRunnerConfiguration, BuildRunner
-from scenarios.tcx import hazards, unsafe_control_actions, WorldData, P
-
-
-def cobot_reaches_target(m):
-    m["entity_id"] = "cobot"
-    m["reaches_target"] = True
-    return m
-
-
-def cobot_has_target(m):
-    m["entity_id"] = "cobot"
-    m["has_target"] = True
-    return m
+from csi.twin.importer import as_object
+from csi.twin import BuildRunnerConfiguration, BuildRunner, DataBase
+from scenarios.tcx import WorldData, P
 
 
 @dataclasses.dataclass

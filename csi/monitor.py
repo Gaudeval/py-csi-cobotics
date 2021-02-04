@@ -192,7 +192,7 @@ class Trace:
                     self.values[path] = TimeSeries()
                 self.values[path][t] = value
 
-    def __setitem__(self, key: Atom, value: Tuple[int, Any]):
+    def __setitem__(self, key: Atom, value: Tuple[float, Any]):
         t, v = value
         k = key
         if isinstance(key, Atom):
