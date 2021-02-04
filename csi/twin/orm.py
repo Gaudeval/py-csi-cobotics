@@ -227,7 +227,7 @@ class DataBase:
 
     def messages(self, *tables) -> Generator:
         if tables:
-            from_tables = [self.tables.get(t) for t in tables]
+            from_tables = [self.tables[t] for t in tables if t in self.tables]
         else:
             from_tables = self.tables.values()
         for table in from_tables:
