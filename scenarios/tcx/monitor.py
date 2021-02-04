@@ -72,7 +72,7 @@ class World(Context):
 P = World()
 
 Controller.gets_configured = Alias(
-    (~P.controller.is_configured) & (P.controller.is_configured >> 1)
+    (~Controller.is_configured) & (Controller.is_configured >> 1)
 )
 
 # FIXME Extend to any non-expected entity
