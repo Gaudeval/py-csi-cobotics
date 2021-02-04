@@ -225,11 +225,15 @@ class DataBase:
             if t[0] not in ["sqlite_sequence"]
         }
 
-    def messages(self) -> Generator[MutableMapping[str, Any], None, None]:
-        for table in self.tables.values():
+    def messages(self, *tables) -> Generator:
+        if tables:
+            from_tables = [self.tables.get(t) for t in tables]
+        else:
+            from_tables = self.tables.values()
+        for table in from_tables:
             yield from table.messages()
 
-    def flatten_messages(self) -> Generator[MutableMapping[str, Any], None, None]:
+    def flatten_messages(self, *tables) -> Generator:
         reduce_fk = lambda c: {
             k: v for k, v in c.items() if k not in ["__table__", "__pk__"]
         }
@@ -239,7 +243,7 @@ class DataBase:
             if isinstance(c, dict)
             else c
         )
-        for message in self.messages():
+        for message in self.messages(*tables):
             # Remove indexing by foreign table primary id
             message = json_transform("$[*]..[?(@.__table__)]", message, reduce_fk)
             # Flatten foreign tables with a single element
