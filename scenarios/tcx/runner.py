@@ -70,6 +70,16 @@ class TcxBuildRunner(BuildRunner):
         def from_table(*table):
             return map(as_object, db.flatten_messages(*table))
 
+        # tables = set(db.tables.keys())
+
+        # Entity.distance
+        for m in from_table("distancemeasurement"):
+            trace[self.entity[m.entity].distance] = (m.timestamp, m.distance)
+
+        # Entity.velocity
+        for m in from_table("velocitymeasurement"):
+            trace[self.entity[m.entity].velocity] = (m.timestamp, m.velocity)
+
         # Entity.reaches_target
         for m in from_table("waypointnotification"):
             if m.achiever == "ur10":
