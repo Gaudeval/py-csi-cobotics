@@ -120,4 +120,18 @@ class TcxBuildRunner(BuildRunner):
 
         missing_atoms = sorted(a.id for a in monitor.atoms() - trace.atoms())
 
+        # FIXME Remove temporary values
+        trace[P.assembly.has_assembly] = (0.0, False)
+        trace[P.assembly.is_orientation_valid] = (0.0, True)
+        trace[P.assembly.is_processed] = (0.0, False)
+        trace[P.assembly.is_secured] = (0.0, True)
+        trace[P.assembly.is_valid] = (0.0, True)
+        trace[P.assembly.under_processing] = (0.0, False)
+        trace[P.cobot.has_assembly] = (0.0, False)
+        trace[P.controller.is_configured] = (0.0, True)
+        trace[P.operator.has_assembly] = (0.0, False)
+        trace[P.operator.provides_assembly] = (0.0, False)
+        trace[P.tool.has_assembly] = (0.0, False)
+        trace[P.tool.is_running] = (0.0, False)
+
         return trace, safety_conditions
