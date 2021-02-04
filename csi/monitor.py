@@ -194,6 +194,9 @@ class Trace:
 
     def __setitem__(self, key: Atom, value: Tuple[int, Any]):
         t, v = value
-        if key.id not in self.values:
-            self.values[key.id] = TimeSeries()
-        self.values[key.id][t] = v
+        k = key
+        if isinstance(key, Atom):
+            k = key.id
+        if k not in self.values:
+            self.values[k] = TimeSeries()
+        self.values[k][t] = v
