@@ -11,7 +11,7 @@ from scenarios.tcx import TcxBuildRunner, hazards, unsafe_control_actions, confi
 
 
 class ExperimentWrapper:
-    def __init__(self, build="build/", runs="runs/"):
+    def __init__(self, build="../build/", runs="runs/"):
         self.build = Path(build).absolute()
         self.repository = Repository(Path(runs))
 
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     if runs.exists():
         shutil.rmtree(runs)
     #
-    w = ExperimentWrapper("build/", runs)
+    w = ExperimentWrapper("../build/", runs)
 
     var_bound = numpy.array(
         [
@@ -120,3 +120,8 @@ if __name__ == "__main__":
     #
     best_configuration = w.generate_configuration(model.best_variable)
     print(ConfigurationManager().encode(best_configuration))
+    list_experiments = lambda: set(str(e.path) for e in w.repository.experiments)
+    population = list_experiments()
+    w(model.best_variable)
+    best_experiment = next(iter(list_experiments() - population))
+    shutil.copytree(best_experiment, "runs/best")
