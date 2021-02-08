@@ -17,9 +17,14 @@ class ExperimentWrapper:
         self.build = Path(build).absolute()
         self.repository = Repository(Path(runs))
         self.features = {}
-        self.features.update({str(h.uid): i for i, h in enumerate(hazards)})
         self.features.update(
-            {str(h.uid): i for i, h in enumerate(unsafe_control_actions)}
+            {str(h.uid): i for i, h in enumerate(sorted(hazards), start=1)}
+        )
+        self.features.update(
+            {
+                str(h.uid): i
+                for i, h in enumerate(sorted(unsafe_control_actions), start=1)
+            }
         )
 
     def score_experiment(
@@ -27,7 +32,7 @@ class ExperimentWrapper:
     ) -> Tuple[Tuple[int], Tuple[int, int]]:
         for run in experiment.runs:
             run_score = 0
-            conditions = (set(), set())
+            conditions = ({0}, {0})
             if run.status == RunStatus.COMPLETE:
                 with (run.work_path / "hazard-report.json").open() as json_report:
                     report = json.load(json_report)
