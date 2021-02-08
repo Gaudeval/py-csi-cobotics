@@ -28,6 +28,13 @@ class Entity:
 
 
 @dataclasses.dataclass
+class Controller:
+    limit_speed: bool = dataclasses.field(default=True)
+
+    _encoded_fieldnames = {"limit_speed": "UrdfController.useLimits"}
+
+
+@dataclasses.dataclass
 class Operator(Entity):
     height: float = dataclasses.field(default=1.75)
 
@@ -47,13 +54,15 @@ class WorldData:
     cobot: Entity = dataclasses.field(default_factory=Entity)
     tool: Entity = dataclasses.field(default_factory=Entity)
     assembly: Entity = dataclasses.field(default_factory=Entity)
-    version: str = "0.0.0.1"
+    controller: Controller = dataclasses.field(default_factory=Controller)
+    version: str = "0.0.0.2"
 
     _encoded_fieldnames = {
-        "operator": "Tim-Operator",
-        "cobot": "ur10-cobot",
-        "tool": "Spot Welder Assembly-welder",
-        "assembly": "TT7302-mandrel-assembly",
+        "controller": "/ur10/MultiJointPositionController",
+        "operator": "/Operators/Tim/Operator",
+        "cobot": "/ur10/UR10",
+        "tool": "/Tecconex Cell/Spot Welder Assembly/StaticEntity",
+        "assembly": "/Tecconex Cell/TT7302-mandrel/StaticEntity",
         "timestamp": "$Generated",
         "version": "$version",
     }
@@ -91,4 +100,6 @@ def default() -> WorldData:
     world.assembly.rotation.x = 0.0
     world.assembly.rotation.y = 0.0
     world.assembly.rotation.z = 90.0
+    #
+    world.controller.limit_speed = True
     return world
