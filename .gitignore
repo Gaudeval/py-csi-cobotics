@@ -1,2 +1,5 @@
 /.idea
 /venv
+/workspace/
+/experiments/search-ga/build/
+/experiments/search-ga/runs/
