@@ -11,6 +11,9 @@ from mtl import BOT
 from ..monitor import P
 
 
+__TOLERANCE = 5.0
+
+
 def __register_hazard(uid, description, condition):
     """Register a new hazard"""
     return Hazard(uid, condition, description)
@@ -40,7 +43,11 @@ hazards = {
             reduce(
                 operator.__or__,
                 (
-                    (P.cobot.velocity > getattr(P.constraints.cobot.velocity, i))
+                    (
+                        P.cobot.velocity.gt(
+                            getattr(P.constraints.cobot.velocity, i), __TOLERANCE
+                        )
+                    )
                     & (getattr(P.cobot.position, i))
                     for i in ["in_bench", "in_workspace", "in_tool"]
                 ),
@@ -53,8 +60,8 @@ hazards = {
         "Violation of minimum separation requirements [Cobot exceeds proximity velocity constraints])",
         # Cobot moving faster than authorised in close proximity
         (
-            (P.cobot.velocity > P.constraints.cobot.velocity.proximity)
-            & (P.cobot.distance < P.constraints.cobot.distance.proximity)
+            (P.cobot.velocity.gt(P.constraints.cobot.velocity.proximity, __TOLERANCE))
+            & (P.cobot.distance.lt(P.constraints.cobot.distance.proximity, __TOLERANCE))
         ).eventually()
         # TODO Requires more proximity alert ranges?
         # TODO Add moving towards obstruction
@@ -65,7 +72,7 @@ hazards = {
         "Individual or Object in dangerous area [Temp: Obstruction with active Tool]",
         (
             P.tool.is_running
-            & (P.tool.distance < P.constraints.tool.distance.operation)
+            & (P.tool.distance.lt(P.constraints.tool.distance.operation, __TOLERANCE))
         ).eventually(),
     ),
     __register_hazard(
