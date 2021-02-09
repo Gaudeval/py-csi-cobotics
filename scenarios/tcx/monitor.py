@@ -96,9 +96,11 @@ Entities = bind(World).Recur(Entity).collect()
 Assembly.is_held = reduce(operator.or_, (e.has_assembly for e in Entities), BOT)
 
 
-Assembly.is_delivered = P.assembly.is_processed.implies(
-    (P.cobot.position.in_bench & (~P.cobot.has_assembly)).eventually()
-).always()
+Assembly.is_delivered = (
+    (P.cobot.has_assembly & P.assembly.is_processed)
+    .implies((P.cobot.position.in_bench & (~P.cobot.has_assembly)).eventually())
+    .always()
+)
 
 
 Assembly.needs_secured = P.cobot.has_assembly & (~P.cobot.position.in_bench)

@@ -214,6 +214,7 @@ __register_uca(
             (~P.cobot.has_assembly)
             & P.cobot.position.in_bench
             & P.assembly.position.in_bench
+            & (~P.assembly.is_processed)
         )
         .implies(P.cobot.has_assembly.eventually())
         .always()
@@ -289,7 +290,7 @@ __register_uca(
     "The Cobot does not reach the target position",
     ~(
         P.cobot.has_target.implies(
-            P.cobot.has_target.until(P.cobot.reaches_target)
+            (P.cobot.has_target & P.cobot.is_moving).weak_until(P.cobot.reaches_target)
         ).always()
     ),
 )

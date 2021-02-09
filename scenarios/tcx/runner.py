@@ -92,10 +92,10 @@ class TcxBuildRunner(BuildRunner):
             trace[self.entity[m.entity].is_moving] = (m.timestamp, m.is_moving)
 
         # Define constraints
-        trace[P.constraints.cobot.velocity.in_bench] = (0.0, 0.5)
-        trace[P.constraints.cobot.velocity.in_tool] = (0.0, 0.5)
-        trace[P.constraints.cobot.velocity.in_workspace] = (0.0, 2.0)
-        trace[P.constraints.cobot.velocity.proximity] = (0.0, 0.5)
+        trace[P.constraints.cobot.velocity.in_bench] = (0.0, 1.5)
+        trace[P.constraints.cobot.velocity.in_tool] = (0.0, 1.5)
+        trace[P.constraints.cobot.velocity.in_workspace] = (0.0, 2.5)
+        trace[P.constraints.cobot.velocity.proximity] = (0.0, 0.75)
         trace[P.constraints.cobot.distance.proximity] = (0.0, 0.5)
         trace[P.constraints.tool.distance.operation] = (0.0, 0.5)
 
@@ -104,7 +104,7 @@ class TcxBuildRunner(BuildRunner):
         # FIXME Remove temporary values
         trace[P.assembly.has_assembly] = (0.0, False)
         trace[P.assembly.is_orientation_valid] = (0.0, True)
-        trace[P.assembly.is_processed] = (0.0, False)
+        trace[P.assembly.is_processed] = (0.0, True)
         trace[P.assembly.is_secured] = (0.0, True)
         trace[P.assembly.is_valid] = (0.0, True)
         trace[P.assembly.under_processing] = (0.0, False)
