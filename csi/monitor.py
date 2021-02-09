@@ -106,6 +106,7 @@ class Monitor:
         *,
         dt=1.0,
         time: Any = False,
+        quantitative=False,
         logic: _ConnectivesDef = default
     ) -> Mapping[Node, Optional[bool]]:
         evaluated_conditions: Iterable[Node] = (
@@ -119,10 +120,11 @@ class Monitor:
             signals[None] = [(0, logic.const_false)]
             if all(a.id in signals for a in self.atoms(phi)):
                 r = phi(signals, dt=dt, time=time, logic=logic)
-                if time is None:
-                    r = funcy.walk_values(lambda v: v >= logic.const_true, r)
-                else:
-                    r = r >= logic.const_true
+                if not quantitative:
+                    if time is None:
+                        r = funcy.walk_values(lambda v: v >= logic.const_true, r)
+                    else:
+                        r = r >= logic.const_true
                 results[phi] = r
             else:
                 results[phi] = None
