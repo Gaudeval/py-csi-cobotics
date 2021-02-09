@@ -27,6 +27,10 @@ class ExperimentWrapper:
             }
         )
 
+    @staticmethod
+    def score_domain():
+        return (0.0, sum(10 for _ in hazards) + sum(1 for _ in unsafe_control_actions))
+
     def score_experiment(
         self, experiment: Experiment
     ) -> Tuple[Tuple[int], Tuple[int, int]]:
@@ -44,7 +48,7 @@ class ExperimentWrapper:
                             elif any(u.uid == uid for u in unsafe_control_actions):
                                 run_score += 1
                                 conditions[1].add(self.features[uid])
-                return (-run_score,), (max(conditions[0]), max(conditions[1]))
+                return (run_score,), (max(conditions[0]), max(conditions[1]))
 
     def generate_configuration(self, X):
         var_bound = numpy.array(
@@ -106,16 +110,16 @@ if __name__ == "__main__":
     grid = containers.Grid(
         shape=(len(hazards) + 1, len(unsafe_control_actions) + 1),
         max_items_per_bin=1,
-        fitness_domain=((0.0, len(hazards) * 10 + len(unsafe_control_actions)),),
+        fitness_domain=(w.score_domain(),),
         features_domain=((0.0, len(hazards)), (0.0, len(unsafe_control_actions))),
     )
 
     algo = algorithms.RandomSearchMutPolyBounded(
         grid,
         budget=1000,
-        batch_size=50,
+        batch_size=10,
         dimension=9,
-        optimisation_task="minimisation",
+        optimisation_task="maximization",
         ind_domain=(0.0, 1.0),
     )
 
