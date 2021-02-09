@@ -61,7 +61,7 @@ hazards = {
         ,
     ),
     __register_hazard(
-        2,
+        "2",
         "Individual or Object in dangerous area [Temp: Obstruction with active Tool]",
         (
             P.tool.is_running
@@ -69,12 +69,12 @@ hazards = {
         ).eventually(),
     ),
     __register_hazard(
-        3,
+        "3",
         "Equipment or Component subject to unnecessary stress",
         (reduce(operator.__or__, (d.is_damaged for d in Entities), BOT)).eventually(),
     ),
     __register_hazard(
-        4,
+        "4",
         "Supplied component cannot be correctly processed",  # TODO Only check if picked up/used by cobot?
         P.assembly.under_processing
         & (
@@ -84,14 +84,14 @@ hazards = {
         ),
     ),
     __register_hazard(
-        5,
+        "5",
         "Equipment operated outside safe conditions [Temp: Tool running without assembly]",
         (
             P.tool.is_running & ~(P.cobot.has_assembly & P.cobot.position.in_tool)
         ).eventually(),
     ),
     __register_hazard(
-        6,
+        "6",
         "Components not secured during processing or transport",
         (
             (~P.assembly.is_secured)
@@ -99,7 +99,7 @@ hazards = {
         ).eventually(),
     ),
     __register_hazard(
-        7,
+        "7",
         "Components do not move through the processing chain",
         ~(
             P.assembly.is_processed
