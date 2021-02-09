@@ -18,8 +18,8 @@ def __register_hazard(uid, description, condition):
 
 hazards = {
     __register_hazard(
-        1,
-        "Violation of minimum separation requirements [Temp: Obstruction with moving Cobot])",
+        "1.1",
+        "Violation of minimum separation requirements [Two entities hold onto the same assembly])",
         # Two manipulators hold on the assembly
         (
             reduce(
@@ -30,8 +30,11 @@ hazards = {
                 ),
                 BOT,
             )
-        ).eventually()
-        |
+        ).eventually(),
+    ),
+    __register_hazard(
+        "1.2",
+        "Violation of minimum separation requirements [Cobot exceeds velocity constraints])",
         # Cobot moving faster than authorised at specific locations
         (
             reduce(
@@ -43,8 +46,11 @@ hazards = {
                 ),
                 BOT,
             )
-        ).eventually()
-        |
+        ).eventually(),
+    ),
+    __register_hazard(
+        "1.3",
+        "Violation of minimum separation requirements [Cobot exceeds proximity velocity constraints])",
         # Cobot moving faster than authorised in close proximity
         (
             (P.cobot.velocity > P.constraints.cobot.velocity.proximity)
