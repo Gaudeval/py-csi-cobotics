@@ -1,5 +1,7 @@
 /.idea
 /venv
 /workspace/
-/experiments/search-ga/build/
+/experiments/build/
 /experiments/search-ga/runs/
+/experiments/search-qd/backup-0/runs/
+/experiments/build_headless/
