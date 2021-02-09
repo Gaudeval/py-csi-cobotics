@@ -44,7 +44,7 @@ class ExperimentWrapper:
                             elif any(u.uid == uid for u in unsafe_control_actions):
                                 run_score += 1
                                 conditions[1].add(self.features[uid])
-                return (run_score,), (max(conditions[0]), max(conditions[1]))
+                return (-run_score,), (max(conditions[0]), max(conditions[1]))
 
     def generate_configuration(self, X):
         var_bound = numpy.array(
@@ -97,11 +97,11 @@ class ExperimentWrapper:
 
 if __name__ == "__main__":
     #
-    runs = Path("runs/")
+    runs = Path("./runs/")
     if runs.exists():
         shutil.rmtree(runs)
     #
-    w = ExperimentWrapper("../build/", runs)
+    w = ExperimentWrapper("../build_headless/", runs)
 
     grid = containers.Grid(
         shape=(len(hazards) + 1, len(unsafe_control_actions) + 1),

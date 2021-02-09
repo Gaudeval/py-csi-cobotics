@@ -70,7 +70,7 @@ if __name__ == "__main__":
     if runs.exists():
         shutil.rmtree(runs)
     #
-    w = ExperimentWrapper("../build/", runs)
+    w = ExperimentWrapper("../build_headless/", runs)
 
     var_bound = numpy.array(
         [
