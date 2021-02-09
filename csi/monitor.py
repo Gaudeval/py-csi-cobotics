@@ -19,7 +19,7 @@ from typing import (
 )
 
 from csi.safety import Atom, Node
-
+from mtl.connective import _ConnectivesDef, zadeh, godel, default
 
 PathType = Tuple[str]
 
@@ -105,7 +105,8 @@ class Monitor:
         condition: Optional[Node] = None,
         *,
         dt=1.0,
-        time: Any = False
+        time: Any = False,
+        logic: _ConnectivesDef = default
     ) -> Mapping[Node, Optional[bool]]:
         evaluated_conditions: Iterable[Node] = (
             self.conditions if condition is None else {condition}
@@ -113,15 +114,15 @@ class Monitor:
 
         results: MutableMapping[Node, Optional[bool]] = dict()
         for phi in evaluated_conditions:
-            signals = trace.project(self.atoms(phi))
+            signals = trace.project(self.atoms(phi), logic)
             # FIXME A default value is required by mtl even if no atoms required (TOP/BOT)
-            signals[None] = [(0, False)]
+            signals[None] = [(0, logic.const_false)]
             if all(a.id in signals for a in self.atoms(phi)):
-                r = phi(signals, dt=dt, time=time)
+                r = phi(signals, dt=dt, time=time, logic=logic)
                 if time is None:
-                    r = funcy.walk_values(lambda v: v > 0, r)
+                    r = funcy.walk_values(lambda v: v >= logic.const_true, r)
                 else:
-                    r = r > 0
+                    r = r >= logic.const_true
                 results[phi] = r
             else:
                 results[phi] = None
@@ -137,13 +138,17 @@ class Trace:
     def atoms(self) -> Set[Atom]:
         return {Atom(k) for k in self.values.keys()}
 
-    def project(self, atoms: Iterable[Atom]) -> Mapping[str, List[(int, Any)]]:
+    def project(
+        self, atoms: Iterable[Atom], logic=default
+    ) -> Mapping[str, List[(int, Any)]]:
         results = {}
         for a in set(atoms) & self.atoms():
             results[a.id] = []
             for (t, v) in self.values[a.id].items():
                 if isinstance(v, bool):
-                    results[a.id].append((t, 1 if v else -1))
+                    results[a.id].append(
+                        (t, logic.const_true if v else logic.const_false)
+                    )
                 else:
                     results[a.id].append((t, v))
         return results
