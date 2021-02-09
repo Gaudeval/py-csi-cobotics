@@ -8,12 +8,12 @@ from pathlib import Path
 from qdpy import algorithms, containers, benchmarks, plots
 
 from csi.experiment import Repository, Experiment, RunStatus
-from csi.twin.runner import BuildRunnerConfiguration
+from csi.twin.runner import BuildRunnerConfiguration, EvaluationConfiguration
 from scenarios.tcx import TcxBuildRunner, hazards, unsafe_control_actions, configuration
 
 
 class ExperimentWrapper:
-    def __init__(self, build="../build/", runs="runs/"):
+    def __init__(self, build="../build/", runs="runs/", logic="default"):
         self.build = Path(build).absolute()
         self.repository = Repository(Path(runs))
         self.features = {}
@@ -26,6 +26,8 @@ class ExperimentWrapper:
                 for i, h in enumerate(sorted(unsafe_control_actions), start=1)
             }
         )
+        self.evaluation_logic = logic
+        self.evaluation_quantitative = logic == "default"
 
     @staticmethod
     def score_domain():
@@ -41,12 +43,16 @@ class ExperimentWrapper:
                 with (run.work_path / "hazard-report.json").open() as json_report:
                     report = json.load(json_report)
                     for uid, occurs in report.items():
-                        if occurs:
-                            if any(str(h.uid) == uid for h in hazards):
-                                run_score += 10
+                        occurs = float(occurs)
+                        is_hazard = any(h.uid == uid for h in hazards)
+                        is_uca = any(u.uid == uid for u in unsafe_control_actions)
+                        if is_hazard:
+                            run_score += occurs * 10
+                            if occurs > 0.0:
                                 conditions[0].add(self.features[uid])
-                            elif any(u.uid == uid for u in unsafe_control_actions):
-                                run_score += 1
+                        if is_uca:
+                            run_score += occurs * 1
+                            if occurs > 0.0:
                                 conditions[1].add(self.features[uid])
                 return (run_score,), (max(conditions[0]), max(conditions[1]))
 
@@ -86,9 +92,14 @@ class ExperimentWrapper:
 
     def __call__(self, X):
         world = self.generate_configuration(X)
+        # Condition evaluation
+        evaluation = EvaluationConfiguration()
+        evaluation.logic = self.evaluation_logic
+        evaluation.quantitative = self.evaluation_quantitative
         # Prepare experiment
         exp = TcxBuildRunner(
-            self.repository.path, BuildRunnerConfiguration(world, self.build)
+            self.repository.path,
+            BuildRunnerConfiguration(world, self.build, evaluation),
         )
         # Load default conditions
         exp.safety_conditions = []
@@ -105,7 +116,7 @@ if __name__ == "__main__":
     if runs.exists():
         shutil.rmtree(runs)
     #
-    w = ExperimentWrapper("../build_headless/", runs)
+    w = ExperimentWrapper("../build_headless/", runs, "zadeh")
 
     grid = containers.Grid(
         shape=(len(hazards) + 1, len(unsafe_control_actions) + 1),
