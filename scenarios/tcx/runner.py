@@ -74,7 +74,7 @@ class TcxBuildRunner(BuildRunner):
 
         # Entity.is_damaged
         for m in from_table("damageablestatus"):
-            trace[self.entity[m.entity].is_damaged] = (m.timestamp, m.is_damaged)
+            trace[self.entity[m.entity].is_damaged] = (m.timestamp, bool(m.is_damaged))
 
         # Entity.position
         # Initialise all position all entities to False
@@ -89,7 +89,7 @@ class TcxBuildRunner(BuildRunner):
 
         # Entity.is_moving
         for m in from_table("movablestatus"):
-            trace[self.entity[m.entity].is_moving] = (m.timestamp, m.is_moving)
+            trace[self.entity[m.entity].is_moving] = (m.timestamp, bool(m.is_moving))
 
         # Define constraints
         trace[P.constraints.cobot.velocity.in_bench] = (0.0, 1.5)
