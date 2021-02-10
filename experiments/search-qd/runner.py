@@ -43,6 +43,8 @@ class ExperimentWrapper:
                 with (run.work_path / "hazard-report.json").open() as json_report:
                     report = json.load(json_report)
                     for uid, occurs in report.items():
+                        if occurs is None:
+                            continue
                         occurs = float(occurs)
                         is_hazard = any(h.uid == uid for h in hazards)
                         is_uca = any(u.uid == uid for u in unsafe_control_actions)
