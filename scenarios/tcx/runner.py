@@ -62,6 +62,7 @@ class TcxBuildRunner(BuildRunner):
             trace[self.entity[m.entity].velocity] = (m.timestamp, m.velocity)
 
         # Entity.reaches_target
+        trace[P.cobot.reaches_target] = (0., False)
         for m in from_table("waypointnotification"):
             if m.achiever == "ur10" and m.label == "waypoint/progress":
                 trace[P.cobot.reaches_target] = (m.timestamp, True)
