@@ -1,19 +1,16 @@
 import json
+from pathlib import Path
 from typing import Tuple
 
 import numpy
-import shutil
-from pathlib import Path
 
-from qdpy import algorithms, containers, benchmarks, plots
-
-from csi.experiment import Repository, Experiment, RunStatus
-from csi.twin.runner import BuildRunnerConfiguration, EvaluationConfiguration
-from scenarios.tcx import TcxBuildRunner, hazards, unsafe_control_actions, configuration
+from csi.experiment import Repository, RunStatus, Experiment
+from csi.twin.runner import EvaluationConfiguration, BuildRunnerConfiguration
+from scenarios.tcx import hazards, unsafe_control_actions, configuration, TcxBuildRunner
 
 
-class ExperimentWrapper:
-    def __init__(self, build="../build/", runs="runs/", logic="default"):
+class RunnerFitnessWrapper:
+    def __init__(self, build="../build/", runs="runs/", logic="default", with_features=True):
         self.build = Path(build).absolute()
         self.repository = Repository(Path(runs))
         self.features = {}
@@ -21,20 +18,17 @@ class ExperimentWrapper:
             {str(h.uid): i for i, h in enumerate(sorted(hazards), start=1)}
         )
         self.features.update(
-            {
-                str(h.uid): i
-                for i, h in enumerate(sorted(unsafe_control_actions), start=1)
-            }
-        )
+            { str(h.uid): i for i, h in enumerate(sorted(unsafe_control_actions), start=1) } )
         self.evaluation_logic = logic
         self.evaluation_quantitative = logic == "default"
+        self.retrieve_features = with_features
 
     @staticmethod
     def score_domain():
         return (0.0, sum(10 for _ in hazards) + sum(1 for _ in unsafe_control_actions))
 
     def score_experiment(
-        self, experiment: Experiment
+            self, experiment: Experiment
     ) -> Tuple[Tuple[int], Tuple[int, int]]:
         for run in experiment.runs:
             run_score = 0
@@ -43,8 +37,7 @@ class ExperimentWrapper:
                 with (run.work_path / "hazard-report.json").open() as json_report:
                     report = json.load(json_report)
                     for uid, occurs in report.items():
-                        if occurs is None:
-                            continue
+                        if occurs is None: continue
                         occurs = float(occurs)
                         is_hazard = any(h.uid == uid for h in hazards)
                         is_uca = any(u.uid == uid for u in unsafe_control_actions)
@@ -56,10 +49,14 @@ class ExperimentWrapper:
                             run_score += occurs * 1
                             if occurs > 0.0:
                                 conditions[1].add(self.features[uid])
-                return (run_score,), (max(conditions[0]), max(conditions[1]))
+                if self.retrieve_features:
+                    return (run_score,), (max(conditions[0]), max(conditions[1]))
+                else:
+                    return run_score
 
-    def generate_configuration(self, X):
-        var_bound = numpy.array(
+    @property
+    def var_bound(self):
+        return numpy.array(
             [
                 [-2.0, 2.0],  # op.x
                 [-1.0, 0.0],  # op.y
@@ -73,9 +70,9 @@ class ExperimentWrapper:
             ]
         )
 
+    def generate_configuration(self, X):
         def val(i: int):
-            return X[i] * (var_bound[i][1] - var_bound[i][0]) + var_bound[i][0]
-
+            return X[i] * (self.var_bound[i][1] - self.var_bound[i][0]) + self.var_bound[i][0]
         # Prepare configuration
         world = configuration.default()
         world.operator.position.x = val(0)
@@ -110,38 +107,3 @@ class ExperimentWrapper:
         # Run experiment and compute score
         exp.run()
         return self.score_experiment(exp)
-
-
-if __name__ == "__main__":
-    #
-    runs = Path("./runs/")
-    if runs.exists():
-        shutil.rmtree(runs)
-    #
-    w = ExperimentWrapper("../build_headless/", runs, "zadeh")
-
-    grid = containers.Grid(
-        shape=(len(hazards) + 1, len(unsafe_control_actions) + 1),
-        max_items_per_bin=1,
-        fitness_domain=(w.score_domain(),),
-        features_domain=((0.0, len(hazards)), (0.0, len(unsafe_control_actions))),
-    )
-
-    algo = algorithms.RandomSearchMutPolyBounded(
-        grid,
-        budget=1000,
-        batch_size=10,
-        dimension=9,
-        optimisation_task="maximization",
-        ind_domain=(0.0, 1.0),
-    )
-
-    logger = algorithms.AlgorithmLogger(algo)
-
-    eval_fn = w
-
-    best = algo.optimise(w)
-
-    print(algo.summary())
-    plots.default_plots_grid(logger)
-    print("All results in %s" % logger.final_filename)
