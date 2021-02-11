@@ -17,10 +17,9 @@ class RunnerFitnessWrapper:
         self.features.update(
             {str(h.uid): i for i, h in enumerate(sorted(hazards), start=1)}
         )
-        self.features.update(
-            { str(h.uid): i for i, h in enumerate(sorted(unsafe_control_actions), start=1) } )
+        self.features.update({str(h.uid): i for i, h in enumerate(sorted(unsafe_control_actions), start=1)})
         self.evaluation_logic = logic
-        self.evaluation_quantitative = logic == "default"
+        self.evaluation_quantitative = True
         self.retrieve_features = with_features
 
     @staticmethod
