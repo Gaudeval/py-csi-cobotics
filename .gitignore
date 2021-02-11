@@ -2,6 +2,8 @@
 /venv
 /workspace/
 /experiments/build/
-/experiments/search-ga/runs/
-/experiments/search-qd/backup-0/runs/
 /experiments/build_headless/
+/experiments/search/search-ga/runs/
+/experiments/search/search-ga/backup-[0-9]/
+/experiments/search/search-qd/runs/
+/experiments/search/search-qd/backup-[0-9]/
