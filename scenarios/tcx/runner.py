@@ -62,7 +62,7 @@ class TcxBuildRunner(BuildRunner):
             trace[self.entity[m.entity].velocity] = (m.timestamp, m.velocity)
 
         # Entity.reaches_target
-        trace[P.cobot.reaches_target] = (0., False)
+        trace[P.cobot.reaches_target] = (0.0, False)
         for m in from_table("waypointnotification"):
             if m.achiever == "ur10" and m.label == "waypoint/progress":
                 trace[P.cobot.reaches_target] = (m.timestamp, True)
@@ -84,6 +84,8 @@ class TcxBuildRunner(BuildRunner):
                 trace[getattr(e.position, p)] = (0.0, False)
         # Collect position from message
         for m in from_table("triggerregionenterevent", "triggerregionexitevent"):
+            if m.region not in self.region or m.entity not in self.entity:
+                continue
             v = "enter" in m.__table__
             p = getattr(self.entity[m.entity].position, self.region[m.region])
             trace[p] = (m.timestamp, v)
