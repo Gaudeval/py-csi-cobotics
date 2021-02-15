@@ -121,6 +121,8 @@ class Experiment:
         path = pathlib.Path(path)
         with (path / "experiment.pkl").open("rb") as pickle_file:
             experiment = pickle.load(pickle_file)
+            if experiment.path != path:
+                experiment.root = path.parent
         return experiment
 
     @property
