@@ -10,14 +10,21 @@ from scenarios.tcx import hazards, unsafe_control_actions, configuration, TcxBui
 
 
 class RunnerFitnessWrapper:
-    def __init__(self, build="../build/", runs="runs/", logic="default", with_features=True):
+    def __init__(
+        self, build="../build/", runs="runs/", logic="default", with_features=True
+    ):
         self.build = Path(build).absolute()
         self.repository = Repository(Path(runs))
         self.features = {}
         self.features.update(
             {str(h.uid): i for i, h in enumerate(sorted(hazards), start=1)}
         )
-        self.features.update({str(h.uid): i for i, h in enumerate(sorted(unsafe_control_actions), start=1)})
+        self.features.update(
+            {
+                str(h.uid): i
+                for i, h in enumerate(sorted(unsafe_control_actions), start=1)
+            }
+        )
         self.evaluation_logic = logic
         self.evaluation_quantitative = True
         self.retrieve_features = with_features
@@ -27,7 +34,7 @@ class RunnerFitnessWrapper:
         return (0.0, sum(10 for _ in hazards) + sum(1 for _ in unsafe_control_actions))
 
     def score_experiment(
-            self, experiment: Experiment
+        self, experiment: Experiment
     ) -> Tuple[Tuple[int], Tuple[int, int]]:
         for run in experiment.runs:
             run_score = 0
@@ -36,7 +43,8 @@ class RunnerFitnessWrapper:
                 with (run.work_path / "hazard-report.json").open() as json_report:
                     report = json.load(json_report)
                     for uid, occurs in report.items():
-                        if occurs is None: continue
+                        if occurs is None:
+                            continue
                         occurs = float(occurs)
                         is_hazard = any(h.uid == uid for h in hazards)
                         is_uca = any(u.uid == uid for u in unsafe_control_actions)
@@ -51,7 +59,7 @@ class RunnerFitnessWrapper:
                 if self.retrieve_features:
                     return (run_score,), (max(conditions[0]), max(conditions[1]))
                 else:
-                    return run_score
+                    return -run_score
 
     @property
     def var_bound(self):
@@ -71,7 +79,11 @@ class RunnerFitnessWrapper:
 
     def generate_configuration(self, X):
         def val(i: int):
-            return X[i] * (self.var_bound[i][1] - self.var_bound[i][0]) + self.var_bound[i][0]
+            return (
+                X[i] * (self.var_bound[i][1] - self.var_bound[i][0])
+                + self.var_bound[i][0]
+            )
+
         # Prepare configuration
         world = configuration.default()
         world.operator.position.x = val(0)
