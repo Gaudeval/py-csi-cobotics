@@ -23,7 +23,7 @@ if __name__ == "__main__":
 
     algo = algorithms.RandomSearchMutPolyBounded(
         grid,
-        budget=2000,
+        budget=1000,
         batch_size=10,
         dimension=9,
         optimisation_task="minimisation",
