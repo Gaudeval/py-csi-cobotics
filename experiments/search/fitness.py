@@ -43,9 +43,12 @@ class RunnerFitnessWrapper:
                 with (run.work_path / "hazard-report.json").open() as json_report:
                     report = json.load(json_report)
                     for uid, occurs in report.items():
+                        # Constraint occurs domain to [0, 1]
                         if occurs is None:
                             continue
                         occurs = float(occurs)
+                        occurs = min(1, max(0, occurs))
+                        # Weigh contribution by safety condition type
                         is_hazard = any(h.uid == uid for h in hazards)
                         is_uca = any(u.uid == uid for u in unsafe_control_actions)
                         if is_hazard:
