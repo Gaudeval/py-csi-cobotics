@@ -171,7 +171,8 @@ class Repository:
     @property
     def experiments(self):
         for i in self.path.iterdir():
-            yield Experiment.load(i)
+            if i.is_dir():
+                yield Experiment.load(i)
 
 
 class WorkingExperiment(Experiment):
