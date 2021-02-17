@@ -46,6 +46,8 @@ class TcxBuildRunner(BuildRunner):
         for safety_condition in safety_conditions:
             monitor += safety_condition.condition
         # Import trace
+        if not Path(database_path).exists():
+            raise FileNotFoundError(database_path)
         db = DataBase(database_path)
         trace = Trace()
 
