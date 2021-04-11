@@ -1,9 +1,9 @@
 /.idea
 /venv
 /workspace/
-/experiments/build/
-/experiments/build_headless/
+/experiments/build*/
 /experiments/search/search-ga/runs/
-/experiments/search/search-ga/backup-[0-9]/
+/experiments/search/search-ga/backup-[0-9]*/
 /experiments/search/search-qd/runs/
-/experiments/search/search-qd/backup-[0-9]/
+/experiments/search/search-qd/backup-[0-9]*/
+/experiments/search/search-ran/backup-[0-9]*/
