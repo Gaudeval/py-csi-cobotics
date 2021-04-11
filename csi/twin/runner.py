@@ -59,11 +59,11 @@ class BuildRunner(Experiment):
         # Setup build and IO
         twin_files = {
             "db": (
-                self.assets_path / "Databases" / "csi.prototype.sqlite",
+                self.assets_path / "Databases" / "messages.safety.db",
                 Path("./output.sqlite"),
             ),
             "cfg": (
-                self.assets_path / "Configuration" / "csi.json",
+                self.assets_path / "Configuration" / "configuration.json",
                 Path("./configuration.json"),
             ),
             "shot": (
