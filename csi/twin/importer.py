@@ -18,6 +18,10 @@ def as_items(element: Any, prefix: PathType = ()) -> Generator[Tuple, None, None
     yield prefix, element
 
 
+def from_table(db, *table):
+    return map(as_object, db.flatten_messages(*table))
+
+
 def as_object(element: Union[Mapping, Any]):
     if isinstance(element, Mapping):
         return SimpleNamespace(**{k: as_object(v) for k, v in element.items()})

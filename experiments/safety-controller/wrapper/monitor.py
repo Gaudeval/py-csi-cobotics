@@ -38,7 +38,7 @@ class RngDet(Enum):
     close = 2
 
 
-class SafetyController(Context):
+class SafetyControllerStatus(Context):
     """Safety controller status variables"""
 
     notif = Term()
@@ -55,7 +55,7 @@ class SafetyController(Context):
 # pass
 
 if __name__ == "__main__":
-    P = SafetyController()
+    P = SafetyControllerStatus()
     trace = Trace()
 
     trace[P.notif] = (0, Notif.leaveArea)
