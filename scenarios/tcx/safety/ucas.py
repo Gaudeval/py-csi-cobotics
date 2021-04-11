@@ -7,6 +7,9 @@ from ..monitor import P
 unsafe_control_actions = set()
 
 
+__TOLERANCE = 5.0
+
+
 def __register_uca(uid, description, condition):
     """Register a new unsafe control action"""
     global unsafe_control_actions
@@ -226,7 +229,7 @@ __register_uca(
     "The Cobot grabs the Component while it has a high velocity",
     (
         P.cobot.grabs_assembly
-        & (P.cobot.velocity > P.constraints.cobot.velocity.in_bench)
+        & (P.cobot.velocity.gt(P.constraints.cobot.velocity.in_bench, __TOLERANCE))
     ).eventually(),
 )
 
@@ -364,7 +367,7 @@ __register_uca(
     "The Cobot processes a Component when minimum separation requirements are not met",
     (
         P.assembly.under_processing
-        & (P.tool.distance < P.constraints.tool.distance.operation)
+        & (P.tool.distance.lt(P.constraints.tool.distance.operation, __TOLERANCE))
     ).eventually(),
 )
 
@@ -413,7 +416,7 @@ __register_uca(
     "The Cobot processes a component before it has reached the required position and velocity",
     (
         P.assembly.under_processing
-        & (P.cobot.velocity > P.constraints.cobot.velocity.in_tool)
+        & (P.cobot.velocity.gt(P.constraints.cobot.velocity.in_tool, __TOLERANCE))
     ).eventually(),
 )
 

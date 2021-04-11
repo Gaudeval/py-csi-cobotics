@@ -6,12 +6,30 @@ import shutil
 import subprocess
 
 from pathlib import Path
-from typing import Any, List, Optional, Tuple, Union, Set
+from typing import Any, List, Optional, Tuple, Union, Set, Mapping
 
-from csi.configuration import ConfigurationManager
+import mtl.connective
+
+from csi.configuration import ConfigurationManager, JsonSerializable, _S
 from csi.experiment import Experiment
 from csi.monitor import Monitor, Trace
 from csi.safety import SafetyCondition, Atom
+
+
+@dataclasses.dataclass
+class EvaluationConfiguration:
+    _logics = {
+        "default": mtl.connective.default,
+        "zadeh": mtl.connective.zadeh,
+        "godel": mtl.connective.godel,
+    }
+
+    @property
+    def connective(self):
+        return self._logics[self.logic]
+
+    logic: str = dataclasses.field(default="default")
+    quantitative: bool = dataclasses.field(default=False)
 
 
 @dataclasses.dataclass
@@ -20,6 +38,9 @@ class BuildRunnerConfiguration:
 
     world: Any
     build: Path = dataclasses.field(default_factory=Path)
+    evaluation: EvaluationConfiguration = dataclasses.field(
+        default_factory=EvaluationConfiguration
+    )
 
 
 class BuildRunner(Experiment):
@@ -73,7 +94,12 @@ class BuildRunner(Experiment):
         report = {}
         safety_condition: SafetyCondition
         for safety_condition in conditions:
-            i = Monitor().evaluate(trace, safety_condition.condition)
+            i = Monitor().evaluate(
+                trace,
+                safety_condition.condition,
+                quantitative=self.configuration.evaluation.quantitative,
+                logic=self.configuration.evaluation.connective,
+            )
             print(type(safety_condition), safety_condition.uid)
             print(getattr(safety_condition, "description", ""))
             print("Occurs: ", i)

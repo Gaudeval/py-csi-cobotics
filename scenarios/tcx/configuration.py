@@ -31,7 +31,7 @@ class Entity:
 class Controller:
     limit_speed: bool = dataclasses.field(default=True)
 
-    _encoded_fieldnames = {"limit_speed": "UrdfController.useLimits"}
+    _encoded_fieldnames = {"limit_speed": "RobotController.useVelocityLimits"}
 
 
 @dataclasses.dataclass
@@ -58,7 +58,7 @@ class WorldData:
     version: str = "0.0.0.2"
 
     _encoded_fieldnames = {
-        "controller": "/ur10/MultiJointPositionController",
+        "controller": "/ur10/ArmController",
         "operator": "/Operators/Tim/Operator",
         "cobot": "/ur10/UR10",
         "tool": "/Tecconex Cell/Spot Welder Assembly/StaticEntity",

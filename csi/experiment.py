@@ -121,6 +121,8 @@ class Experiment:
         path = pathlib.Path(path)
         with (path / "experiment.pkl").open("rb") as pickle_file:
             experiment = pickle.load(pickle_file)
+            if experiment.path != path:
+                experiment.root = path.parent
         return experiment
 
     @property
@@ -169,7 +171,8 @@ class Repository:
     @property
     def experiments(self):
         for i in self.path.iterdir():
-            yield Experiment.load(i)
+            if i.is_dir():
+                yield Experiment.load(i)
 
 
 class WorkingExperiment(Experiment):

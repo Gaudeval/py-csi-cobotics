@@ -38,13 +38,16 @@ class TcxBuildRunner(BuildRunner):
         "Spot Welder Region": "in_tool",
     }
 
-    def process_output(self, database_path, safety_conditions=None):
+    @classmethod
+    def process_output(cls, database_path, safety_conditions=None):
         """Extract values from simulation message trace"""
         # Define safety monitor
         monitor = Monitor()
         for safety_condition in safety_conditions:
             monitor += safety_condition.condition
         # Import trace
+        if not Path(database_path).exists():
+            raise FileNotFoundError(database_path)
         db = DataBase(database_path)
         trace = Trace()
 
@@ -55,15 +58,16 @@ class TcxBuildRunner(BuildRunner):
 
         # Entity.distance
         for m in from_table("distancemeasurement"):
-            trace[self.entity[m.entity].distance] = (m.timestamp, m.distance)
+            trace[cls.entity[m.entity].distance] = (m.timestamp, m.distance)
 
         # Entity.velocity
         for m in from_table("velocitymeasurement"):
-            trace[self.entity[m.entity].velocity] = (m.timestamp, m.velocity)
+            trace[cls.entity[m.entity].velocity] = (m.timestamp, m.velocity)
 
         # Entity.reaches_target
+        trace[P.cobot.reaches_target] = (0.0, False)
         for m in from_table("waypointnotification"):
-            if m.achiever == "ur10":
+            if m.achiever == "ur10" and m.label == "waypoint/progress":
                 trace[P.cobot.reaches_target] = (m.timestamp, True)
                 trace[P.cobot.has_target] = (m.timestamp, False)
                 trace[P.cobot.reaches_target] = (m.timestamp + 0.1, False)
@@ -73,23 +77,29 @@ class TcxBuildRunner(BuildRunner):
             trace[P.cobot.has_target] = (m.timestamp, True)
 
         # Entity.is_damaged
+        trace[P.assembly.is_damaged] = (0.0, False)
+        trace[P.tool.is_damaged] = (0.0, False)
+        trace[P.operator.is_damaged] = (0.0, False)
+        trace[P.cobot.is_damaged] = (0.0, False)
         for m in from_table("damageablestatus"):
-            trace[self.entity[m.entity].is_damaged] = (m.timestamp, m.is_damaged)
+            trace[cls.entity[m.entity].is_damaged] = (m.timestamp, bool(m.is_damaged))
 
         # Entity.position
         # Initialise all position all entities to False
-        for e in self.entity.values():
-            for p in self.region.values():
+        for e in cls.entity.values():
+            for p in cls.region.values():
                 trace[getattr(e.position, p)] = (0.0, False)
         # Collect position from message
         for m in from_table("triggerregionenterevent", "triggerregionexitevent"):
+            if m.region not in cls.region or m.entity not in cls.entity:
+                continue
             v = "enter" in m.__table__
-            p = getattr(self.entity[m.entity].position, self.region[m.region])
+            p = getattr(cls.entity[m.entity].position, cls.region[m.region])
             trace[p] = (m.timestamp, v)
 
         # Entity.is_moving
         for m in from_table("movablestatus"):
-            trace[self.entity[m.entity].is_moving] = (m.timestamp, m.is_moving)
+            trace[cls.entity[m.entity].is_moving] = (m.timestamp, bool(m.is_moving))
 
         # Define constraints
         trace[P.constraints.cobot.velocity.in_bench] = (0.0, 1.5)

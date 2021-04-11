@@ -1,19 +1,18 @@
 import json
+from pathlib import Path
 from typing import Tuple
 
 import numpy
-import shutil
-from pathlib import Path
 
-from qdpy import algorithms, containers, benchmarks, plots
-
-from csi.experiment import Repository, Experiment, RunStatus
-from csi.twin.runner import BuildRunnerConfiguration
-from scenarios.tcx import TcxBuildRunner, hazards, unsafe_control_actions, configuration
+from csi.experiment import Repository, RunStatus, Experiment
+from csi.twin.runner import EvaluationConfiguration, BuildRunnerConfiguration
+from scenarios.tcx import hazards, unsafe_control_actions, configuration, TcxBuildRunner
 
 
-class ExperimentWrapper:
-    def __init__(self, build="../build/", runs="runs/"):
+class RunnerFitnessWrapper:
+    def __init__(
+        self, build="../build/", runs="runs/", logic="default", with_features=True
+    ):
         self.build = Path(build).absolute()
         self.repository = Repository(Path(runs))
         self.features = {}
@@ -26,6 +25,9 @@ class ExperimentWrapper:
                 for i, h in enumerate(sorted(unsafe_control_actions), start=1)
             }
         )
+        self.evaluation_logic = logic
+        self.evaluation_quantitative = True
+        self.retrieve_features = with_features
 
     @staticmethod
     def score_domain():
@@ -41,17 +43,30 @@ class ExperimentWrapper:
                 with (run.work_path / "hazard-report.json").open() as json_report:
                     report = json.load(json_report)
                     for uid, occurs in report.items():
-                        if occurs:
-                            if any(str(h.uid) == uid for h in hazards):
-                                run_score += 10
+                        # Constraint occurs domain to [0, 1]
+                        if occurs is None:
+                            continue
+                        occurs = float(occurs)
+                        occurs = min(1, max(0, occurs))
+                        # Weigh contribution by safety condition type
+                        is_hazard = any(h.uid == uid for h in hazards)
+                        is_uca = any(u.uid == uid for u in unsafe_control_actions)
+                        if is_hazard:
+                            run_score += occurs * 10
+                            if occurs > 0.0:
                                 conditions[0].add(self.features[uid])
-                            elif any(u.uid == uid for u in unsafe_control_actions):
-                                run_score += 1
+                        if is_uca:
+                            run_score += occurs * 1
+                            if occurs > 0.0:
                                 conditions[1].add(self.features[uid])
-                return (run_score,), (max(conditions[0]), max(conditions[1]))
+                if self.retrieve_features:
+                    return (run_score,), (max(conditions[0]), max(conditions[1]))
+                else:
+                    return -run_score
 
-    def generate_configuration(self, X):
-        var_bound = numpy.array(
+    @property
+    def var_bound(self):
+        return numpy.array(
             [
                 [-2.0, 2.0],  # op.x
                 [-1.0, 0.0],  # op.y
@@ -65,8 +80,12 @@ class ExperimentWrapper:
             ]
         )
 
+    def generate_configuration(self, X):
         def val(i: int):
-            return X[i] * (var_bound[i][1] - var_bound[i][0]) + var_bound[i][0]
+            return (
+                X[i] * (self.var_bound[i][1] - self.var_bound[i][0])
+                + self.var_bound[i][0]
+            )
 
         # Prepare configuration
         world = configuration.default()
@@ -86,9 +105,14 @@ class ExperimentWrapper:
 
     def __call__(self, X):
         world = self.generate_configuration(X)
+        # Condition evaluation
+        evaluation = EvaluationConfiguration()
+        evaluation.logic = self.evaluation_logic
+        evaluation.quantitative = self.evaluation_quantitative
         # Prepare experiment
         exp = TcxBuildRunner(
-            self.repository.path, BuildRunnerConfiguration(world, self.build)
+            self.repository.path,
+            BuildRunnerConfiguration(world, self.build, evaluation),
         )
         # Load default conditions
         exp.safety_conditions = []
@@ -97,38 +121,3 @@ class ExperimentWrapper:
         # Run experiment and compute score
         exp.run()
         return self.score_experiment(exp)
-
-
-if __name__ == "__main__":
-    #
-    runs = Path("./runs/")
-    if runs.exists():
-        shutil.rmtree(runs)
-    #
-    w = ExperimentWrapper("../build_headless/", runs)
-
-    grid = containers.Grid(
-        shape=(len(hazards) + 1, len(unsafe_control_actions) + 1),
-        max_items_per_bin=1,
-        fitness_domain=(w.score_domain(),),
-        features_domain=((0.0, len(hazards)), (0.0, len(unsafe_control_actions))),
-    )
-
-    algo = algorithms.RandomSearchMutPolyBounded(
-        grid,
-        budget=1000,
-        batch_size=10,
-        dimension=9,
-        optimisation_task="maximization",
-        ind_domain=(0.0, 1.0),
-    )
-
-    logger = algorithms.AlgorithmLogger(algo)
-
-    eval_fn = w
-
-    best = algo.optimise(w)
-
-    print(algo.summary())
-    plots.default_plots_grid(logger)
-    print("All results in %s" % logger.final_filename)
