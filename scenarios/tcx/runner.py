@@ -77,6 +77,10 @@ class TcxBuildRunner(BuildRunner):
             trace[P.cobot.has_target] = (m.timestamp, True)
 
         # Entity.is_damaged
+        trace[P.assembly.is_damaged] = (0.0, False)
+        trace[P.tool.is_damaged] = (0.0, False)
+        trace[P.operator.is_damaged] = (0.0, False)
+        trace[P.cobot.is_damaged] = (0.0, False)
         for m in from_table("damageablestatus"):
             trace[cls.entity[m.entity].is_damaged] = (m.timestamp, bool(m.is_damaged))
 
