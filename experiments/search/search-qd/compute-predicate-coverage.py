@@ -5,13 +5,13 @@ from itertools import combinations
 from typing import Iterable, Set, Dict
 from pathlib import Path
 from funcy import chain
-from mtl.ast import AtomicPred, BinaryOpMTL, Node
+from mtl.ast import AtomicPred, BinaryOpMTL, Node, BOT
 from traces import TimeSeries
 
 from csi.experiment import Repository, RunStatus
 from csi.monitor import Monitor
 from csi.safety import SafetyCondition
-from scenarios.tcx import unsafe_control_actions, hazards, TcxBuildRunner
+from scenarios.tcx import unsafe_control_actions, hazards, TcxBuildRunner, P
 
 
 def extract_boolean_predicates(
@@ -123,13 +123,17 @@ def compute_coverage(repository_path, output_path, safety_conditions, coverage_g
                     )
         with predicate_values_cache.open("wb") as cache:
             pickle.dump(predicate_values, cache)
+    comb_preds = set(combinations(predicates, coverage_group))
+    predicate_values_values = {
+        p: v for p, v in predicate_values.items() if all(i in comb_preds for i in p)
+    }
     # Record condition values
+    condition_uids = [u.uid for u in safety_conditions]
     condition_values_cache = output_path / "conditions_{}.pkl".format(coverage_group)
     if condition_values_cache.exists():
         with condition_values_cache.open("rb") as cache:
             condition_values = pickle.load(cache)
     else:
-        condition_uids = [u.uid for u in safety_conditions]
         condition_values = {
             p: set() for p in combinations(condition_uids, coverage_group)
         }
@@ -140,6 +144,9 @@ def compute_coverage(repository_path, output_path, safety_conditions, coverage_g
                 )
         with condition_values_cache.open("wb") as cache:
             pickle.dump(condition_values, cache)
+    condition_values = {
+        p: v for p, v in condition_values.items() if all(i in condition_uids for i in p)
+    }
     # Compute coverage metrics
     predicate_coverage = (
         sum(len(s) for s in predicate_values.values()),
@@ -170,12 +177,36 @@ def compute_coverage(repository_path, output_path, safety_conditions, coverage_g
 
 if __name__ == "__main__":
     conditions = list(chain(unsafe_control_actions, hazards))
+    # Identify untractable conditions
+    invalid_atoms = {
+        # P.assembly.has_assembly,
+        P.assembly.is_orientation_valid,
+        P.assembly.is_processed,
+        P.assembly.is_secured,
+        # P.assembly.is_valid,
+        P.assembly.under_processing,
+        P.cobot.has_assembly,
+        P.controller.is_configured,
+        P.operator.has_assembly,
+        P.operator.provides_assembly,
+        P.tool.has_assembly,
+        P.tool.is_running,
+    }
+    m = Monitor()
+    for c in chain(unsafe_control_actions, hazards):
+        if any(a in invalid_atoms for a in m.atoms(c.condition)):
+            conditions.remove(c)
+        if c.condition == BOT:
+            conditions.remove(c)
+    # conditions.extend({u for u in unsafe_control_actions if u.uid == "UCA9-T-1"})
     #
     results = {}
 
     for s in range(1, 3):
         for runs in tqdm.tqdm(
             [
+                "../search-ran/runs",
+                "./backup-5-crisp/runs",  # Experiment 1000/1000 // Run 1/1 // Coverage 1854/3960
                 "./backup-4-stop in cell/runs",  # Experiment 1000/1000 // Run 1/1 // Coverage 1854/3960
                 "./backup-3-no stop in cell/runs",  # Experiment 1000/1000 // Run 1/1 // Coverage 1855/3960
                 "../search-ga/backup-1-minimise/runs",  # ../search-ga/backup-1-minimise/runs 1827 3960 0.46136363636363636

@@ -18,7 +18,7 @@ if __name__ == "__main__":
             individual = funcy.first(solutions[features])
             run_output = pathlib.Path("solutions") / ".".join(map(str, features))
             # Run the solution
-            w = RunnerFitnessWrapper("../../build/", run_output, "zadeh")
+            w = RunnerFitnessWrapper("../../build_preview/", run_output, "zadeh")
             score = w(individual)
             # Register score
             with (run_output / "score.txt").open("w") as score_file:

@@ -12,7 +12,7 @@ if __name__ == "__main__":
     if runs.exists():
         shutil.rmtree(runs)
     #
-    w = RunnerFitnessWrapper("../../build_headless/", runs, "zadeh", with_features=True)
+    w = RunnerFitnessWrapper("../../build_preview/", runs, "zadeh", with_features=True)
 
     grid = containers.Grid(
         shape=(len(hazards) + 1, len(unsafe_control_actions) + 1),
