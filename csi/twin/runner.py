@@ -34,7 +34,7 @@ class EvaluationConfiguration:
 
 @dataclasses.dataclass
 class BuildRunnerConfiguration:
-    """Digital twin experiment configuration"""
+    """Digital twin base experiment configuration"""
 
     world: Any
     build: Path = dataclasses.field(default_factory=Path)
@@ -54,18 +54,18 @@ class BuildRunner(Experiment):
         """Location of simulation assets in build"""
         return self.configuration.build / "Unity_Data" / "StreamingAssets" / "CSI"
 
+    @property
+    def database_asset(self) -> Path:
+        return self.assets_path / "Databases" / "messages.safety.db"
+
+    @property
+    def configuration_asset(self) -> Path:
+        return self.assets_path / "Configuration" / "configuration.json"
+
     def execute(self) -> None:
         """Run digital twin build with specified configuration"""
         # Setup build and IO
         twin_files = {
-            "db": (
-                self.assets_path / "Databases" / "messages.safety.db",
-                Path("./output.sqlite"),
-            ),
-            "cfg": (
-                self.assets_path / "Configuration" / "configuration.json",
-                Path("./configuration.json"),
-            ),
             "shot": (
                 self.assets_path / "Screenshots" / "scene.png",
                 Path("./scene.png"),
@@ -84,6 +84,8 @@ class BuildRunner(Experiment):
             subprocess.run(str(binary), shell=True, check=True)
         finally:
             # Backup generated files
+            shutil.copy(self.configuration_asset, Path("assets/configuration.json"))
+            shutil.copy(self.database_asset, Path("assets/database.sqlite"))
             for (saved, backup) in twin_files.values():
                 if saved.exists():
                     shutil.copy(saved, backup)
