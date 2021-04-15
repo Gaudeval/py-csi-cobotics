@@ -1,10 +1,9 @@
 import dataclasses
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 from csi.configuration import ConfigurationManager
-from csi.twin import DigitalTwinConfiguration
+from csi.twin.configuration import BuildConfiguration
 
 
 @dataclasses.dataclass
@@ -38,12 +37,10 @@ class SafetyWorldConfiguration:
     }
 
 
-@dataclasses.dataclass
-class SafetyConfiguration(DigitalTwinConfiguration):
-    """Digital twin safety controller experiment configuration"""
-
-    world: Any = dataclasses.field(default_factory=SafetyWorldConfiguration)
-    build: Path = dataclasses.field(default_factory=Path)
+class SafetyBuildConfiguration(BuildConfiguration):
+    @property
+    def database(self) -> Path:
+        return self.assets / "Databases" / "messages.safety.db"
 
 
 if __name__ == "__main__":

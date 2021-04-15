@@ -6,6 +6,24 @@ import mtl.connective
 
 
 @dataclasses.dataclass
+class BuildConfiguration:
+    path: Path = dataclasses.field(default_factory=Path)
+
+    @property
+    def assets(self) -> Path:
+        """Location of simulation assets in build"""
+        return self.path / "Unity_Data" / "StreamingAssets" / "CSI"
+
+    @property
+    def database(self) -> Path:
+        return self.assets / "Databases" / "database.db"
+
+    @property
+    def configuration(self) -> Path:
+        return self.assets / "Configuration" / "configuration.json"
+
+
+@dataclasses.dataclass
 class TemporalLogicConfiguration:
     _logics = {
         "default": mtl.connective.default,
@@ -26,7 +44,7 @@ class DigitalTwinConfiguration:
     """Digital twin base experiment configuration"""
 
     world: Any
-    build: Path = dataclasses.field(default_factory=Path)
+    build: BuildConfiguration
     ltl: TemporalLogicConfiguration = dataclasses.field(
         default_factory=TemporalLogicConfiguration
     )

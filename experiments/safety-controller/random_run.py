@@ -2,7 +2,8 @@ from pathlib import Path
 from drs import drs
 from tqdm import trange
 
-from wrapper.configuration import SafetyWorldConfiguration, SafetyConfiguration
+from csi.twin import DigitalTwinConfiguration
+from wrapper.configuration import SafetyWorldConfiguration, SafetyBuildConfiguration
 from wrapper.runner import SafetyDigitalTwinRunner
 
 # https://pypi.org/project/drs/
@@ -21,7 +22,7 @@ if __name__ == "__main__":
         w.wp_cell.duration = s[3]
         w.wp_exit.duration = s[4]
 
-        c = SafetyConfiguration(w, BUILD_PATH)
+        c = DigitalTwinConfiguration(w, SafetyBuildConfiguration(BUILD_PATH))
 
         r = SafetyDigitalTwinRunner("./runs", c)
 

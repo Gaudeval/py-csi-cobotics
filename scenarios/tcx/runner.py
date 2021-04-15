@@ -24,6 +24,7 @@ def safety_timestamp(row: Mapping):
     return None
 
 
+# TODO Restore saving screenshots
 class TcxDigitalTwinRunner(DigitalTwinRunner):
     entity = {
         "ur10-cobot": P.cobot,

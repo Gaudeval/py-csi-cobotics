@@ -20,49 +20,46 @@ class DigitalTwinRunner(Experiment):
     safety_conditions: List[SafetyCondition]
     configuration: DigitalTwinConfiguration
 
-    @property
-    def assets_path(self) -> Path:
-        """Location of simulation assets in build"""
-        return self.configuration.build / "Unity_Data" / "StreamingAssets" / "CSI"
-
-    @property
-    def database_asset(self) -> Path:
-        return self.assets_path / "Databases" / "messages.safety.db"
-
-    @property
-    def configuration_asset(self) -> Path:
-        return self.assets_path / "Configuration" / "configuration.json"
-
     def execute(self) -> None:
         """Run digital twin build with specified configuration"""
         # Setup build and IO
         twin_files = {
             "shot": (
-                self.assets_path / "Screenshots" / "scene.png",
+                self.configuration.build.assets / "Screenshots" / "scene.png",
                 Path("./scene.png"),
             ),
         }
-        binary = self.configuration.build / "Unity.exe"
+        binary = self.configuration.build.path / "Unity.exe"
         # Cleanup generated files
         for (removed, _) in twin_files.values():
             removed.unlink(missing_ok=True)
         # Setup configuration
-        if not twin_files["cfg"][0].parent.exists():
-            twin_files["cfg"][0].parent.mkdir(parents=True, exist_ok=True)
-        ConfigurationManager().save(self.configuration.world, twin_files["cfg"][0])
+        if not self.configuration.build.configuration.parent.exists():
+            self.configuration.build.configuration.parent.mkdir(
+                parents=True, exist_ok=True
+            )
+        ConfigurationManager().save(
+            self.configuration.world, self.configuration.build.configuration
+        )
         # Run Unity build
         try:
             subprocess.run(str(binary), shell=True, check=True)
         finally:
             # Backup generated files
-            shutil.copy(self.configuration_asset, Path("assets/configuration.json"))
-            shutil.copy(self.database_asset, Path("assets/database.sqlite"))
+            Path("assets").mkdir(parents=True, exist_ok=True)
+            shutil.copy(
+                self.configuration.build.configuration,
+                Path("assets/configuration.json"),
+            )
+            shutil.copy(
+                self.configuration.build.database, Path("assets/database.sqlite")
+            )
             for (saved, backup) in twin_files.values():
                 if saved.exists():
                     shutil.copy(saved, backup)
         # Check for hazard occurrence
         trace, conditions = self.process_output(
-            twin_files["db"][1], self.safety_conditions
+            Path("assets/database.sqlite"), self.safety_conditions
         )
         report = {}
         safety_condition: SafetyCondition
