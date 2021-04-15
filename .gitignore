@@ -2,6 +2,7 @@
 /venv
 /workspace/
 /experiments*/**/build*/
+/experiments*/**/runs*/
 /experiments-safecomp2021/search/search-ga/runs/
 /experiments-safecomp2021/search/search-ga/backup-[0-9]*/
 /experiments-safecomp2021/search/search-qd/runs/
