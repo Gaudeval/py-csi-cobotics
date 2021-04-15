@@ -1,13 +1,13 @@
 from pathlib import Path
 
 from csi.monitor import Monitor, Trace
-from csi.twin import BuildRunner, DataBase
+from csi.twin import DigitalTwinRunner, DataBase
 from csi.twin.importer import from_table
 
 from .monitor import SafetyControllerStatus, Notif, Act, Loc, RngDet, SafMod
 
 
-class SafetyBuildRunner(BuildRunner):
+class SafetyDigitalTwinRunner(DigitalTwinRunner):
 
     safety_conditions = []
 
@@ -83,6 +83,6 @@ class SafetyBuildRunner(BuildRunner):
 
 
 if __name__ == "__main__":
-    SafetyBuildRunner.process_output(
+    SafetyDigitalTwinRunner.process_output(
         Path("../build/Unity_Data/StreamingAssets/CSI/Databases/messages.safety.db")
     )

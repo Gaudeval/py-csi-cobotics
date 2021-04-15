@@ -5,12 +5,12 @@ from typing import Any, Mapping
 
 from csi.monitor import Trace, Monitor
 from csi.twin.importer import as_object
-from csi.twin import BuildRunnerConfiguration, BuildRunner, DataBase
+from csi.twin import DigitalTwinConfiguration, DigitalTwinRunner, DataBase
 from scenarios.tcx import WorldData, P
 
 
 @dataclasses.dataclass
-class TcxRunnerConfiguration(BuildRunnerConfiguration):
+class TcxConfiguration(DigitalTwinConfiguration):
     """Digital twin experiment configuration"""
 
     world: Any = dataclasses.field(default_factory=WorldData)
@@ -24,7 +24,7 @@ def safety_timestamp(row: Mapping):
     return None
 
 
-class TcxBuildRunner(BuildRunner):
+class TcxDigitalTwinRunner(DigitalTwinRunner):
     entity = {
         "ur10-cobot": P.cobot,
         "Tim-Operator": P.operator,

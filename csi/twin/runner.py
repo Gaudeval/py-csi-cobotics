@@ -1,53 +1,24 @@
 """Experiment wrapper to run digital twin simulations"""
 
-import dataclasses
 import json
 import shutil
 import subprocess
 
 from pathlib import Path
-from typing import Any, List, Optional, Tuple, Union, Set, Mapping
+from typing import List, Optional, Tuple, Union
 
-import mtl.connective
-
-from csi.configuration import ConfigurationManager, JsonSerializable, _S
+from csi.configuration import ConfigurationManager
 from csi.experiment import Experiment
 from csi.monitor import Monitor, Trace
-from csi.safety import SafetyCondition, Atom
+from csi.safety import SafetyCondition
+from csi.twin.configuration import DigitalTwinConfiguration
 
 
-@dataclasses.dataclass
-class EvaluationConfiguration:
-    _logics = {
-        "default": mtl.connective.default,
-        "zadeh": mtl.connective.zadeh,
-        "godel": mtl.connective.godel,
-    }
-
-    @property
-    def connective(self):
-        return self._logics[self.logic]
-
-    logic: str = dataclasses.field(default="default")
-    quantitative: bool = dataclasses.field(default=False)
-
-
-@dataclasses.dataclass
-class BuildRunnerConfiguration:
-    """Digital twin base experiment configuration"""
-
-    world: Any
-    build: Path = dataclasses.field(default_factory=Path)
-    evaluation: EvaluationConfiguration = dataclasses.field(
-        default_factory=EvaluationConfiguration
-    )
-
-
-class BuildRunner(Experiment):
+class DigitalTwinRunner(Experiment):
     """Digital twin experiment runner"""
 
     safety_conditions: List[SafetyCondition]
-    configuration: BuildRunnerConfiguration
+    configuration: DigitalTwinConfiguration
 
     @property
     def assets_path(self) -> Path:
@@ -99,8 +70,8 @@ class BuildRunner(Experiment):
             i = Monitor().evaluate(
                 trace,
                 safety_condition.condition,
-                quantitative=self.configuration.evaluation.quantitative,
-                logic=self.configuration.evaluation.connective,
+                quantitative=self.configuration.ltl.quantitative,
+                logic=self.configuration.ltl.logic,
             )
             print(type(safety_condition), safety_condition.uid)
             print(getattr(safety_condition, "description", ""))

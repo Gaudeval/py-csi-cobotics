@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from csi.configuration import ConfigurationManager
-from csi.twin import BuildRunnerConfiguration
+from csi.twin import DigitalTwinConfiguration
 
 
 @dataclasses.dataclass
@@ -39,7 +39,7 @@ class SafetyWorldConfiguration:
 
 
 @dataclasses.dataclass
-class SafetyRunnerConfiguration(BuildRunnerConfiguration):
+class SafetyConfiguration(DigitalTwinConfiguration):
     """Digital twin safety controller experiment configuration"""
 
     world: Any = dataclasses.field(default_factory=SafetyWorldConfiguration)

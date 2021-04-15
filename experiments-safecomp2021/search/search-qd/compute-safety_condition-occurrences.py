@@ -4,7 +4,7 @@ from tqdm import tqdm
 
 from csi.experiment import Repository, RunStatus
 from csi.monitor import Monitor
-from scenarios.tcx import unsafe_control_actions, hazards, TcxBuildRunner
+from scenarios.tcx import unsafe_control_actions, hazards, TcxDigitalTwinRunner
 from scenarios.tcx.monitor import P
 
 
@@ -51,7 +51,7 @@ def compute_occurrence_profile():
 
 def check_run(run):
     run_db = run.work_path / "output.sqlite"
-    run_trace, _ = TcxBuildRunner.process_output(run_db, [])
+    run_trace, _ = TcxDigitalTwinRunner.process_output(run_db, [])
     # Compute predicate values at each point in time
     monitor = Monitor()
     # 3

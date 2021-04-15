@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from wrapper.configuration import SafetyWorldConfiguration, SafetyRunnerConfiguration
-from wrapper.runner import SafetyBuildRunner
+from wrapper.configuration import SafetyWorldConfiguration, SafetyConfiguration
+from wrapper.runner import SafetyDigitalTwinRunner
 
 
 if __name__ == "__main__":
@@ -14,8 +14,8 @@ if __name__ == "__main__":
     w.wp_cell.duration = 8.0
     w.wp_exit.duration = 16.0
 
-    c = SafetyRunnerConfiguration(w, BUILD_PATH)
+    c = SafetyConfiguration(w, BUILD_PATH)
 
-    r = SafetyBuildRunner("./runs", c)
+    r = SafetyDigitalTwinRunner("./runs", c)
 
     r.run()

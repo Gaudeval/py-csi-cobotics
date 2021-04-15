@@ -11,7 +11,7 @@ from traces import TimeSeries
 from csi.experiment import Repository, RunStatus
 from csi.monitor import Monitor
 from csi.safety import SafetyCondition
-from scenarios.tcx import unsafe_control_actions, hazards, TcxBuildRunner, P
+from scenarios.tcx import unsafe_control_actions, hazards, TcxDigitalTwinRunner, P
 
 
 def extract_boolean_predicates(
@@ -57,7 +57,7 @@ def compute_experiment_trace(experiment, output_path, conditions):
         if run.status == RunStatus.COMPLETE:
             # Load run trace
             run_db = run.work_path / "output.sqlite"
-            run_trace, _ = TcxBuildRunner.process_output(run_db, conditions)
+            run_trace, _ = TcxDigitalTwinRunner.process_output(run_db, conditions)
             # Compute predicate values at each point in time
             monitor = Monitor()
             for time, _ in TimeSeries.iter_merge(run_trace.values.values()):

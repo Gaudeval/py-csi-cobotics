@@ -5,8 +5,13 @@ from typing import Tuple
 import numpy
 
 from csi.experiment import Repository, RunStatus, Experiment
-from csi.twin.runner import EvaluationConfiguration, BuildRunnerConfiguration
-from scenarios.tcx import hazards, unsafe_control_actions, configuration, TcxBuildRunner
+from csi.twin.runner import EvaluationConfiguration, DigitalTwinConfiguration
+from scenarios.tcx import (
+    hazards,
+    unsafe_control_actions,
+    configuration,
+    TcxDigitalTwinRunner,
+)
 
 
 class RunnerFitnessWrapper:
@@ -107,12 +112,12 @@ class RunnerFitnessWrapper:
         world = self.generate_configuration(X)
         # Condition evaluation
         evaluation = EvaluationConfiguration()
-        evaluation.logic = self.evaluation_logic
+        evaluation.connective = self.evaluation_logic
         evaluation.quantitative = self.evaluation_quantitative
         # Prepare experiment
-        exp = TcxBuildRunner(
+        exp = TcxDigitalTwinRunner(
             self.repository.path,
-            BuildRunnerConfiguration(world, self.build, evaluation),
+            DigitalTwinConfiguration(world, self.build, evaluation),
         )
         # Load default conditions
         exp.safety_conditions = []
