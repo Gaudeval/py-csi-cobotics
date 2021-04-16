@@ -20,47 +20,51 @@ class DigitalTwinRunner(Experiment):
     safety_conditions: List[SafetyCondition]
     configuration: DigitalTwinConfiguration
 
+    configuration_output: Path = Path("assets/configuration.json")
+    database_output: Path = Path("assets/database.sqlite")
+
+    additional_output = {
+        "shot": (
+            self.configuration.build.assets / "Screenshots" / "scene.png",
+            Path("assets/scene.png"),
+        ),
+    }
+
+    def clear_build_output(self):
+        """Cleanup generated files in build folder"""
+        self.configuration.build.configuration.unlink(missing_ok=True)
+        self.configuration.build.database.unlink(missing_ok=True)
+        for (removed, _) in self.additional_output.values():
+            removed.unlink(missing_ok=True)
+
+    def collect_build_output(self):
+        """Collect generated files in build folder"""
+        self.database_output.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(database_path, self.database_output)
+        self.configuration_output, exist_ok=True)
+        shutil.copy(configuration_path, self.configuration_output)
+        for (saved, backup) in additional_output.values():
+            if saved.exists():
+                shutil.copy(saved, backup)
+
     def execute(self) -> None:
         """Run digital twin build with specified configuration"""
         # Setup build and IO
-        twin_files = {
-            "shot": (
-                self.configuration.build.assets / "Screenshots" / "scene.png",
-                Path("./scene.png"),
-            ),
-        }
-        binary = self.configuration.build.path / "Unity.exe"
-        # Cleanup generated files
-        for (removed, _) in twin_files.values():
-            removed.unlink(missing_ok=True)
+        database_path = self.configuration.build.configuration
+        executable_path = self.configuration.build.path / "Unity.exe"
+        configuration_path = self.configuration.build.configuration
+        self.clear_build_output()
         # Setup configuration
-        if not self.configuration.build.configuration.parent.exists():
-            self.configuration.build.configuration.parent.mkdir(
-                parents=True, exist_ok=True
-            )
-        ConfigurationManager().save(
-            self.configuration.world, self.configuration.build.configuration
-        )
+        if not configuration_path.parent.exists():
+            configuration_path.parent.mkdir(parents=True, exist_ok=True)
+        ConfigurationManager().save(self.configuration.world, configuration_path)
         # Run Unity build
         try:
-            subprocess.run(str(binary), shell=True, check=True)
+            subprocess.run(str(executable_path), shell=True, check=True)
         finally:
-            # Backup generated files
-            Path("assets").mkdir(parents=True, exist_ok=True)
-            shutil.copy(
-                self.configuration.build.configuration,
-                Path("assets/configuration.json"),
-            )
-            shutil.copy(
-                self.configuration.build.database, Path("assets/database.sqlite")
-            )
-            for (saved, backup) in twin_files.values():
-                if saved.exists():
-                    shutil.copy(saved, backup)
+            self.collect_build_output()
         # Check for hazard occurrence
-        trace, conditions = self.process_output(
-            Path("assets/database.sqlite"), self.safety_conditions
-        )
+        trace, conditions = self.process_output()
         report = {}
         safety_condition: SafetyCondition
         for safety_condition in conditions:
@@ -77,9 +81,5 @@ class DigitalTwinRunner(Experiment):
         with open("./hazard-report.json", "w") as json_report:
             json.dump(report, json_report, indent=4)
 
-    @staticmethod
-    def process_output(
-        database_path: Union[str, Path],
-        safety_conditions: Optional[List[SafetyCondition]] = None,
-    ) -> Tuple[Trace, List[SafetyCondition]]:
+    def process_output() -> Tuple[Trace, List[SafetyCondition]]:
         raise NotImplementedError

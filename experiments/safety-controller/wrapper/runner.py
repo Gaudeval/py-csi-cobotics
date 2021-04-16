@@ -11,14 +11,13 @@ class SafetyDigitalTwinRunner(DigitalTwinRunner):
 
     safety_conditions = []
 
-    @classmethod
-    def process_output(cls, database_path, safety_conditions=None):
+    def process_output(self):
         """Extract values from simulation message trace"""
 
         # Load database
-        if not Path(database_path).exists():
-            raise FileNotFoundError(database_path)
-        db = DataBase(database_path)
+        if not self.database_output.exists():
+            raise FileNotFoundError(self.database_output)
+        db = DataBase(self.database_output)
 
         # Prepare trace
         trace = Trace()
@@ -79,7 +78,7 @@ class SafetyDigitalTwinRunner(DigitalTwinRunner):
             else:
                 trace[P.rngDet] = (m.timestamp, RngDet.far)
 
-        return trace, safety_conditions
+        return trace, self.safety_conditions
 
 
 if __name__ == "__main__":
