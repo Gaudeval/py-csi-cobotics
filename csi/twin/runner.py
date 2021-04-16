@@ -1,6 +1,7 @@
 """Experiment wrapper to run digital twin simulations"""
 
 import json
+import pickle
 import shutil
 import subprocess
 
@@ -81,6 +82,9 @@ class DigitalTwinRunner(Experiment):
             report[safety_condition.uid] = i
         with open("./hazard-report.json", "w") as json_report:
             json.dump(report, json_report, indent=4)
+        # Backup processed trace
+        with Path("events_trace.pkl").open("wb") as events_trace:
+            pickle.dump(trace, events_trace)
 
     def process_output() -> Tuple[Trace, List[SafetyCondition]]:
         raise NotImplementedError
