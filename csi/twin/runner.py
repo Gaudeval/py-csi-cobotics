@@ -5,7 +5,7 @@ import shutil
 import subprocess
 
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from csi.configuration import ConfigurationManager
 from csi.experiment import Experiment
@@ -23,11 +23,11 @@ class DigitalTwinRunner(Experiment):
     configuration_output: Path = Path("assets/configuration.json")
     database_output: Path = Path("assets/database.sqlite")
 
-    additional_output = {
+    additional_output: Dict[str, Tuple[Path, Path]] = {
         "shot": (
-            self.configuration.build.assets / "Screenshots" / "scene.png",
+            Path("Unity_Data/StreamingAssets/CSI/Screenshots/scene.png"),
             Path("assets/scene.png"),
-        ),
+        )
     }
 
     def clear_build_output(self):
@@ -35,16 +35,17 @@ class DigitalTwinRunner(Experiment):
         self.configuration.build.configuration.unlink(missing_ok=True)
         self.configuration.build.database.unlink(missing_ok=True)
         for (removed, _) in self.additional_output.values():
-            removed.unlink(missing_ok=True)
+            (self.configuration.build.path / removed).unlink(missing_ok=True)
 
     def collect_build_output(self):
         """Collect generated files in build folder"""
         self.database_output.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy(database_path, self.database_output)
-        self.configuration_output, exist_ok=True)
-        shutil.copy(configuration_path, self.configuration_output)
-        for (saved, backup) in additional_output.values():
-            if saved.exists():
+        shutil.copy(self.configuration.build.database, self.database_output)
+        self.configuration_output.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(self.configuration.build.configuration, self.configuration_output)
+        for (saved, backup) in self.additional_output.values():
+            if (self.configuration.build.path / saved).exists():
+                backup.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy(saved, backup)
 
     def execute(self) -> None:
