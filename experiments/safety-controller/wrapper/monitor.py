@@ -38,6 +38,16 @@ class RngDet(Enum):
     close = 2
 
 
+class Phase(Enum):
+    res = 0
+    act = 1
+    inact = 2
+    mis = 3
+    mit2 = 4
+    mit = 5
+    mit1 = 6
+
+
 class SafetyControllerStatus(Context):
     """Safety controller status variables"""
 
@@ -49,6 +59,12 @@ class SafetyControllerStatus(Context):
     safmod = Term()
     notif_leaveWrkb = Term()
     rngDet = Term()
+
+    hsp = Term()
+    hcp = Term()
+    hrwp = Term()
+
+    oloc = Term()
 
 
 # class Robot(Context):
