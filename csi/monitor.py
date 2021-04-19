@@ -3,6 +3,8 @@ from __future__ import annotations
 import attr
 import funcy
 import lenses
+from mtl.ast import WeakUntil
+from mtl.sugar import env, alw, implies, until
 from traces import TimeSeries
 from typing import (
     Any,
@@ -22,6 +24,15 @@ from csi.safety import Atom, Node
 from mtl.connective import _ConnectivesDef, zadeh, godel, default
 
 PathType = Tuple[str]
+
+
+F = env
+
+G = alw
+
+
+def weak_until(phi, psi):
+    return WeakUntil(phi, psi)
 
 
 @attr.s(

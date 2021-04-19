@@ -1,3 +1,5 @@
+import json
+
 from pathlib import Path
 from typing import List
 
@@ -7,13 +9,24 @@ from csi.twin import DigitalTwinRunner, DataBase
 from csi.twin.importer import from_table
 
 from .monitor import SafetyControllerStatus, Notif, Act, Loc, RngDet, SafMod, Phase
+from .uc import SafetyUseCase, U1, U2, MU
 
 
 class SafetyDigitalTwinRunner(DigitalTwinRunner):
 
     safety_conditions: List[SafetyCondition] = []
 
-    def built_event_trace(self, db: DataBase) -> Trace:
+    use_cases: List[SafetyUseCase] = [U1, U2, MU]
+    use_cases_classification: Path = Path("uc-classification.json")
+
+    def classify_use_cases(self, trace):
+        """Classify trace use case"""
+        ucs = [u.name for u in self.use_cases if u.satisfies(trace)]
+        with self.use_cases_classification.open("w") as uc_output:
+            json.dump(ucs, uc_output, indent=4)
+
+    def build_event_trace(self, db: DataBase) -> Trace:
+        """Extract event stream from run message stream"""
         # Prepare trace
         trace = Trace()
         P = SafetyControllerStatus()
@@ -24,7 +37,7 @@ class SafetyDigitalTwinRunner(DigitalTwinRunner):
             trace[P.notif] = (m.timestamp, Notif(m.status))
 
         # ract / wact
-        trace[P.ract] = (0.0, Act.idle)
+        trace[P.ract] = (0.0, Act.exchWrkp)
         trace[P.wact] = (0.0, Act.idle)
         for m in from_table(db, "actstatus"):
             s = Act(m.status)
@@ -95,13 +108,13 @@ class SafetyDigitalTwinRunner(DigitalTwinRunner):
 
     def process_output(self):
         """Extract values from simulation message trace"""
-
-        # Load database
+        # Process run database
         if not self.database_output.exists():
             raise FileNotFoundError(self.database_output)
         db = DataBase(self.database_output)
-
-        trace = self.built_event_trace(db)
+        trace = self.build_event_trace(db)
+        #
+        self.classify_use_cases(trace)
 
         return trace, self.safety_conditions
 
