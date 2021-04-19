@@ -1,6 +1,8 @@
 from pathlib import Path
+from typing import List
 
-from csi.monitor import Monitor, Trace
+from csi.monitor import Trace
+from csi.safety import SafetyCondition
 from csi.twin import DigitalTwinRunner, DataBase
 from csi.twin.importer import from_table
 
@@ -9,16 +11,9 @@ from .monitor import SafetyControllerStatus, Notif, Act, Loc, RngDet, SafMod, Ph
 
 class SafetyDigitalTwinRunner(DigitalTwinRunner):
 
-    safety_conditions = []
+    safety_conditions: List[SafetyCondition] = []
 
-    def process_output(self):
-        """Extract values from simulation message trace"""
-
-        # Load database
-        if not self.database_output.exists():
-            raise FileNotFoundError(self.database_output)
-        db = DataBase(self.database_output)
-
+    def built_event_trace(self, db: DataBase) -> Trace:
         # Prepare trace
         trace = Trace()
         P = SafetyControllerStatus()
@@ -95,6 +90,18 @@ class SafetyDigitalTwinRunner(DigitalTwinRunner):
                 trace[P.rngDet] = (m.timestamp, RngDet.near)
             else:
                 trace[P.rngDet] = (m.timestamp, RngDet.far)
+
+        return trace
+
+    def process_output(self):
+        """Extract values from simulation message trace"""
+
+        # Load database
+        if not self.database_output.exists():
+            raise FileNotFoundError(self.database_output)
+        db = DataBase(self.database_output)
+
+        trace = self.built_event_trace(db)
 
         return trace, self.safety_conditions
 
