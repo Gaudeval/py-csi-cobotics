@@ -2,7 +2,7 @@ import json
 import pickle
 
 from pathlib import Path
-from typing import List
+from typing import List, Iterable
 
 from csi.coverage import EventCombinationsRegistry
 from csi.monitor import Trace
@@ -20,14 +20,15 @@ class SafetyDigitalTwinRunner(DigitalTwinRunner):
 
     use_cases: List[SafetyUseCase] = [U1, U2, MU]
     use_cases_classification: Path = Path("uc-classification.json")
+    use_cases_events: Path = Path("uc-events_combinations.pkl")
 
     event_combinations_output: Path = Path("events_combinations.pkl")
 
     def classify_use_cases(self, trace):
         """Classify trace use case"""
-        ucs = [u.name for u in self.use_cases if u.satisfies(trace)]
+        ucs = [u for u in self.use_cases if u.satisfies(trace)]
         with self.use_cases_classification.open("w") as uc_output:
-            json.dump(ucs, uc_output, indent=4)
+            json.dump([u.name for u in ucs], uc_output, indent=4)
         return ucs
 
     def build_event_trace(self, db: DataBase) -> Trace:
@@ -126,7 +127,9 @@ class SafetyDigitalTwinRunner(DigitalTwinRunner):
         registry.domain[P.notif.id] = frozenset(n for n in Notif)
         registry.domain[P.ract.id] = frozenset([Act.welding, Act.exchWrkp])
         registry.domain[P.lgtBar.id] = frozenset([True, False])
-        registry.domain[P.rloc.id] = frozenset(i for i in Loc)
+        registry.domain[P.rloc.id] = frozenset(
+            [Loc.inCell, Loc.sharedTbl, Loc.atWeldSpot]
+        )
         registry.domain[P.wact.id] = frozenset([Act.idle, Act.welding])
         registry.domain[P.safmod.id] = frozenset(s for s in SafMod)
         registry.domain[P.notif_leaveWrkb.id] = frozenset([True, False])
@@ -148,10 +151,23 @@ class SafetyDigitalTwinRunner(DigitalTwinRunner):
             raise FileNotFoundError(self.database_output)
         db = DataBase(self.database_output)
         trace = self.build_event_trace(db)
-        _ = self.build_event_combinations(trace)
-        _ = self.classify_use_cases(trace)
+        ucs = self.classify_use_cases(trace)
+        combinations = self.build_event_combinations(trace)
+        self.project_events_per_uc(ucs, combinations)
 
         return trace, self.safety_conditions
+
+    def project_events_per_uc(
+        self, ucs: Iterable[SafetyUseCase], events: EventCombinationsRegistry
+    ):
+        projection = {}
+        for u in ucs:
+            projection[u.name] = []
+            for i in u.coverage_criterions:
+                ci = events.project(i)
+                projection[u.name].append((i, ci))
+        with self.use_cases_events.open("wb") as uc_events:
+            pickle.dump(projection, uc_events)
 
 
 if __name__ == "__main__":
