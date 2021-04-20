@@ -23,6 +23,7 @@ class DigitalTwinRunner(Experiment):
 
     configuration_output: Path = Path("assets/configuration.json")
     database_output: Path = Path("assets/database.sqlite")
+    trace_output: Path = Path("events_trace.pkl")
 
     additional_output: Dict[str, Tuple[Path, Path]] = {
         "shot": (
@@ -83,8 +84,8 @@ class DigitalTwinRunner(Experiment):
         with open("./hazard-report.json", "w") as json_report:
             json.dump(report, json_report, indent=4)
         # Backup processed trace
-        with Path("events_trace.pkl").open("wb") as events_trace:
-            pickle.dump(trace, events_trace)
+        with self.trace_output.open("wb") as trace_file:
+            pickle.dump(trace, trace_file)
 
     def process_output(self) -> Tuple[Trace, List[SafetyCondition]]:
         raise NotImplementedError
