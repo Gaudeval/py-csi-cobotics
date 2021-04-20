@@ -5,7 +5,7 @@ import attr
 from csi.monitor import G, implies, F, until, weak_until, Monitor, Trace
 from csi.safety import SafetyCondition
 
-from monitor import SafetyControllerStatus, Loc, Act, RngDet
+from .monitor import SafetyControllerStatus, Loc, Act, RngDet
 
 
 @attr.s(frozen=True, auto_attribs=True, slots=True, hash=True)
