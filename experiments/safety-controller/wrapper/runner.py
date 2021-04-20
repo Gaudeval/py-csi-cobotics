@@ -1,8 +1,10 @@
 import json
+import pickle
 
 from pathlib import Path
 from typing import List
 
+from csi.coverage import EventCombinationsRegistry
 from csi.monitor import Trace
 from csi.safety import SafetyCondition
 from csi.twin import DigitalTwinRunner, DataBase
@@ -19,11 +21,14 @@ class SafetyDigitalTwinRunner(DigitalTwinRunner):
     use_cases: List[SafetyUseCase] = [U1, U2, MU]
     use_cases_classification: Path = Path("uc-classification.json")
 
+    event_combinations_output: Path = Path("events_combinations.pkl")
+
     def classify_use_cases(self, trace):
         """Classify trace use case"""
         ucs = [u.name for u in self.use_cases if u.satisfies(trace)]
         with self.use_cases_classification.open("w") as uc_output:
             json.dump(ucs, uc_output, indent=4)
+        return ucs
 
     def build_event_trace(self, db: DataBase) -> Trace:
         """Extract event stream from run message stream"""
@@ -113,6 +118,29 @@ class SafetyDigitalTwinRunner(DigitalTwinRunner):
 
         return trace
 
+    def build_event_combinations(self, trace: Trace):
+        P = SafetyControllerStatus
+        # TODO Declare domain with Term definition in monitor
+        # TODO Build registry from monitor definition using terms' domain if available
+        registry = EventCombinationsRegistry()
+        registry.domain[P.notif.id] = frozenset(n for n in Notif)
+        registry.domain[P.ract.id] = frozenset([Act.welding, Act.exchWrkp])
+        registry.domain[P.lgtBar.id] = frozenset([True, False])
+        registry.domain[P.rloc.id] = frozenset(i for i in Loc)
+        registry.domain[P.wact.id] = frozenset([Act.idle, Act.welding])
+        registry.domain[P.safmod.id] = frozenset(s for s in SafMod)
+        registry.domain[P.notif_leaveWrkb.id] = frozenset([True, False])
+        registry.domain[P.rngDet.id] = frozenset(r for r in RngDet)
+        registry.domain[P.hsp.id] = frozenset(s for s in Phase)
+        registry.domain[P.hcp.id] = frozenset(s for s in Phase)
+        registry.domain[P.hrwp.id] = frozenset(s for s in Phase)
+        registry.domain[P.oloc.id] = frozenset([Loc.inCell, None])
+        registry.register(trace)
+        #
+        with self.event_combinations_output.open("wb") as combinations_file:
+            pickle.dump(registry, combinations_file)
+        return registry
+
     def process_output(self):
         """Extract values from simulation message trace"""
         # Process run database
@@ -120,8 +148,8 @@ class SafetyDigitalTwinRunner(DigitalTwinRunner):
             raise FileNotFoundError(self.database_output)
         db = DataBase(self.database_output)
         trace = self.build_event_trace(db)
-        #
-        self.classify_use_cases(trace)
+        _ = self.build_event_combinations(trace)
+        _ = self.classify_use_cases(trace)
 
         return trace, self.safety_conditions
 
