@@ -65,6 +65,7 @@ class SafetyControllerStatus(Context):
     hrwp = Term()
 
     oloc = Term()
+    otab = Term()
 
 
 # class Robot(Context):

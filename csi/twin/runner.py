@@ -86,5 +86,5 @@ class DigitalTwinRunner(Experiment):
         with Path("events_trace.pkl").open("wb") as events_trace:
             pickle.dump(trace, events_trace)
 
-    def process_output() -> Tuple[Trace, List[SafetyCondition]]:
+    def process_output(self) -> Tuple[Trace, List[SafetyCondition]]:
         raise NotImplementedError

@@ -54,22 +54,29 @@ class SafetyDigitalTwinRunner(DigitalTwinRunner):
         # rloc
         trace[P.rloc] = (0.0, Loc.inCell)
         trace[P.oloc] = (0.0, None)
+        trace[P.otab] = (0.0, False)
         for m in from_table(db, "triggerregionenterevent"):
             if m.entity == "ur10-cobot":
                 if m.region == "atWeldSpot":
                     trace[P.rloc] = (m.timestamp, Loc.atWeldSpot)
                 if m.region == "sharedTbl":
                     trace[P.rloc] = (m.timestamp, Loc.sharedTbl)
-            if m.entity == "Operator-Operator" and m.region == "inCell":
-                trace[P.oloc] = (m.timestamp, Loc.inCell)
+            if m.entity == "Operator-Operator":
+                if m.region == "inCell":
+                    trace[P.oloc] = (m.timestamp, Loc.inCell)
+                if m.region == "atTable":
+                    trace[P.otab] = (m.timestamp, True)
         for m in from_table(db, "triggerregionexitevent"):
             if m.entity == "ur10-cobot":
                 if m.region == "atWeldSpot":
                     trace[P.rloc] = (m.timestamp, Loc.inCell)
                 if m.region == "sharedTbl":
                     trace[P.rloc] = (m.timestamp, Loc.inCell)
-            if m.entity == "Operator-Operator" and m.region == "inCell":
-                trace[P.oloc] = (m.timestamp, None)
+            if m.entity == "Operator-Operator":
+                if m.region == "inCell":
+                    trace[P.oloc] = (m.timestamp, None)
+                if m.region == "atTable":
+                    trace[P.otab] = (m.timestamp, False)
 
         # HCp, HSp, HRWp
         trace[P.hcp] = (0.0, Phase.inact)

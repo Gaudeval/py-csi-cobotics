@@ -34,11 +34,11 @@ U1 = SafetyUseCase(
     [
         SafetyCondition(
             "U1_op_enters",
-            F(_P.ocell),
+            F(_P.ocell & ~_P.otab),
         ),
         SafetyCondition(
             "U1_op_leaves",
-            G(implies(_P.ocell, F(~_P.ocell))),
+            G(implies(_P.ocell & ~_P.otab, F(~_P.ocell))),
         ),
         SafetyCondition(
             "U1_robot_active",
@@ -46,7 +46,7 @@ U1 = SafetyUseCase(
         ),
         SafetyCondition(
             "U1_op_single_entry",
-            G(implies(_P.ocell, until(_P.ocell, ~F(_P.ocell)))),
+            G(implies(_P.ocell & ~_P.otab, until(_P.ocell, ~F(_P.ocell)))),
         ),
     ],
 )
