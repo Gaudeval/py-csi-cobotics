@@ -43,7 +43,7 @@ class EventCombinationsRegistry:
         # TODO check domain and fill gaps
         # TODO Create new registry containing merged domains/defaults/values
         assert self.domain == other.domain
-        self.combinations.update(other.domain)
+        self.combinations.update(other.combinations)
 
     def restrict(self):
         # TODO restrict domain of a specific variable
