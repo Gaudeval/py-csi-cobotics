@@ -5,7 +5,7 @@ import attr
 from csi.monitor import G, implies, F, until, weak_until, Monitor, Trace
 from csi.safety import SafetyCondition
 
-from .monitor import SafetyControllerStatus, Loc, Act, RngDet
+from monitor import SafetyControllerStatus, Loc, Act, RngDet
 
 
 @attr.s(frozen=True, auto_attribs=True, slots=True, hash=True)
@@ -57,11 +57,16 @@ U2 = SafetyUseCase(
     [
         SafetyCondition(
             "U2_op_enters",
-            F(_P.lgtBar),
+            F(
+                _P.otab
+                & ~_P.lgtBar
+                & ~_P.ocell
+                & until(_P.otab & ~_P.lgtBar & ~_P.ocell, _P.otab & _P.lgtBar)
+            ),
         ),
         SafetyCondition(
             "U2_op_leaves",
-            G(implies(_P.lgtBar, F(~_P.lgtBar))),
+            G(implies(_P.otab & _P.lgtBar, F(~_P.lgtBar))),
         ),
         SafetyCondition(
             "U2_robot_active",
@@ -79,7 +84,14 @@ MU = SafetyUseCase(
     "The operator reaches the bench from behind the light curtain while standing out of reach of the range finder",
     [
         SafetyCondition(
-            "MU_condition", F(_P.ocell & _P.lgtBar & _P.rngDet.eq(RngDet.far))
+            "MU_condition",
+            F(
+                _P.ocell
+                & ~_P.otab
+                & until(
+                    _P.ocell & ~_P.otab, _P.ocell & _P.lgtBar & _P.rngDet.eq(RngDet.far)
+                )
+            ),
         )
     ],
 )
@@ -90,20 +102,28 @@ if __name__ == "__main__":
         t = Trace()
         t[_P.ract] = (0.0, Act.exchWrkp)
         t[_P.oloc] = (0.0, None)
+        t[_P.otab] = (0.0, False)
         t[_P.lgtBar] = (0.0, False)
+        t[_P.rngDet] = (0.0, RngDet.far)
         return t
 
     t = _initialise_trace()
     assert not U1.satisfies(t), U1.evaluate_conditions(t)
+    assert not U2.satisfies(t), U2.evaluate_conditions(t)
+    assert not MU.satisfies(t), MU.evaluate_conditions(t)
 
     t = _initialise_trace()
     t[_P.oloc] = (1.0, Loc.inCell)
     assert not U1.satisfies(t), U1.evaluate_conditions(t)
+    assert not U2.satisfies(t), U2.evaluate_conditions(t)
+    assert not MU.satisfies(t), MU.evaluate_conditions(t)
 
     t = _initialise_trace()
     t[_P.oloc] = (1.0, Loc.inCell)
     t[_P.oloc] = (2.0, None)
     assert U1.satisfies(t), U1.evaluate_conditions(t)
+    assert not U2.satisfies(t), U2.evaluate_conditions(t)
+    assert not MU.satisfies(t), MU.evaluate_conditions(t)
 
     t = _initialise_trace()
     t[_P.oloc] = (1.0, Loc.inCell)
@@ -111,12 +131,16 @@ if __name__ == "__main__":
     t[_P.oloc] = (2.0, None)
     t[_P.ract] = (2.0, Act.exchWrkp)
     assert U1.satisfies(t), U1.evaluate_conditions(t)
+    assert not U2.satisfies(t), U2.evaluate_conditions(t)
+    assert not MU.satisfies(t), MU.evaluate_conditions(t)
 
     t = _initialise_trace()
     t[_P.oloc] = (1.0, Loc.inCell)
     t[_P.ract] = (1.0, Act.idle)
     t[_P.oloc] = (2.0, None)
     assert not U1.satisfies(t), U1.evaluate_conditions(t)
+    assert not U2.satisfies(t), MU.evaluate_conditions(t)
+    assert not MU.satisfies(t), MU.evaluate_conditions(t)
 
     t = _initialise_trace()
     t[_P.oloc] = (1.0, Loc.inCell)
@@ -124,15 +148,43 @@ if __name__ == "__main__":
     t[_P.oloc] = (3.0, Loc.inCell)
     t[_P.oloc] = (4.0, None)
     assert not U1.satisfies(t), U1.evaluate_conditions(t)
+    assert not U2.satisfies(t), U2.evaluate_conditions(t)
+    assert not MU.satisfies(t), MU.evaluate_conditions(t)
 
     t = _initialise_trace()
     t[_P.rngDet] = (0.0, RngDet.far)
     t[_P.oloc] = (1.0, Loc.inCell)
     t[_P.lgtBar] = (2.0, True)
+    t[_P.lgtBar] = (3.0, False)
+    t[_P.oloc] = (4.0, None)
+    assert U1.satisfies(t), U1.evaluate_conditions(t)
+    assert not U2.satisfies(t), U2.evaluate_conditions(t)
     assert MU.satisfies(t), MU.evaluate_conditions(t)
 
     t = _initialise_trace()
     t[_P.rngDet] = (0.0, RngDet.close)
     t[_P.oloc] = (1.0, Loc.inCell)
     t[_P.lgtBar] = (2.0, True)
+    assert not U1.satisfies(t), U1.evaluate_conditions(t)
+    assert not U2.satisfies(t), U2.evaluate_conditions(t)
     assert not MU.satisfies(t), MU.evaluate_conditions(t)
+
+    t = _initialise_trace()
+    t[_P.otab] = (0.0, True)
+    t[_P.lgtBar] = (1.0, True)
+    t[_P.oloc] = (1.1, Loc.inCell)
+    t[_P.lgtBar] = (2.0, False)
+    t[_P.oloc] = (2.0, None)
+    assert not U1.satisfies(t), U1.evaluate_conditions(t)
+    assert U2.satisfies(t), U2.evaluate_conditions(t)
+    assert not MU.satisfies(t), MU.evaluate_conditions(t)
+
+    t = _initialise_trace()
+    t[_P.oloc] = (0.0, Loc.inCell)
+    t[_P.lgtBar] = (1.0, True)
+    t[_P.otab] = (1.0, True)
+    t[_P.lgtBar] = (2.0, False)
+    t[_P.otab] = (2.0, False)
+    assert not U1.satisfies(t), U1.evaluate_conditions(t)
+    assert not U2.satisfies(t), U2.evaluate_conditions(t)
+    assert MU.satisfies(t), MU.evaluate_conditions(t)
