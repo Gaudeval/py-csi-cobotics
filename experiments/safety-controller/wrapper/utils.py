@@ -2,9 +2,6 @@ import contextlib
 import os
 from pathlib import Path
 
-from csi.experiment import Repository, RunStatus
-from csi.twin import DigitalTwinRunner
-
 
 @contextlib.contextmanager
 def as_working_directory(path):
@@ -15,11 +12,3 @@ def as_working_directory(path):
         yield
     finally:
         os.chdir(prev_cwd)
-
-
-def collect_completed_runs(repository: Repository):
-    for e in repository.experiments:
-        assert isinstance(e, DigitalTwinRunner)
-        for r in e.runs:
-            if r.status == RunStatus.COMPLETE:
-                yield e, r

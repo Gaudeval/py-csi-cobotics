@@ -174,6 +174,13 @@ class Repository:
             if i.is_dir():
                 yield Experiment.load(i)
 
+    @property
+    def completed_runs(self):
+        for e in self.experiments:
+            for r in e.runs:
+                if r.status == RunStatus.COMPLETE:
+                    yield e, r
+
 
 class WorkingExperiment(Experiment):
     def execute(self):
