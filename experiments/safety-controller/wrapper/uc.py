@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Iterable
 
 import attr
 
@@ -13,6 +13,7 @@ class SafetyUseCase:
     name: str
     description: str
     conditions: List[SafetyCondition]
+    coverage_criterions: List[Iterable[Tuple[str]]]
 
     def evaluate_conditions(self, trace: Trace) -> List[Tuple[bool, str]]:
         m = Monitor()
@@ -49,6 +50,16 @@ U1 = SafetyUseCase(
             G(implies(_P.ocell & ~_P.otab, until(_P.ocell, ~F(_P.ocell)))),
         ),
     ],
+    [
+        [_P.wact.id, _P.oloc.id],
+        [_P.wact.id, _P.rngDet.id],
+        [_P.rloc.id, _P.rngDet.id],
+        [_P.rloc.id, _P.oloc.id],
+        [_P.ract.id, _P.rngDet.id],
+        [_P.ract.id, _P.oloc.id],
+        [_P.notif.id],
+        [_P.safmod.id],
+    ],
 )
 
 U2 = SafetyUseCase(
@@ -77,6 +88,13 @@ U2 = SafetyUseCase(
             G(implies(_P.lgtBar, until(_P.lgtBar, ~F(_P.lgtBar)))),
         ),
     ],
+    [
+        [_P.wact.id, _P.lgtBar.id],
+        [_P.rloc.id, _P.lgtBar.id],
+        [_P.ract.id, _P.lgtBar.id],
+        [_P.notif_leaveWrkb.id],
+        [_P.safmod.id],
+    ],
 )
 
 MU = SafetyUseCase(
@@ -94,6 +112,7 @@ MU = SafetyUseCase(
             ),
         )
     ],
+    [],
 )
 
 if __name__ == "__main__":
