@@ -119,7 +119,8 @@ class SafetyDigitalTwinRunner(DigitalTwinRunner):
 
         return trace
 
-    def build_event_combinations(self, trace: Trace):
+    def compute_events_combinations(self, trace: Trace):
+        """Compute combinations of observed concurrent events"""
         P = SafetyControllerStatus
         # TODO Declare domain with Term definition in monitor
         # TODO Build registry from monitor definition using terms' domain if available
@@ -144,22 +145,10 @@ class SafetyDigitalTwinRunner(DigitalTwinRunner):
             pickle.dump(registry, combinations_file)
         return registry
 
-    def process_output(self):
-        """Extract values from simulation message trace"""
-        # Process run database
-        if not self.database_output.exists():
-            raise FileNotFoundError(self.database_output)
-        db = DataBase(self.database_output)
-        trace = self.build_event_trace(db)
-        ucs = self.classify_use_cases(trace)
-        combinations = self.build_event_combinations(trace)
-        self.project_events_per_uc(ucs, combinations)
-
-        return trace, self.safety_conditions
-
     def project_events_per_uc(
         self, ucs: Iterable[SafetyUseCase], events: EventCombinationsRegistry
     ):
+        """Project events' combinations to individual use case coverage criterion"""
         projection = {}
         for u in ucs:
             projection[u.name] = []
@@ -168,6 +157,19 @@ class SafetyDigitalTwinRunner(DigitalTwinRunner):
                 projection[u.name].append((i, ci))
         with self.use_cases_events.open("wb") as uc_events:
             pickle.dump(projection, uc_events)
+
+    def process_output(self):
+        """Extract values from simulation message trace"""
+        # Process run database
+        if not self.database_output.exists():
+            raise FileNotFoundError(self.database_output)
+        db = DataBase(self.database_output)
+        trace = self.build_event_trace(db)
+        ucs = self.classify_use_cases(trace)
+        combinations = self.compute_events_combinations(trace)
+        self.project_events_per_uc(ucs, combinations)
+
+        return trace, self.safety_conditions
 
 
 if __name__ == "__main__":
