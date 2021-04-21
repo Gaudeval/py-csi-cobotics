@@ -127,14 +127,14 @@ def plot_validation(t: Repository):
 
     data: DataFrame = DataFrame(error_counts, columns=["use case", "error count"])
     h = seaborn.histplot(data=data, x="use case", hue="error count", multiple="stack")
-    h.set_title("Validation predicates violations per run")
+    h.set_title("Violations of validation properties per run")
     mpl.show()
 
 
 if __name__ == "__main__":
     t: Repository
     t = Repository("./runs")
-    plot_run_status(t)
+    # plot_run_status(t)
     # plot_waypoint_times(t)
-    plot_coverage(t)
+    # plot_coverage(t)
     plot_validation(t)
