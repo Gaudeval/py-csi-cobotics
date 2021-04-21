@@ -13,14 +13,14 @@ if __name__ == "__main__":
     RUNS_COUNT = 50
 
     for _ in trange(RUNS_COUNT):
-        s = drs(5, 30.0)
+        s = drs(5, 20.0)
 
         w = SafetyWorldConfiguration()
         w.wp_start.duration = s[0]
         w.wp_bench.duration = s[1]
         w.wp_wait.duration = s[2]
         w.wp_cell.duration = s[3]
-        w.wp_exit.duration = s[4]
+        w.wp_exit.duration = 60.0  # s[4]
 
         c = DigitalTwinConfiguration(w, SafetyBuildConfiguration(BUILD_PATH))
 
