@@ -109,7 +109,7 @@ def plot_run_status(t: Repository):
     mpl.show()
 
 
-def plot_verification(t: Repository):
+def plot_validation(t: Repository):
     e: Experiment
     r: Run
     error_counts = []
@@ -127,7 +127,7 @@ def plot_verification(t: Repository):
 
     data: DataFrame = DataFrame(error_counts, columns=["use case", "error count"])
     h = seaborn.histplot(data=data, x="use case", hue="error count", multiple="stack")
-    h.set_title("Violated predicates per runs")
+    h.set_title("Validation predicates violations per run")
     mpl.show()
 
 
@@ -137,4 +137,4 @@ if __name__ == "__main__":
     plot_run_status(t)
     # plot_waypoint_times(t)
     plot_coverage(t)
-    plot_verification(t)
+    plot_validation(t)
