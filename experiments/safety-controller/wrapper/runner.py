@@ -12,11 +12,12 @@ from csi.twin.importer import from_table
 
 from .monitor import SafetyControllerStatus, Notif, Act, Loc, RngDet, SafMod, Phase
 from .uc import SafetyUseCase, U1, U2, MU
+from .validation import predicates
 
 
 class SafetyDigitalTwinRunner(DigitalTwinRunner):
 
-    safety_conditions: List[SafetyCondition] = []
+    safety_conditions: List[SafetyCondition] = predicates
 
     use_cases: List[SafetyUseCase] = [U1, U2, MU]
     use_cases_classification: Path = Path("uc-classification.json")
