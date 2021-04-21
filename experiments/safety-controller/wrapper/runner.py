@@ -101,7 +101,7 @@ class SafetyDigitalTwinRunner(DigitalTwinRunner):
         # safmod
         trace[P.safmod] = (0.0, SafMod.normal)
         for m in from_table(db, "safetymoderequest"):
-            raise NotImplementedError
+            trace[P.safmod] = (m.timestamp, SafMod(m.status))
 
         # notif_leaveWrkb
         trace[P.notif_leaveWrkb] = (0.0, False)
