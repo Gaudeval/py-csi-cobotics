@@ -22,6 +22,10 @@ class BuildConfiguration:
     def configuration(self) -> Path:
         return self.assets / "Configuration" / "configuration.json"
 
+    @property
+    def screenshots(self) -> Path:
+        return self.assets / "Screenshots"
+
 
 @dataclasses.dataclass
 class TemporalLogicConfiguration:

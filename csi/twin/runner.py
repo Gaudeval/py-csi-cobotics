@@ -23,19 +23,16 @@ class DigitalTwinRunner(Experiment):
 
     configuration_output: Path = Path("assets/configuration.json")
     database_output: Path = Path("assets/database.sqlite")
+    screenshot_output: Path = Path("assets/screenshots/")
     trace_output: Path = Path("events_trace.pkl")
 
-    additional_output: Dict[str, Tuple[Path, Path]] = {
-        "shot": (
-            Path("Unity_Data/StreamingAssets/CSI/Screenshots/scene.png"),
-            Path("assets/scene.png"),
-        )
-    }
+    additional_output: Dict[str, Tuple[Path, Path]] = {}
 
     def clear_build_output(self):
         """Cleanup generated files in build folder"""
         self.configuration.build.configuration.unlink(missing_ok=True)
         self.configuration.build.database.unlink(missing_ok=True)
+        shutil.rmtree(self.configuration.build.screenshots, ignore_errors=True)
         for (removed, _) in self.additional_output.values():
             (self.configuration.build.path / removed).unlink(missing_ok=True)
 
@@ -45,6 +42,12 @@ class DigitalTwinRunner(Experiment):
         shutil.copy(self.configuration.build.database, self.database_output)
         self.configuration_output.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy(self.configuration.build.configuration, self.configuration_output)
+        self.screenshot_output.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(
+            self.configuration.build.screenshots,
+            self.screenshot_output,
+            dirs_exist_ok=True,
+        )
         for (saved, backup) in self.additional_output.values():
             if (self.configuration.build.path / saved).exists():
                 backup.parent.mkdir(parents=True, exist_ok=True)
