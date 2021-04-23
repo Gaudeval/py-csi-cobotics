@@ -5,7 +5,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Generator, List, MutableMapping, Tuple, Union
 
-from csi.transform import json_transform
+from csi.transform import json_transform, json_parse
 
 structural_fields = {
     "id",
@@ -213,6 +213,13 @@ class SelectionQuery:
 
 
 class DataBase:
+    path_foreign_index = json_parse("$[*]..[?(@.__table__)]")
+    path_foreign_data = json_parse(
+        "$..[?(@.length() = 1 and @[0][?(@.__table__ and @.__pk__)])]"
+    )
+    path_data_table = json_parse("$..[?(@.data and @.keys().length() = 1)]")
+    path_snake_case = json_parse("$..[?(@.keys().length() > 0)]")
+
     def __init__(self, path: Union[str, Path]):
         self.db_path = Path(path)
         self.connection = sqlite3.connect(path)
@@ -243,23 +250,16 @@ class DataBase:
             if isinstance(c, dict)
             else c
         )
+        #
         for message in self.messages(*tables):
             # Remove indexing by foreign table primary id
-            message = json_transform("$[*]..[?(@.__table__)]", message, reduce_fk)
+            message = json_transform(self.path_foreign_index, message, reduce_fk)
             # Flatten foreign tables with a single element
-            message = json_transform(
-                "$..[?(@.length() = 1 and @[0][?(@.__table__ and @.__pk__)])]",
-                message,
-                lambda d: d[0],
-            )
+            message = json_transform(self.path_foreign_data, message, lambda d: d[0])
             # Flatten tables containing only data
-            message = json_transform(
-                "$..[?(@.data and @.keys().length() = 1)]", message, lambda d: d["data"]
-            )
+            message = json_transform(self.path_data_table, message, lambda d: d["data"])
             # Convert terms to snake_case
-            message = json_transform(
-                "$..[?(@.keys().length() > 0)]", message, keys_case
-            )
+            message = json_transform(self.path_snake_case, message, keys_case)
             yield message
 
 

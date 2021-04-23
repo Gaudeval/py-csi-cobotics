@@ -1,6 +1,10 @@
 from jsonpath2 import Path
 
 
+def json_parse(path: str):
+    return Path.parse_str(path)
+
+
 def extract_subscript(node):
     from jsonpath2.nodes.subscript import SubscriptNode
     from jsonpath2.nodes.terminal import TerminalNode
@@ -73,7 +77,10 @@ def json_get(path, contents):
 
 
 def json_match(path, contents):
-    return [m for m in Path.parse_str(path).match(contents)]
+    if path is str:
+        return [m for m in Path.parse_str(path).match(contents)]
+    else:
+        return [m for m in path.match(contents)]
 
 
 if __name__ == "__main__":
