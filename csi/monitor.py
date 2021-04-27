@@ -4,7 +4,7 @@ import attr
 import funcy
 import lenses
 from mtl.ast import WeakUntil
-from mtl.sugar import env, alw, implies, until
+from mtl.sugar import env, alw, implies, until, timed_until
 from traces import TimeSeries
 from typing import (
     Any,

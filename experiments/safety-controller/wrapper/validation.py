@@ -1,28 +1,32 @@
-from csi.monitor import G, implies, F, until, weak_until, Monitor, Trace
+from csi.monitor import G, implies, F, until, weak_until, Monitor, Trace, timed_until
 from csi.safety import SafetyCondition
 
 from .monitor import SafetyControllerStatus, Loc, Act, RngDet, Phase, SafMod
 
 SafCtr = SafetyControllerStatus
 
+HSe = (
+    (
+        SafCtr.safmod.eq(SafMod.normal)
+        | SafCtr.safmod.eq(SafMod.hguid)
+        | SafCtr.safmod.eq(SafMod.ssmon)
+        | SafCtr.safmod.eq(SafMod.pflim)
+    )
+    & (
+        SafCtr.ract.eq(Act.exchWrkp)
+        | SafCtr.ract.eq(Act.welding)
+        | SafCtr.wact.eq(Act.welding)
+    )
+    & (SafCtr.rngDet.eq(RngDet.near) | SafCtr.rngDet.eq(RngDet.close))
+)
+
 predicates = [
     SafetyCondition(
         "HS:detected",
         G(
             implies(
-                (
-                    SafCtr.safmod.eq(SafMod.normal)
-                    | SafCtr.safmod.eq(SafMod.hguid)
-                    | SafCtr.safmod.eq(SafMod.ssmon)
-                    | SafCtr.safmod.eq(SafMod.pflim)
-                )
-                & (
-                    SafCtr.ract.eq(Act.exchWrkp)
-                    | SafCtr.ract.eq(Act.welding)
-                    | SafCtr.wact.eq(Act.welding)
-                )
-                & (SafCtr.rngDet.eq(RngDet.near) | SafCtr.rngDet.eq(RngDet.close)),
-                F(SafCtr.hsp.eq(Phase.act)),
+                (HSe & SafCtr.hsp.eq(Phase.inact)),
+                timed_until(HSe, SafCtr.hsp.eq(Phase.act), lo=0.0, hi=0.05),
             )
         ),
     ),
