@@ -26,7 +26,7 @@ predicates = [
         G(
             implies(
                 (HSe & SafCtr.hsp.eq(Phase.inact)),
-                timed_until(HSe, SafCtr.hsp.eq(Phase.act), lo=0.0, hi=0.05),
+                timed_until(HSe, SafCtr.hsp.eq(Phase.act), lo=0.0, hi=0.5),
             )
         ),
     ),
