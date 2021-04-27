@@ -1,4 +1,5 @@
 import json
+import tqdm
 
 from csi.experiment import Repository, Experiment, Run
 from csi.monitor import Monitor
@@ -12,7 +13,8 @@ if __name__ == "__main__":
     t: Repository = Repository("./runs")
     e: Experiment
     r: Run
-    for e, r in t.completed_runs:
+    completed_runs = list(t.completed_runs)
+    for e, r in tqdm.tqdm(completed_runs):
         assert isinstance(e, SafetyDigitalTwinRunner)
         print(r.work_path)
         with as_working_directory(r.work_path):
@@ -24,6 +26,7 @@ if __name__ == "__main__":
                 i = Monitor(frozenset()).evaluate(
                     trace,
                     safety_condition.condition,
+                    dt=0.01,
                     quantitative=e.configuration.ltl.quantitative,
                     logic=e.configuration.ltl.logic,
                 )

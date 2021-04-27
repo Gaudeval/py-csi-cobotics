@@ -77,6 +77,7 @@ class DigitalTwinRunner(Experiment):
             i = Monitor().evaluate(
                 trace,
                 safety_condition.condition,
+                dt=0.1,
                 quantitative=self.configuration.ltl.quantitative,
                 logic=self.configuration.ltl.logic,
             )
