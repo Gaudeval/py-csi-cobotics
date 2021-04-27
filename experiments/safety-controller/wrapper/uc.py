@@ -43,7 +43,7 @@ U1 = SafetyUseCase(
         ),
         SafetyCondition(
             "U1_robot_active",
-            G(weak_until(_P.ractive, _P.ocell)),
+            G(implies(F(_P.ocell), weak_until(_P.ractive, _P.ocell))),
         ),
         SafetyCondition(
             "U1_op_single_entry",
