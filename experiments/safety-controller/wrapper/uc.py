@@ -81,7 +81,7 @@ U2 = SafetyUseCase(
         ),
         SafetyCondition(
             "U2_robot_active",
-            G(weak_until(_P.ractive, _P.lgtBar)),
+            G(implies(F(_P.lgtBar), weak_until(_P.ractive, _P.lgtBar))),
         ),
         SafetyCondition(
             "U2_op_single_entry",
