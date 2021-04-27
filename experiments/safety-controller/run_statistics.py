@@ -121,12 +121,13 @@ def plot_validation(t: Repository):
         with (r.work_path / "hazard-report.json").open() as report_file:
             report: Dict[str, bool]
             report = json.load(report_file)
-        run_errors = [v for v in report.values()].count(False)
+        # run_errors = [v for v in report.values()].count(False)
+        run_errors = tuple(sorted({k for k, v in report.items() if not v}))
         for uc in ucs:
             error_counts.append((uc, run_errors))
 
-    data: DataFrame = DataFrame(error_counts, columns=["use case", "error count"])
-    h = seaborn.histplot(data=data, x="use case", hue="error count", multiple="stack")
+    data: DataFrame = DataFrame(error_counts, columns=["use case", "errors"])
+    h = seaborn.histplot(data=data, x="use case", hue="errors", multiple="stack")
     h.set_title("Violations of validation properties per run")
     mpl.show()
 
