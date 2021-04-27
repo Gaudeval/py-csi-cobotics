@@ -9,8 +9,9 @@ from wrapper.runner import SafetyDigitalTwinRunner
 # https://pypi.org/project/drs/
 
 if __name__ == "__main__":
-    BUILD_PATH = Path("./build").absolute()
-    RUNS_COUNT = 50
+    BUILD_PATH = Path("./build-server").absolute()
+    RUNS_PATH = Path("./runs")
+    RUNS_COUNT = 100
 
     for _ in trange(RUNS_COUNT):
         s = drs(5, 20.0)
@@ -24,6 +25,6 @@ if __name__ == "__main__":
 
         c = DigitalTwinConfiguration(w, SafetyBuildConfiguration(BUILD_PATH))
 
-        r = SafetyDigitalTwinRunner("./runs", c)
+        r = SafetyDigitalTwinRunner(RUNS_PATH, c)
 
         r.run()
