@@ -1,3 +1,5 @@
+"""Generate statistics on the runs in a repository"""
+
 import collections
 import json
 import pickle

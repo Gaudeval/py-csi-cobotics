@@ -1,3 +1,4 @@
+"""Reprocess the output of runs in a given repository to generate new traces and reports."""
 import json
 import tqdm
 
