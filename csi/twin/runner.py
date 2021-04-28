@@ -43,11 +43,12 @@ class DigitalTwinRunner(Experiment):
         self.configuration_output.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy(self.configuration.build.configuration, self.configuration_output)
         self.screenshot_output.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(
-            self.configuration.build.screenshots,
-            self.screenshot_output,
-            dirs_exist_ok=True,
-        )
+        if self.configuration.build.screenshots.exists():
+            shutil.copytree(
+                self.configuration.build.screenshots,
+                self.screenshot_output,
+                dirs_exist_ok=True,
+            )
         for (saved, backup) in self.additional_output.values():
             if (self.configuration.build.path / saved).exists():
                 backup.parent.mkdir(parents=True, exist_ok=True)
