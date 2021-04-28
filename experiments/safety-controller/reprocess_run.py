@@ -10,8 +10,19 @@ from wrapper.utils import as_working_directory
 from wrapper.runner import SafetyDigitalTwinRunner
 
 
+def evaluate_predicate(predicate, trace, configuration):
+    return Monitor(frozenset()).evaluate(
+        trace,
+        predicate,
+        dt=0.01,
+        quantitative=configuration.ltl.quantitative,
+        logic=configuration.ltl.logic,
+    )
+
+
 if __name__ == "__main__":
-    t: Repository = Repository("./runs")
+    t: Repository = Repository("./runs-replays")
+    # t: Repository = Repository("./runs")
     e: Experiment
     r: Run
     completed_runs = list(t.completed_runs)
@@ -24,12 +35,8 @@ if __name__ == "__main__":
             report = {}
             safety_condition: SafetyCondition
             for safety_condition in predicates:
-                i = Monitor(frozenset()).evaluate(
-                    trace,
-                    safety_condition.condition,
-                    dt=0.01,
-                    quantitative=e.configuration.ltl.quantitative,
-                    logic=e.configuration.ltl.logic,
+                i = evaluate_predicate(
+                    safety_condition.condition, trace, e.configuration
                 )
                 print(f"\t{safety_condition.uid}:{i}")
                 report[safety_condition.uid] = i
