@@ -59,6 +59,8 @@ U1 = SafetyUseCase(
         [_P.ract.id, _P.oloc.id],
         [_P.notif.id],
         [_P.safmod.id],
+        [_P.hcp.id],
+        [_P.hsp.id],
     ],
 )
 
@@ -94,6 +96,7 @@ U2 = SafetyUseCase(
         [_P.ract.id, _P.lgtBar.id],
         [_P.notif_leaveWrkb.id],
         [_P.safmod.id],
+        [_P.hrwp.id],
     ],
 )
 
