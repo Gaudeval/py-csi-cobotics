@@ -77,6 +77,13 @@ def plot_coverage(t: Repository):
         for (use_case, condition), re in events_per_uc.items()
     ]
 
+    # Display missing values per coverage criterion
+    for criterion, coverage in events_per_uc.items():
+        if coverage.coverage < 1.0:
+            print(criterion)
+            for missing_value in coverage.missing_values():
+                print(f"\t{missing_value}")
+
     k: DataFrame = DataFrame(
         coverage_per_uc, columns=["use case", "criterion", "coverage"]
     )
@@ -136,7 +143,7 @@ def plot_validation(t: Repository):
 
 if __name__ == "__main__":
     t: Repository
-    t = Repository("./runs-replays")
+    t = Repository("./runs")
     plot_run_status(t)
     # plot_waypoint_times(t)
     plot_coverage(t)

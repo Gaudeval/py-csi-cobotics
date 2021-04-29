@@ -1,7 +1,8 @@
+import itertools
 from functools import reduce
 from operator import mul
 from collections import defaultdict
-from typing import Mapping, FrozenSet, Any, Tuple, Set
+from typing import Mapping, FrozenSet, Any, Tuple, Set, Iterable, Dict
 
 from traces import TimeSeries
 
@@ -9,14 +10,25 @@ from csi.monitor import Trace
 
 
 class EventCombinationsRegistry:
-    domain: Mapping[str, FrozenSet[Any]]
-    default: Mapping[str, FrozenSet[Any]]
+    domain: Dict[str, FrozenSet[Any]]
+    default: Dict[str, FrozenSet[Any]]
     combinations: Set[FrozenSet[Tuple[str, Any]]]
 
     def __init__(self):
         self.domain = {}
         self.default = defaultdict()
         self.combinations = set()
+
+    def values_of(self, k):
+        yield from ((k, v) for v in self.domain[k])
+
+    def all_values(self) -> Iterable[FrozenSet[Tuple[str, Any]]]:
+        yield from map(
+            frozenset, itertools.product(*[self.values_of(k) for k in self.domain])
+        )
+
+    def missing_values(self):
+        yield from (x for x in self.all_values() if x not in self.combinations)
 
     @property
     def covered(self) -> int:
@@ -58,3 +70,13 @@ class EventCombinationsRegistry:
         for _, v in events.items():
             if all(i in self.domain[e] for e, i in zip(event_keys, v)):
                 self.combinations.add(frozenset(zip(event_keys, v)))
+
+
+if __name__ == "__main__":
+    e = EventCombinationsRegistry()
+    e.domain["a"] = frozenset({1, 2, 3})
+    e.domain["b"] = frozenset({"x", "y"})
+
+    print(list(e.all_values()))
+    e.combinations.add(frozenset([("a", 1), ("b", "x")]))
+    print(list(e.missing_values()))
