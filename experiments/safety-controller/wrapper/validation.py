@@ -23,15 +23,18 @@ HSe = (
 HCe = (
     (
         SafCtr.safmod.eq(SafMod.normal)
-        #        | SafCtr.safmod.eq(SafMod.hguid)
-        #        | SafCtr.safmod.eq(SafMod.ssmon)
-        #        | SafCtr.safmod.eq(SafMod.pflim)
+        | SafCtr.safmod.eq(SafMod.hguid)
+        | SafCtr.safmod.eq(SafMod.ssmon)
+        | SafCtr.safmod.eq(SafMod.pflim)
     )
     & (
-        SafCtr.ract.eq(Act.exchWrkp)
-        | SafCtr.ract.eq(Act.welding)
-        | SafCtr.wact.eq(Act.welding)
+        SafCtr.hsp.eq(Phase.act)
+        | SafCtr.hsp.eq(Phase.mit1)
+        | SafCtr.hsp.eq(Phase.mit2)
+        | SafCtr.hsp.eq(Phase.mit)
+        | SafCtr.hsp.eq(Phase.res)
     )
+    & (SafCtr.ract.eq(Act.welding) | SafCtr.wact.eq(Act.welding))
     & (SafCtr.rngDet.eq(RngDet.close))
 )
 
@@ -40,12 +43,21 @@ HRWe = (
         SafCtr.safmod.eq(SafMod.normal)
         | SafCtr.safmod.eq(SafMod.hguid)
         | SafCtr.safmod.eq(SafMod.ssmon)
+        | SafCtr.safmod.eq(SafMod.pflim)
     )
     & (SafCtr.rloc.eq(Loc.sharedTbl))
     & SafCtr.lgtBar
 )
 
 predicates = [
+    SafetyCondition(
+        "Final:Tbl",
+        F(~SafCtr.otab),
+    ),
+    SafetyCondition(
+        "Final:Cell",
+        F(SafCtr.oloc.eq(None)),
+    ),
     SafetyCondition(
         "HS:detected",
         G(
@@ -62,10 +74,6 @@ predicates = [
     SafetyCondition(
         "HS:handled",
         G(implies(SafCtr.hsp.eq(Phase.mit), F(SafCtr.hsp.eq(Phase.inact)))),
-    ),
-    SafetyCondition(
-        "HS:final",
-        F(SafCtr.oloc.eq(None)),  # FIXME F (operator.position = final)
     ),
     SafetyCondition(
         "HS:not_mis",
