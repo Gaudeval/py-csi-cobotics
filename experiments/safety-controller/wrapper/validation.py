@@ -34,7 +34,7 @@ HCe = (
         | SafCtr.hsp.eq(Phase.mit)
         | SafCtr.hsp.eq(Phase.res)
     )
-    & (SafCtr.ract.eq(Act.welding) | SafCtr.wact.eq(Act.welding))
+    & (SafCtr.ract.eq(Act.welding) & SafCtr.wact.eq(Act.welding))
     & (SafCtr.rngDet.eq(RngDet.close))
 )
 
