@@ -133,7 +133,9 @@ class SafetyDigitalTwinRunner(DigitalTwinRunner):
             [Loc.inCell, Loc.sharedTbl, Loc.atWeldSpot]
         )
         registry.domain[P.wact.id] = frozenset([Act.idle, Act.welding])
-        registry.domain[P.safmod.id] = frozenset(s for s in SafMod)
+        registry.domain[P.safmod.id] = frozenset(s for s in SafMod).difference(
+            {SafMod.srmst, SafMod.hguid}
+        )
         # .difference( frozenset([SafMod.pflim]) )
         registry.domain[P.notif_leaveWrkb.id] = frozenset([True, False])
         registry.domain[P.rngDet.id] = frozenset(r for r in RngDet)
