@@ -28,7 +28,7 @@ def satisfies_property(_, r: Run, p: Optional[str] = None):
 
 
 if __name__ == "__main__":
-    BUILD_PATH = Path("./build").absolute()
+    BUILD_PATH = Path("./build-server").absolute()
     REPOSITORY_PATH = Path("./runs")
     REPLAY_PATH = Path("./runs-replays")
     #
