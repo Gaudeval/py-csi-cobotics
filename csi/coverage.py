@@ -1,26 +1,53 @@
 import itertools
+import math
 from functools import reduce
 from operator import mul
 from collections import defaultdict
 from typing import Mapping, FrozenSet, Any, Tuple, Set, Iterable, Dict
 
+import attr
 from traces import TimeSeries
 
 from csi.monitor import Trace
 
 
+@attr.s(frozen=True, init=True)
+class Domain:
+    scalars: FrozenSet[Any] = attr.ib(default=frozenset(), converter=frozenset)
+    on_transition: bool = attr.ib(default=False)
+
+    @property
+    def values(self):
+        if self.on_transition:
+            yield from itertools.permutations(self.scalars, r=2)
+        else:
+            yield from self.scalars
+
+    @property
+    def count(self):
+        if self.on_transition:
+            return math.factorial(len(self.scalars)) / math.factorial(
+                len(self.scalars) - 2
+            )
+        else:
+            return len(self.scalars)
+
+
+# FIXME Combinations field only valid for transition domains if coming from a projection with a single transition domain
 class EventCombinationsRegistry:
-    domain: Dict[str, FrozenSet[Any]]
-    default: Dict[str, FrozenSet[Any]]
+    domain: Dict[str, Domain]
+    default: Dict[str, Any]
     combinations: Set[FrozenSet[Tuple[str, Any]]]
+    per_transitions: Dict[str, Any]
 
     def __init__(self):
         self.domain = {}
         self.default = defaultdict()
         self.combinations = set()
+        self.per_transitions = defaultdict(set)
 
     def values_of(self, k):
-        yield from ((k, v) for v in self.domain[k])
+        yield from zip(itertools.repeat(k), self.domain[k].values)
 
     def all_values(self) -> Iterable[FrozenSet[Tuple[str, Any]]]:
         yield from map(
@@ -36,7 +63,7 @@ class EventCombinationsRegistry:
 
     @property
     def total(self) -> int:
-        return reduce(mul, (len(d) for d in self.domain.values() if len(d) > 0), 1)
+        return reduce(mul, (d.count for d in self.domain.values()), 1)
 
     @property
     def coverage(self) -> float:
@@ -49,6 +76,24 @@ class EventCombinationsRegistry:
         projection.combinations = {
             frozenset((k, v) for k, v in c if k in keys) for c in self.combinations
         }
+        projection.per_transitions = {
+            e: {
+                frozenset((k, v) for k, v in c if k in keys)
+                for c in self.per_transitions[e]
+            }
+            for e in self.per_transitions
+            if e in keys
+        }
+        if (
+            len([d for e, d in self.domain.items() if e in keys and d.on_transition])
+            == 1
+        ):
+            k = next(
+                iter(
+                    e for e in self.domain if e in keys and self.domain[e].on_transition
+                )
+            )
+            projection.combinations = projection.per_transitions[k]
         return projection
 
     def merge(self, other):
@@ -67,16 +112,52 @@ class EventCombinationsRegistry:
         events.compact()
         # TODO Fill gaps in missing values
         # TODO Configure behaviour on unknown values
+        previous_state = {}
         for _, v in events.items():
-            if all(i in self.domain[e] for e, i in zip(event_keys, v)):
-                self.combinations.add(frozenset(zip(event_keys, v)))
+            if all(i in self.domain[e].scalars for e, i in zip(event_keys, v)):
+                # Compute transition pair values
+                transitions = {}
+                for e, i in zip(event_keys, v):
+                    if self.domain[e].on_transition:
+                        if e in previous_state and previous_state[e] != i:
+                            transitions[e] = (previous_state[e], i)
+                    previous_state[e] = i
+                # Combine each transition with all other values
+                for c, t in transitions.items():
+                    self.per_transitions[c].add(
+                        frozenset(
+                            (e, i if e != c else t) for e, i in zip(event_keys, v)
+                        )
+                    )
+                # If no transition is required, record the values
+                self.combinations.add(frozenset((e, i) for e, i in zip(event_keys, v)))
 
 
 if __name__ == "__main__":
     e = EventCombinationsRegistry()
-    e.domain["a"] = frozenset({1, 2, 3})
-    e.domain["b"] = frozenset({"x", "y"})
+    e.domain["a"] = Domain({1, 2, 3})
+    e.domain["b"] = Domain({"x", "y"})
 
     print(list(e.all_values()))
     e.combinations.add(frozenset([("a", 1), ("b", "x")]))
     print(list(e.missing_values()))
+
+    e = EventCombinationsRegistry()
+    e.domain["a"] = Domain({1, 2, 3}, True)
+    e.domain["b"] = Domain({"x", "y"})
+
+    t = Trace()
+    t["a"] = (0, 1)
+    t["a"] = (1, 2)
+    t["a"] = (2, 3)
+    t["a"] = (3, 1)
+    t["a"] = (4, 3)
+    t["a"] = (5, 2)
+    t["b"] = (0, "y")
+    t["b"] = (3, "x")
+    e.register(t)
+    print(e.combinations)
+
+    print(e.domain["a"].count, e.domain["b"].count)
+    print(list(e.all_values()))
+    print(e.coverage)

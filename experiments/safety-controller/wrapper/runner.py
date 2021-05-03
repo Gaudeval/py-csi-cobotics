@@ -4,7 +4,7 @@ import pickle
 from pathlib import Path
 from typing import List, Iterable
 
-from csi.coverage import EventCombinationsRegistry
+from csi.coverage import EventCombinationsRegistry, Domain
 from csi.monitor import Trace
 from csi.safety import SafetyCondition
 from csi.twin import DigitalTwinRunner, DataBase
@@ -126,23 +126,21 @@ class SafetyDigitalTwinRunner(DigitalTwinRunner):
         # TODO Declare domain with Term definition in monitor
         # TODO Build registry from monitor definition using terms' domain if available
         registry = EventCombinationsRegistry()
-        registry.domain[P.notif.id] = frozenset(n for n in Notif)
-        registry.domain[P.ract.id] = frozenset([Act.welding, Act.exchWrkp])
-        registry.domain[P.lgtBar.id] = frozenset([True, False])
-        registry.domain[P.rloc.id] = frozenset(
-            [Loc.inCell, Loc.sharedTbl, Loc.atWeldSpot]
-        )
-        registry.domain[P.wact.id] = frozenset([Act.idle, Act.welding])
-        registry.domain[P.safmod.id] = frozenset(s for s in SafMod).difference(
-            {SafMod.srmst, SafMod.hguid}
+        registry.domain[P.notif.id] = Domain({n for n in Notif})
+        registry.domain[P.ract.id] = Domain([Act.welding, Act.exchWrkp])
+        registry.domain[P.lgtBar.id] = Domain([True, False], True)
+        registry.domain[P.rloc.id] = Domain([Loc.inCell, Loc.sharedTbl, Loc.atWeldSpot])
+        registry.domain[P.wact.id] = Domain([Act.idle, Act.welding])
+        registry.domain[P.safmod.id] = Domain(
+            {s for s in SafMod}.difference({SafMod.srmst, SafMod.hguid})
         )
         # .difference( frozenset([SafMod.pflim]) )
-        registry.domain[P.notif_leaveWrkb.id] = frozenset([True, False])
-        registry.domain[P.rngDet.id] = frozenset(r for r in RngDet)
-        registry.domain[P.hsp.id] = frozenset(s for s in Phase).difference({Phase.mis})
-        registry.domain[P.hcp.id] = frozenset(s for s in Phase).difference({Phase.mis})
-        registry.domain[P.hrwp.id] = frozenset(s for s in Phase).difference({Phase.mis})
-        registry.domain[P.oloc.id] = frozenset([Loc.inCell, None])
+        registry.domain[P.notif_leaveWrkb.id] = Domain([True, False])
+        registry.domain[P.rngDet.id] = Domain({r for r in RngDet}, True)
+        registry.domain[P.hsp.id] = Domain({s for s in Phase}.difference({Phase.mis}))
+        registry.domain[P.hcp.id] = Domain({s for s in Phase}.difference({Phase.mis}))
+        registry.domain[P.hrwp.id] = Domain({s for s in Phase}.difference({Phase.mis}))
+        registry.domain[P.oloc.id] = Domain([Loc.inCell, None], True)
         registry.register(trace)
         #
         with self.event_combinations_output.open("wb") as combinations_file:
