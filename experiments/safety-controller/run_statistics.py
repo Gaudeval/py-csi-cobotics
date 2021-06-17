@@ -143,7 +143,7 @@ def plot_validation(t: Repository):
 
 if __name__ == "__main__":
     t: Repository
-    t = Repository("./runs")
+    t = Repository("./runs-replays")
     plot_run_status(t)
     # plot_waypoint_times(t)
     plot_coverage(t)
