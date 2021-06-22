@@ -67,6 +67,7 @@ class World(Context):
     operator = Entity()
     tool = Entity()
     workspace = Workspace()
+    lidar = Entity()
 
 
 P = World()
