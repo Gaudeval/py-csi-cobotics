@@ -175,6 +175,12 @@ class Repository:
                 yield Experiment.load(i)
 
     @property
+    def runs(self):
+        for e in self.experiments:
+            for r in e.runs:
+                yield e, r
+
+    @property
     def completed_runs(self):
         for e in self.experiments:
             for r in e.runs:
