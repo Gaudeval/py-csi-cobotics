@@ -96,23 +96,18 @@ class SafecompControllerRunner(DigitalTwinRunner):
         trace[P.constraints.tool.distance.operation] = (0.0, 0.5)
 
         # FIXME Remove temporary values
-        trace[P.assembly.has_assembly] = (0.0, False)
-        trace[P.assembly.is_orientation_valid] = (0.0, True)
-        trace[P.assembly.is_processed] = (0.0, True)
-        trace[P.assembly.is_secured] = (0.0, True)
-        trace[P.assembly.is_valid] = (0.0, True)
-        trace[P.assembly.under_processing] = (0.0, False)
-        trace[P.cobot.has_assembly] = (0.0, False)
-        trace[P.controller.is_configured] = (0.0, True)
-        trace[P.operator.has_assembly] = (0.0, False)
-        trace[P.operator.provides_assembly] = (0.0, False)
-        trace[P.tool.has_assembly] = (0.0, False)
-        trace[P.tool.is_running] = (0.0, False)
-
-        # notif
-        #        trace[P.notif] = (0.0, Notif.ok)
-        #        for m in from_table(db, "operatorinteraction"):
-        #            trace[P.notif] = (m.timestamp, Notif(m.status))
+        #        trace[P.assembly.has_assembly] = (0.0, False)
+        #        trace[P.assembly.is_orientation_valid] = (0.0, True)
+        #        trace[P.assembly.is_processed] = (0.0, True)
+        #        trace[P.assembly.is_secured] = (0.0, True)
+        #        trace[P.assembly.is_valid] = (0.0, True)
+        #        trace[P.assembly.under_processing] = (0.0, False)
+        #        trace[P.cobot.has_assembly] = (0.0, False)
+        #        trace[P.controller.is_configured] = (0.0, True)
+        #        trace[P.operator.has_assembly] = (0.0, False)
+        #        trace[P.operator.provides_assembly] = (0.0, False)
+        #        trace[P.tool.has_assembly] = (0.0, False)
+        #        trace[P.tool.is_running] = (0.0, False)
 
         return trace
 
@@ -120,10 +115,47 @@ class SafecompControllerRunner(DigitalTwinRunner):
         """Compute combinations of observed concurrent events"""
         P = World
         # TODO Declare domain with Term definition in monitor
-        # TODO Build registry from monitor definition using terms' domain if available
+        # TODO Accept values even out of domain and add method to restrict record to domain afterwards
+        # TODO Add support for continuous domains
         registry = EventCombinationsRegistry()
-        # FIXME DO IT ALL
         # registry.domain[P.notif.id] = Domain({n for n in Notif})
+        # registry.domain[P.constraints.cobot.distance.proximity] = Domain( { None, } )
+        # registry.domain[P.constraints.cobot.velocity.proximity] = Domain({None,})
+        # registry.domain[P.constraints.cobot.velocity.in_bench] = Domain({None,})
+        # registry.domain[tool.distance] = Domain({None, })
+        # registry.domain[P.constraints.cobot.velocity.in_tool] = Domain( { None, } )
+        # registry.domain[P.constraints.tool.distance.operation] = Domain( { None, } )
+        # registry.domain[P.constraints.cobot.velocity.in_workspace] = Domain( { None, } )
+        # registry.domain[P.cobot.distance] = Domain( { None, } )
+        # registry.domain[P.cobot.velocity] = Domain({ None, } )
+        registry.domain[P.cobot.position.in_workspace] = Domain({True, False})
+        registry.domain[P.assembly.position.in_bench] = Domain({True, False})
+        registry.domain[P.assembly.is_damaged] = Domain({True, False})
+        registry.domain[P.cobot.reaches_target] = Domain({True, False})
+        registry.domain[P.operator.is_damaged] = Domain({True, False})
+        registry.domain[P.cobot.is_damaged] = Domain({True, False})
+        registry.domain[P.operator.position.in_bench] = Domain({True, False})
+        registry.domain[P.tool.is_damaged] = Domain({True, False})
+        registry.domain[P.tool.is_running] = Domain({True, False})
+        registry.domain[P.cobot.has_target] = Domain({True, False})
+        registry.domain[P.assembly.is_secured] = Domain({True, False})
+        registry.domain[P.assembly.is_processed] = Domain({True, False})
+        registry.domain[P.controller.is_configured] = Domain({True, False})
+        registry.domain[P.operator.provides_assembly] = Domain({True, False})
+        registry.domain[P.assembly.is_orientation_valid] = Domain({True, False})
+        registry.domain[P.cobot.has_assembly] = Domain({True, False})
+        registry.domain[P.cobot.position.in_bench] = Domain({True, False})
+        registry.domain[P.lidar.has_assembly] = Domain({True, False})
+        registry.domain[P.assembly.is_moving] = Domain({True, False})
+        registry.domain[P.cobot.is_moving] = Domain({True, False})
+        registry.domain[P.assembly.under_processing] = Domain({True, False})
+        registry.domain[P.assembly.is_valid] = Domain({True, False})
+        registry.domain[P.operator.position.in_workspace] = Domain({True, False})
+        registry.domain[P.assembly.has_assembly] = Domain({True, False})
+        registry.domain[P.cobot.position.in_tool] = Domain({True, False})
+        registry.domain[P.operator.has_assembly] = Domain({True, False})
+        registry.domain[P.lidar.is_damaged] = Domain({True, False})
+        registry.domain[P.tool.has_assembly] = Domain({True, False})
         #
         with self.event_combinations_output.open("wb") as combinations_file:
             pickle.dump(registry, combinations_file)
@@ -140,8 +172,8 @@ class SafecompControllerRunner(DigitalTwinRunner):
         monitor = Monitor()
         for s in self.safety_conditions:
             monitor += s.condition
-        missing_atoms = sorted(a.id for a in monitor.atoms() - trace.atoms())
-        #
+        missing_atoms = sorted(a for a in monitor.atoms() - trace.atoms())
+        # Compute events combinations
         combinations = self.compute_events_combinations(trace)
 
         return trace, self.safety_conditions
