@@ -84,6 +84,8 @@ class SafecompControllerRunner(DigitalTwinRunner):
             trace[p] = (m.timestamp, v)
 
         # Entity.is_moving
+        for e in self.entity.values():
+            trace[e.is_moving] = (0.0, False)
         for m in from_table(db, "movablestatus"):
             trace[self.entity[m.entity].is_moving] = (m.timestamp, bool(m.is_moving))
 
