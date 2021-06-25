@@ -43,6 +43,8 @@ class SafecompControllerRunner(DigitalTwinRunner):
         P = World()
 
         # Entity.distance
+        trace[P.cobot.distance] = (0.0, float("inf"))
+        trace[P.tool.distance] = (0.0, float("inf"))
         for m in from_table(db, "distancemeasurement"):
             trace[self.entity[m.entity].distance] = (m.timestamp, m.distance)
 
@@ -90,6 +92,10 @@ class SafecompControllerRunner(DigitalTwinRunner):
             trace[self.entity[m.entity].is_moving] = (m.timestamp, bool(m.is_moving))
 
         welder_running = False
+        trace[P.tool.is_running] = (0.0, False)
+        trace[P.tool.has_assembly] = (0.0, False)
+        trace[P.assembly.under_processing] = (0.0, False)
+        trace[P.assembly.is_processed] = (0.0, False)
         for m in from_table(db, "entitystatus"):
             if m.topic.startswith("welder"):
                 # Capture assembly processed status
