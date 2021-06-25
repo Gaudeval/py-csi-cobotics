@@ -18,9 +18,9 @@ from scenarios.tcx.safety.hazards import hazards
 class SafecompControllerRunner(DigitalTwinRunner):
     entity = {
         "ur10-cobot": World.cobot,
-        "Tim-Operator": World.operator,
+        "Operator-Operator": World.operator,
         "TT7302-mandrel-assembly": World.assembly,
-        "Spot Welder Assembly-welder": World.tool,
+        "SpotWelder-welder": World.tool,
         "469ef06d-0045-4ce7-9dd4-513eef7aedb6": World.lidar,
     }
 
@@ -86,6 +86,15 @@ class SafecompControllerRunner(DigitalTwinRunner):
         # Entity.is_moving
         for m in from_table(db, "movablestatus"):
             trace[self.entity[m.entity].is_moving] = (m.timestamp, bool(m.is_moving))
+
+        for m in from_table(db, "actstatus"):
+            if m.topic == "welder/mode/update":
+                if m.status == 1:
+                    trace[P.tool.is_running] = (m.timestamp, False)
+                elif m.status == 0:
+                    trace[P.tool.is_running] = (m.timestamp, True)
+                else:
+                    raise Exception("Unknown welder status")
 
         # Define constraints
         trace[P.constraints.cobot.velocity.in_bench] = (0.0, 1.5)
