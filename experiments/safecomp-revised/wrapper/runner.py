@@ -89,17 +89,31 @@ class SafecompControllerRunner(DigitalTwinRunner):
         for m in from_table(db, "movablestatus"):
             trace[self.entity[m.entity].is_moving] = (m.timestamp, bool(m.is_moving))
 
+        welder_running = False
         for m in from_table(db, "entitystatus"):
             if m.topic.startswith("welder"):
+                # Capture assembly processed status
+                if m.status in [2, 10]:
+                    if welder_running:
+                        trace[P.assembly.is_processed] = (m.timestamp, True)
+                    welder_running = False
+                elif m.status in [7]:
+                    welder_running = True
+                #
                 if m.status == 2:
                     trace[P.tool.is_running] = (m.timestamp, False)
                     trace[P.tool.has_assembly] = (m.timestamp, False)
+                    trace[P.assembly.under_processing] = (m.timestamp, False)
                 elif m.status == 10:
                     trace[P.tool.is_running] = (m.timestamp, False)
                     trace[P.tool.has_assembly] = (m.timestamp, True)
+                    trace[P.assembly.under_processing] = (m.timestamp, False)
+                    welder_running = False
                 elif m.status == 7:
                     trace[P.tool.is_running] = (m.timestamp, True)
                     trace[P.tool.has_assembly] = (m.timestamp, True)
+                    trace[P.assembly.under_processing] = (m.timestamp, True)
+                    welder_running = True
                 else:
                     raise Exception("Unknown welder status")
 
