@@ -132,7 +132,7 @@ class SafecompControllerRunner(DigitalTwinRunner):
         trace[P.assembly.is_secured] = (0.0, True)
         trace[P.assembly.is_valid] = (0.0, True)
         trace[P.cobot.has_assembly] = (0.0, True)
-        trace[P.operator.has_assembly] = (0.0, True)
+        trace[P.operator.has_assembly] = (0.0, False)
         trace[P.operator.provides_assembly] = (0.0, False)
 
         # Define constraints
