@@ -107,19 +107,17 @@ class SafecompControllerRunner(DigitalTwinRunner):
                     welder_running = True
                 #
                 if m.status == 2:
-                    trace[P.tool.is_running] = (m.timestamp, False)
-                    trace[P.tool.has_assembly] = (m.timestamp, False)
-                    trace[P.assembly.under_processing] = (m.timestamp, False)
+                    trace[P.tool.is_running] = (m.timestamp, True)
+                    trace[P.tool.has_assembly] = (m.timestamp, True)
+                    trace[P.assembly.under_processing] = (m.timestamp, True)
                 elif m.status == 10:
                     trace[P.tool.is_running] = (m.timestamp, False)
                     trace[P.tool.has_assembly] = (m.timestamp, True)
                     trace[P.assembly.under_processing] = (m.timestamp, False)
-                    welder_running = False
                 elif m.status == 7:
-                    trace[P.tool.is_running] = (m.timestamp, True)
-                    trace[P.tool.has_assembly] = (m.timestamp, True)
-                    trace[P.assembly.under_processing] = (m.timestamp, True)
-                    welder_running = True
+                    trace[P.tool.is_running] = (m.timestamp, False)
+                    trace[P.tool.has_assembly] = (m.timestamp, False)
+                    trace[P.assembly.under_processing] = (m.timestamp, False)
                 else:
                     raise Exception("Unknown welder status")
 
