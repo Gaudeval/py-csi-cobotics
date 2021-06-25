@@ -374,7 +374,10 @@ __register_uca(
 __register_uca(
     "UCA10-P-5",
     "The Cobot processes a Component when personnel is present in the processing area",
-    (P.assembly.under_processing & (~P.operator.position.in_bench)).eventually(),
+    (
+        P.assembly.under_processing
+        & (P.operator.position.in_workspace | P.operator.position.in_tool)
+    ).eventually(),
 )
 
 __register_uca(
