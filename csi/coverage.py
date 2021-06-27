@@ -1,14 +1,73 @@
+import abc
 import itertools
 import math
 from functools import reduce
 from operator import mul
 from collections import defaultdict
-from typing import Mapping, FrozenSet, Any, Tuple, Set, Iterable, Dict
+from typing import (
+    Mapping,
+    FrozenSet,
+    Any,
+    Tuple,
+    Set,
+    Iterable,
+    Dict,
+    TypeVar,
+    Optional,
+)
 
 import attr
 from traces import TimeSeries
 
 from csi.monitor import Trace
+
+D = TypeVar("D", int, float)
+
+
+class DomainDefinition(abc.ABC):
+    @abc.abstractmethod
+    def value_of(self, v) -> Optional[Any]:
+        return None
+
+    @abc.abstractmethod
+    def __len__(self) -> int:
+        return 0
+
+
+#    @abc.abstractmethod
+#    def __iter__(self):
+#        raise StopIteration
+
+
+@attr.s(frozen=True, init=True)
+class RangeDomain(DomainDefinition):
+    a: float = attr.ib()
+    b: float = attr.ib()
+    step: float = attr.ib()  # TODO Constrain step to be positive
+
+    def value_of(self, v) -> Optional[Any]:
+        if self.a <= v < self.b:
+            return math.floor((v - self.a) / self.step) * self.step + self.a
+        return None
+
+    def __len__(self) -> int:
+        if self.a <= self.b:
+            return math.ceil((self.b - self.a) / self.step)
+        return 0
+
+
+@attr.s(frozen=True, init=True)
+class Dom:
+    _definition: DomainDefinition = attr.ib()
+
+    def __contains__(self, v) -> bool:
+        return self.value(v) is not None
+
+    def value(self, v):
+        return self._definition.value_of(v)
+
+    def __len__(self):
+        return len(self._definition)
 
 
 @attr.s(frozen=True, init=True)
