@@ -24,6 +24,14 @@ from csi.monitor import Trace
 D = TypeVar("D", int, float)
 
 
+# TODO Define domain based on set
+# TODO Define domain based on linear space
+# TODO Record out of domain value as None in coverage record
+# TODO Only count entries where no value is None as covered
+# TODO Add wrapper for transition/combination of domain coverage
+# TODO Add method to highlight missing values in coverage
+
+
 class DomainDefinition(abc.ABC):
     @abc.abstractmethod
     def value_of(self, v) -> Optional[Any]:
@@ -32,11 +40,6 @@ class DomainDefinition(abc.ABC):
     @abc.abstractmethod
     def __len__(self) -> int:
         return 0
-
-
-#    @abc.abstractmethod
-#    def __iter__(self):
-#        raise StopIteration
 
 
 @attr.s(frozen=True, init=True)
@@ -54,6 +57,25 @@ class RangeDomain(DomainDefinition):
         if self.a <= self.b:
             return math.ceil((self.b - self.a) / self.step)
         return 0
+
+
+@attr.s(frozen=True, init=True)
+class SpaceDomain(DomainDefinition):
+    a: float = attr.ib()
+    b: float = attr.ib()
+    count: float = attr.ib()  # TODO Constraint count to be strictly positive
+
+    def __len__(self) -> int:
+        return self.count
+
+    def value_of(self, v) -> Optional[Any]:
+        if self.a <= v < self.b:
+            return (
+                math.floor((v - self.a) * self.count / (self.b - self.a))
+                * (self.b - self.a)
+                / self.count
+            )
+        return None
 
 
 @attr.s(frozen=True, init=True)
