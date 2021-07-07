@@ -287,7 +287,7 @@ class SafecompControllerRunner(DigitalTwinRunner):
         # Compute condition/safety metrics per combinations of condition
         for n in range(1, self.coverage_combinations + 1):
             for condition_group in itertools.combinations(uids, n):
-                group_name = "-".join(".".join(u) for u in sorted(condition_group))
+                group_name = "_".join(sorted(condition_group))
                 group_registry = condition_registry.project(list(condition_group))
                 # Record condition metric
                 group_path = (
