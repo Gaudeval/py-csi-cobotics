@@ -42,6 +42,14 @@ class DomainDefinition(abc.ABC):
         return 0
 
 
+class IdentityDomain(DomainDefinition):
+    def value_of(self, v) -> Optional[Any]:
+        return v
+
+    def __len__(self) -> int:
+        raise ValueError()
+
+
 @attr.s(frozen=True, init=True)
 class RangeDomain(DomainDefinition):
     a: float = attr.ib()
@@ -171,11 +179,15 @@ def domain_threshold_range(
     return Domain(d)
 
 
+def domain_identity():
+    return Domain(IdentityDomain())
+
+
 # FIXME Combinations field only valid for transition domains if coming from a projection where a single transition domain is defined
 class EventCombinationsRegistry:
     domain: Dict[Atom, Domain]
     default: Dict[Atom, Any]
-    combinations: Set[FrozenSet[Tuple[Tuple[str, ...], Any]]]
+    combinations: Set[FrozenSet[Tuple[Atom, Any]]]
 
     def __init__(self):
         self.domain = {}
@@ -220,15 +232,20 @@ class EventCombinationsRegistry:
         assert self.domain == other.domain
         self.combinations.update(other.combinations)
 
-    def restrict(self, variable, domain: Domain):
+    def record(self, values: Dict[Atom, Any]):
+        entry = {(k, v) for k, v in values.items() if k in self.domain}
+        undefined = {(k, None) for k in self.domain if k not in values}
+        self.combinations.add(frozenset(entry | undefined))
+
+    def restrict(self, restrictions: Dict[Atom, Domain]):
         """ Restrict domain of a specific variable """
         restriction = EventCombinationsRegistry()
         restriction.domain |= {
-            k: v if k != variable else domain for k, v in self.domain.items()
+            k: restrictions.get(k, d) for k, d in self.domain.items()
         }
         restriction.default |= {k: v for k, v in self.default.items()}
         restriction.combinations = {
-            frozenset((k, v if k != variable else domain.value(v)) for k, v in c)
+            frozenset((k, restrictions.get(k, self.domain[k]).value(v)) for k, v in c)
             for c in self.combinations
         }
         return restriction

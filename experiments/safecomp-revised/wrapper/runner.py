@@ -1,10 +1,9 @@
+import itertools
 import json
 import pickle
 
 from pathlib import Path
-from typing import List, Iterable
-
-from traces import TimeSeries
+from typing import List
 
 from csi.coverage import (
     EventCombinationsRegistry,
@@ -48,6 +47,7 @@ class SafecompControllerRunner(DigitalTwinRunner):
     event_combinations_output: Path = Path("events_combinations.pkl")
 
     coverage_root: Path = Path("coverage")
+    coverage_combinations: int = 2
 
     def build_event_trace(self, db: DataBase) -> Trace:
         """Extract event stream from run message stream"""
@@ -231,19 +231,76 @@ class SafecompControllerRunner(DigitalTwinRunner):
             pickle.dump(registry, combinations_file)
         return registry
 
-    def compute_coverage(self, registry: EventCombinationsRegistry):
-        self.compute_atom_coverage(registry)
-        # TODO Compute safety coverage
-        # TODO Compute condition coverage
+    def compute_coverage(self, trace, monitor, registry):
+        # Obtain safety report
+        self.produce_safety_report(trace, self.safety_conditions, quiet=True)
+        with open("./hazard-report.json", "r") as json_report:
+            report = json.load(json_report)
+        # Compute atom coverage
+        atoms = set(monitor.atoms()) & set(registry.domain.keys())
+        self.compute_atom_coverage(atoms, registry)
+        # Compute safety and condition coverage
+        self.compute_condition_coverage(report, monitor)
         # TODO Compute predicate coverage
 
-    def compute_atom_coverage(self, registry):
+    def compute_atom_coverage(self, atoms, registry):
+        # Compute all combinations of atom values as per domain
         atom_registry = registry.restrict(self.initialise_registry().domain)
-        for a in atom_registry.domain:
-            atom_name = ".".join(a.id)
-            atom_coverage = self.coverage_root / "atom" / f"registry-{atom_name}.pkl"
-            with atom_coverage.open("wb") as atom_file:
-                pickle.dump(atom_registry.project([a]), atom_file)
+        atom_registry = atom_registry.project(atoms)
+        # Save combinations of atom values
+        atom_path = self.coverage_root / "atom" / f"registry.pkl"
+        atom_path.parent.mkdir(parents=True, exist_ok=True)
+        with atom_path.open("wb") as atom_file:
+            pickle.dump(atom_registry, atom_file)
+        # Compute atom values per combinations of atoms
+        for n in range(1, self.coverage_combinations + 1):
+            for atom_group in itertools.combinations(atoms, n):
+                group_name = "-".join(
+                    ".".join(a.id) for a in sorted(atom_group, key=lambda a: a.id)
+                )
+                group_path = atom_path.parent / str(n) / f"registry-{group_name}.pkl"
+                group_path.parent.mkdir(parents=True, exist_ok=True)
+                with group_path.open("wb") as group_file:
+                    pickle.dump(atom_registry.project(list(atom_group)), group_file)
+
+    def compute_condition_coverage(self, report, monitor: Monitor):
+        # Compute domain for condition coverage
+        uids = []
+        condition_registry = EventCombinationsRegistry()
+        for condition in self.safety_conditions:
+            uids.append(condition.uid)
+            condition_registry.domain[condition.uid] = domain_values({True, False})
+        # Compute and record condition coverage metrics
+        condition_registry.record(
+            {u: True if float(report.get(u, False)) >= 1.0 else False for u in uids}
+        )
+        condition_path = self.coverage_root / "condition" / f"registry.pkl"
+        condition_path.parent.mkdir(parents=True, exist_ok=True)
+        with condition_path.open("wb") as condition_file:
+            pickle.dump(condition_registry, condition_file)
+        # Compute and record safety coverage metrics
+        safety_domain = {u: domain_values({True}) for u in uids}
+        safety_path = self.coverage_root / "safety" / f"registry.pkl"
+        safety_path.parent.mkdir(parents=True, exist_ok=True)
+        with safety_path.open("wb") as safety_file:
+            pickle.dump(condition_registry.restrict(safety_domain), safety_file)
+        # Compute condition/safety metrics per combinations of condition
+        for n in range(1, self.coverage_combinations + 1):
+            for condition_group in itertools.combinations(uids, n):
+                group_name = "-".join(".".join(u) for u in sorted(condition_group))
+                group_registry = condition_registry.project(list(condition_group))
+                # Record condition metric
+                group_path = (
+                    condition_path.parent / str(n) / f"registry-{group_name}.pkl"
+                )
+                group_path.parent.mkdir(parents=True, exist_ok=True)
+                with group_path.open("wb") as group_file:
+                    pickle.dump(group_registry, group_file)
+                # Record safety metric
+                group_path = safety_path.parent / str(n) / f"registry-{group_name}.pkl"
+                group_path.parent.mkdir(parents=True, exist_ok=True)
+                with group_path.open("wb") as group_file:
+                    pickle.dump(group_registry.restrict(safety_domain), group_file)
 
     def process_output(self):
         """Extract values from simulation message trace"""
@@ -259,7 +316,7 @@ class SafecompControllerRunner(DigitalTwinRunner):
         missing_atoms = sorted(a for a in monitor.atoms() - trace.atoms())
         # Compute events combinations
         combinations = self.compute_events_combinations(trace)
-        self.compute_coverage(combinations)
+        self.compute_coverage(trace, monitor, combinations)
         return trace, self.safety_conditions
 
 
