@@ -220,9 +220,18 @@ class EventCombinationsRegistry:
         assert self.domain == other.domain
         self.combinations.update(other.combinations)
 
-    def restrict(self):
-        # TODO restrict domain of a specific variable
-        raise NotImplementedError
+    def restrict(self, variable, domain: Domain):
+        """ Restrict domain of a specific variable """
+        restriction = EventCombinationsRegistry()
+        restriction.domain |= {
+            k: v if k != variable else domain for k, v in self.domain.items()
+        }
+        restriction.default |= {k: v for k, v in self.default.items()}
+        restriction.combinations = {
+            frozenset((k, v if k != variable else domain.value(v)) for k, v in c)
+            for c in self.combinations
+        }
+        return restriction
 
     def register(self, trace: Trace):
         event_keys = sorted(self.domain, key=lambda d: d.id)
