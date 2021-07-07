@@ -28,6 +28,10 @@ class SafecompControllerRunner(DigitalTwinRunner):
         "Work Cell Region": "in_workspace",
         "Loading Platform Region": "in_bench",
         "Spot Welder Region": "in_tool",
+        "atWeldSpot": "in_tool",
+        # "atTable": "in_bench",
+        "sharedTbl": "in_bench",
+        "inCell": "in_workspace",
     }
 
     safety_conditions: List[SafetyCondition] = list(unsafe_control_actions) + list(
@@ -98,6 +102,11 @@ class SafecompControllerRunner(DigitalTwinRunner):
         trace[P.assembly.is_processed] = (0.0, False)
         for m in from_table(db, "entitystatus"):
             if m.topic.startswith("welder"):
+                # 0 Unknown
+                # 2 Active
+                # 7 Idle
+                # 10 Waiting
+                # 7 -> 10 -> 2 -> 7
                 # Capture assembly processed status
                 if m.status in [2, 10]:
                     if welder_running:
@@ -105,6 +114,8 @@ class SafecompControllerRunner(DigitalTwinRunner):
                     welder_running = False
                 elif m.status in [7]:
                     welder_running = True
+                elif m.status in [0]:
+                    welder_running = False
                 #
                 if m.status == 2:
                     trace[P.tool.is_running] = (m.timestamp, True)
@@ -115,6 +126,10 @@ class SafecompControllerRunner(DigitalTwinRunner):
                     trace[P.tool.has_assembly] = (m.timestamp, True)
                     trace[P.assembly.under_processing] = (m.timestamp, False)
                 elif m.status == 7:
+                    trace[P.tool.is_running] = (m.timestamp, False)
+                    trace[P.tool.has_assembly] = (m.timestamp, False)
+                    trace[P.assembly.under_processing] = (m.timestamp, False)
+                elif m.status == 0:
                     trace[P.tool.is_running] = (m.timestamp, False)
                     trace[P.tool.has_assembly] = (m.timestamp, False)
                     trace[P.assembly.under_processing] = (m.timestamp, False)
