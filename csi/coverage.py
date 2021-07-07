@@ -1,6 +1,8 @@
 import abc
 import itertools
+import functools
 import math
+import operator
 from functools import reduce
 from operator import mul
 from collections import defaultdict
@@ -14,18 +16,18 @@ from typing import (
     Dict,
     TypeVar,
     Optional,
+    Callable,
 )
 
 import attr
 from traces import TimeSeries
 
 from csi.monitor import Trace
+from csi.safety import Atom
 
 D = TypeVar("D", int, float)
 
 
-# TODO Record out of domain value as None in coverage record
-# TODO Only count entries where no value is None as covered
 # TODO Add wrapper for transition/combination of domain coverage
 # TODO Add method to highlight missing values in coverage
 
@@ -88,6 +90,38 @@ class SetDomain(DomainDefinition):
 
 
 @attr.s(frozen=True, init=True)
+class FilterDomain(DomainDefinition):
+    _definition: DomainDefinition = attr.ib()
+    _filter: Callable[
+        [
+            Any,
+        ],
+        bool,
+    ] = attr.ib()
+    _value: Any = attr.ib()
+
+    @_definition.validator
+    def _defined_domain(self, attribute, value):
+        if not isinstance(value, DomainDefinition):
+            raise ValueError()
+
+    def __len__(self) -> int:
+        if self._definition.value_of(self._value) is None:
+            return len(self._definition) + 1
+        else:
+            return len(self._definition)
+
+    def value_of(self, v) -> Optional[Any]:
+        if self._definition.value_of(v) is None:
+            if self._filter(v):
+                return self._value
+            else:
+                return None
+        else:
+            return self._definition.value_of(v)
+
+
+@attr.s(frozen=True, init=True)
 class Domain:
     _definition: DomainDefinition = attr.ib()
 
@@ -118,18 +152,35 @@ def domain_linspace(a: float, b: float, count: float):
     return Domain(SpaceDomain(a, b, count))
 
 
-# FIXME Combinations field only valid for transition domains if coming from a projection with a single transition domain
+def __le(a, b):
+    return operator.le(a, b)
+
+
+def __ge(a, b):
+    return operator.ge(a, b)
+
+
+def domain_threshold_range(
+    a: float, b: float, step: float, upper: bool = False, lower: bool = False
+):
+    d = RangeDomain(a, b, step)
+    if upper:
+        d = FilterDomain(d, functools.partial(__ge, b=b), b)
+    if lower:
+        d = FilterDomain(d, functools.partial(__le, b=a), a)
+    return Domain(d)
+
+
+# FIXME Combinations field only valid for transition domains if coming from a projection where a single transition domain is defined
 class EventCombinationsRegistry:
-    domain: Dict[str, Domain]
-    default: Dict[str, Any]
+    domain: Dict[Atom, Domain]
+    default: Dict[Atom, Any]
     combinations: Set[FrozenSet[Tuple[Tuple[str, ...], Any]]]
-    per_transitions: Dict[str, Any]
 
     def __init__(self):
         self.domain = {}
         self.default = defaultdict()
         self.combinations = set()
-        self.per_transitions = defaultdict(set)
 
     #    def values_of(self, k):
     #        yield from zip(itertools.repeat(k), self.domain[k].values)
@@ -161,24 +212,6 @@ class EventCombinationsRegistry:
         projection.combinations = {
             frozenset((k, v) for k, v in c if k in keys) for c in self.combinations
         }
-        projection.per_transitions = {
-            e: {
-                frozenset((k, v) for k, v in c if k in keys)
-                for c in self.per_transitions[e]
-            }
-            for e in self.per_transitions
-            if e in keys
-        }
-        if (
-            len([d for e, d in self.domain.items() if e in keys and d.on_transition])
-            == 1
-        ):
-            k = next(
-                iter(
-                    e for e in self.domain if e in keys and self.domain[e].on_transition
-                )
-            )
-            projection.combinations = projection.per_transitions[k]
         return projection
 
     def merge(self, other):
@@ -192,32 +225,14 @@ class EventCombinationsRegistry:
         raise NotImplementedError
 
     def register(self, trace: Trace):
-        event_keys = sorted(self.domain)
+        event_keys = sorted(self.domain, key=lambda d: d.id)
         events = TimeSeries.merge([trace.values[e.id] for e in event_keys])
         events.compact()
-        # TODO Fill gaps in missing values
-        # TODO Configure behaviour on unknown values
-        previous_state = {}
         for _, v in events.items():
             entry = set()
-            for (e, d), i in zip(sorted(self.domain.items()), v):
+            for (e, d), i in zip(sorted(self.domain.items(), key=lambda d: d[0].id), v):
                 entry.add((e, i if i in d else None))
             self.combinations.add(frozenset(entry))
-
-
-#            # TODO if all(i in self.domain[e].scalars for e, i in zip(event_keys, v)):
-#            # Compute transition pair values
-#            transitions = {}
-#            for e, i in zip(event_keys, v):
-#                if self.domain[e].on_transition:
-#                    if e in previous_state and previous_state[e] != i:
-#                        transitions[e] = (previous_state[e], i)
-#                previous_state[e] = i
-#            # Combine each transition with all other values
-#            for c, t in transitions.items():
-#                self.per_transitions[c].add(
-#                    frozenset((e, i if e != c else t) for e, i in zip(event_keys, v))
-#                )
 
 
 if __name__ == "__main__":

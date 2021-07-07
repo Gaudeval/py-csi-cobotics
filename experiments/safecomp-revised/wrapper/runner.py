@@ -4,7 +4,13 @@ import pickle
 from pathlib import Path
 from typing import List, Iterable
 
-from csi.coverage import EventCombinationsRegistry, Domain
+from traces import TimeSeries
+
+from csi.coverage import (
+    EventCombinationsRegistry,
+    domain_values,
+    domain_threshold_range,
+)
 from csi.monitor import Trace, Monitor
 from csi.safety import SafetyCondition
 from csi.twin import DigitalTwinRunner, DataBase
@@ -171,12 +177,18 @@ class SafecompControllerRunner(DigitalTwinRunner):
         # registry.domain[P.constraints.cobot.distance.proximity] = Domain( { None, } )
         # registry.domain[P.constraints.cobot.velocity.proximity] = Domain({None,})
         # registry.domain[P.constraints.cobot.velocity.in_bench] = Domain({None,})
-        # registry.domain[tool.distance] = Domain({None, })
-        # registry.domain[P.constraints.cobot.velocity.in_tool] = Domain( { None, } )
         # registry.domain[P.constraints.tool.distance.operation] = Domain( { None, } )
-        # registry.domain[P.constraints.cobot.velocity.in_workspace] = Domain( { None, } )
-        # registry.domain[P.cobot.distance] = Domain( { None, } )
-        # registry.domain[P.cobot.velocity] = Domain({ None, } )
+        # registry.domain[P.constraints.cobot.velocity.in_tool] =
+        # registry.domain[P.constraints.cobot.velocity.in_workspace] =
+        registry.domain[P.tool.distance] = domain_threshold_range(
+            0.0, 4.0, 0.25, upper=True
+        )
+        registry.domain[P.cobot.distance] = domain_threshold_range(
+            0.0, 4.0, 0.25, upper=True
+        )
+        registry.domain[P.cobot.velocity] = domain_threshold_range(
+            0.0, 4.0, 0.25, upper=True
+        )
         registry.domain[P.cobot.position.in_workspace] = domain_values({True, False})
         registry.domain[P.assembly.position.in_bench] = domain_values({True, False})
         registry.domain[P.assembly.is_damaged] = domain_values({True, False})
