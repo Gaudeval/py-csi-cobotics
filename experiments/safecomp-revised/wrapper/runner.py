@@ -1,3 +1,4 @@
+import collections
 import hashlib
 import itertools
 import json
@@ -23,6 +24,8 @@ from scenarios.tcx import unsafe_control_actions
 
 from scenarios.tcx.monitor import World
 from scenarios.tcx.safety.hazards import hazards
+
+from .utils import as_working_directory
 
 
 class SafecompControllerRunner(DigitalTwinRunner):
@@ -247,7 +250,7 @@ class SafecompControllerRunner(DigitalTwinRunner):
         self.compute_atom_coverage(atoms, registry)
         # Compute safety and condition coverage
         self.compute_condition_coverage(report)
-        # TODO Compute predicate coverage
+        # Compute predicate coverage
         self.compute_predicate_coverage(trace)
 
     def compute_atom_coverage(self, atoms, registry):
@@ -370,6 +373,37 @@ class SafecompControllerRunner(DigitalTwinRunner):
         for p in comparisons:
             terms.difference(p.children)
         return set(itertools.chain(terms, comparisons))
+
+    @staticmethod
+    def merge_coverage(repository):
+        # Merge coverage metrics
+        runs = set()
+        coverage_files = set()
+        for e, r in repository.runs:
+            e: SafecompControllerRunner
+            runs.add((e, r))
+            with as_working_directory(r.work_path):
+                coverage_files.update(e.coverage_root.glob("**/registry-*.pkl"))
+        #
+        registries = dict()
+        for e, r in runs:
+            with as_working_directory(r.work_path):
+                for c in coverage_files:
+                    with c.open("rb") as registry_file:
+                        registry = pickle.load(registry_file)
+                        if c in registries:
+                            registries[c].merge(registry)
+                        else:
+                            registries[c] = registry
+        for path, registry in sorted(registries.items()):
+            print(path, registry.coverage)
+        #
+        roots = collections.defaultdict(lambda: (0, 0))
+        for path, registry in registries.items():
+            covered, total = roots[path.parent]
+            roots[path.parent] = (registry.covered + covered, registry.total + total)
+        for path, (covered, total) in sorted(roots.items()):
+            print(path, covered, total, float(covered) / total)
 
     def process_output(self):
         """Extract values from simulation message trace"""
