@@ -1,9 +1,13 @@
+import hashlib
 import itertools
 import json
 import pickle
 
 from pathlib import Path
-from typing import List
+from typing import List, Iterable, Set
+
+from mtl import AtomicPred
+from mtl.ast import BinaryOpMTL
 
 from csi.coverage import (
     EventCombinationsRegistry,
@@ -12,7 +16,7 @@ from csi.coverage import (
     domain_identity,
 )
 from csi.monitor import Trace, Monitor
-from csi.safety import SafetyCondition
+from csi.safety import SafetyCondition, Node
 from csi.twin import DigitalTwinRunner, DataBase
 from csi.twin.importer import from_table
 from scenarios.tcx import unsafe_control_actions
@@ -242,8 +246,9 @@ class SafecompControllerRunner(DigitalTwinRunner):
         atoms = set(monitor.atoms()) & set(registry.domain.keys())
         self.compute_atom_coverage(atoms, registry)
         # Compute safety and condition coverage
-        self.compute_condition_coverage(report, monitor)
+        self.compute_condition_coverage(report)
         # TODO Compute predicate coverage
+        self.compute_predicate_coverage(trace)
 
     def compute_atom_coverage(self, atoms, registry):
         # Compute all combinations of atom values as per domain
@@ -265,7 +270,7 @@ class SafecompControllerRunner(DigitalTwinRunner):
                 with group_path.open("wb") as group_file:
                     pickle.dump(atom_registry.project(list(atom_group)), group_file)
 
-    def compute_condition_coverage(self, report, monitor: Monitor):
+    def compute_condition_coverage(self, report):
         # Compute domain for condition coverage
         uids = []
         condition_registry = EventCombinationsRegistry()
@@ -303,6 +308,68 @@ class SafecompControllerRunner(DigitalTwinRunner):
                 group_path.parent.mkdir(parents=True, exist_ok=True)
                 with group_path.open("wb") as group_file:
                     pickle.dump(group_registry.restrict(safety_domain), group_file)
+
+    def compute_predicate_coverage(self, trace):
+        predicates = self.extract_boolean_predicates(self.safety_conditions)
+        # Prepare registry domain for boolean predicates
+        predicate_registry = self.initialise_registry()
+        predicate_registry = predicate_registry.project(predicates)
+        # Evaluate boolean predicate values over time
+        for p in predicates:
+            if not isinstance(p, AtomicPred):
+                predicate_valuation = Monitor().evaluate(
+                    trace,
+                    p,
+                    dt=0.01,
+                    quantitative=self.configuration.ltl.quantitative,
+                    logic=self.configuration.ltl.logic,
+                    time=None,
+                )
+                for time, value in predicate_valuation:
+                    trace[p] = (time, value)
+                predicate_registry.domain[p] = domain_values({True, False})
+        # Compute and record coverage over all predicate combinations
+        predicate_registry.register(trace)
+        predicate_path = self.coverage_root / "predicate" / f"registry.pkl"
+        predicate_path.parent.mkdir(parents=True, exist_ok=True)
+        with predicate_path.open("wb") as safety_file:
+            pickle.dump(predicate_registry, safety_file)
+        # Compute coverage metrics per combinations of predicates
+        for n in range(1, self.coverage_combinations + 1):
+            for predicate_group in itertools.combinations(predicates, n):
+                #
+                group = []
+                for p in predicate_group:
+                    if isinstance(p, AtomicPred):
+                        group.append(".".join(p.id))
+                    else:
+                        group.append(hashlib.md5(str(p).encode()).hexdigest())
+                #
+                group_name = "_".join(sorted(group))
+                group_registry = predicate_registry.project(list(predicate_group))
+                # Record condition metric
+                group_path = (
+                    predicate_path.parent / str(n) / f"registry-{group_name}.pkl"
+                )
+                group_path.parent.mkdir(parents=True, exist_ok=True)
+                with group_path.open("wb") as group_file:
+                    pickle.dump(group_registry, group_file)
+
+    @staticmethod
+    def extract_boolean_predicates(safety_conditions) -> Set[Node]:
+        terms: Set[AtomicPred] = set()
+        comparisons: Set[BinaryOpMTL] = set()
+        # Extract all candidates
+        for s in safety_conditions:
+            for p in s.condition.walk():
+                if isinstance(p, AtomicPred):
+                    terms.add(p)
+                if isinstance(p, BinaryOpMTL):
+                    comparisons.add(p)
+        # Remove values used in comparisons
+        for p in comparisons:
+            terms.difference(p.children)
+        return set(itertools.chain(terms, comparisons))
 
     def process_output(self):
         """Extract values from simulation message trace"""

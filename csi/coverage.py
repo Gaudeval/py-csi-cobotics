@@ -251,12 +251,24 @@ class EventCombinationsRegistry:
         return restriction
 
     def register(self, trace: Trace):
-        event_keys = sorted(self.domain, key=lambda d: d.id)
-        events = TimeSeries.merge([trace.values[e.id] for e in event_keys])
+        # FIXME Key sorting relies on id field being present, not the case for non Atom keys
+        event_keys = sorted(
+            self.domain,
+            key=lambda d: getattr(d, "id", (str(d),)),
+        )
+        events = TimeSeries.merge(
+            [trace.values[getattr(e, "id", e)] for e in event_keys]
+        )
         events.compact()
         for _, v in events.items():
             entry = set()
-            for (e, d), i in zip(sorted(self.domain.items(), key=lambda d: d[0].id), v):
+            for (e, d), i in zip(
+                sorted(
+                    self.domain.items(),
+                    key=lambda d: getattr(d[0], "id", (str(d[0]),)),
+                ),
+                v,
+            ):
                 entry.add((e, d.value(i)))
             self.combinations.add(frozenset(entry))
 
