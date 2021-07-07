@@ -59,6 +59,7 @@ class SafecompControllerRunner(DigitalTwinRunner):
             trace[self.entity[m.entity].distance] = (m.timestamp, m.distance)
 
         # Entity.velocity
+        trace[P.cobot.velocity] = (0.0, 0.0)
         for m in from_table(db, "velocitymeasurement"):
             trace[self.entity[m.entity].velocity] = (m.timestamp, m.velocity)
 
