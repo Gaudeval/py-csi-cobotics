@@ -228,7 +228,9 @@ class SafecompControllerRunner(DigitalTwinRunner):
         registry = registry.restrict({k: domain_identity() for k in registry.domain})
         registry.register(trace)
         with self.event_combinations_output.open("wb") as combinations_file:
-            pickle.dump(registry, combinations_file)
+            pickle.dump(
+                registry.restrict(self.initialise_registry().domain), combinations_file
+            )
         return registry
 
     def compute_coverage(self, trace, monitor, registry):
