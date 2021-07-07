@@ -10,6 +10,7 @@ from csi.coverage import (
     EventCombinationsRegistry,
     domain_values,
     domain_threshold_range,
+    domain_identity,
 )
 from csi.monitor import Trace, Monitor
 from csi.safety import SafetyCondition
@@ -45,6 +46,8 @@ class SafecompControllerRunner(DigitalTwinRunner):
     )
 
     event_combinations_output: Path = Path("events_combinations.pkl")
+
+    coverage_root: Path = Path("coverage")
 
     def build_event_trace(self, db: DataBase) -> Trace:
         """Extract event stream from run message stream"""
@@ -167,12 +170,9 @@ class SafecompControllerRunner(DigitalTwinRunner):
 
         return trace
 
-    def compute_events_combinations(self, trace: Trace):
-        """Compute combinations of observed concurrent events"""
+    def initialise_registry(self) -> EventCombinationsRegistry:
         P = World
         # TODO Declare domain with Term definition in monitor
-        # TODO Accept values even out of domain and add method to restrict record to domain afterwards
-        # TODO Add support for continuous domains
         registry = EventCombinationsRegistry()
         # registry.domain[P.notif.id] = Domain({n for n in Notif})
         # registry.domain[P.constraints.cobot.distance.proximity] = Domain( { None, } )
@@ -218,11 +218,32 @@ class SafecompControllerRunner(DigitalTwinRunner):
         registry.domain[P.operator.has_assembly] = domain_values({True, False})
         registry.domain[P.lidar.is_damaged] = domain_values({True, False})
         registry.domain[P.tool.has_assembly] = domain_values({True, False})
+        return registry
+
+    def compute_events_combinations(self, trace: Trace):
+        """Compute combinations of observed concurrent events"""
         #
+        # TODO Restrict domains for atom coverage
+        registry = self.initialise_registry()
+        registry = registry.restrict({k: domain_identity() for k in registry.domain})
         registry.register(trace)
         with self.event_combinations_output.open("wb") as combinations_file:
             pickle.dump(registry, combinations_file)
         return registry
+
+    def compute_coverage(self, registry: EventCombinationsRegistry):
+        self.compute_atom_coverage(registry)
+        # TODO Compute safety coverage
+        # TODO Compute condition coverage
+        # TODO Compute predicate coverage
+
+    def compute_atom_coverage(self, registry):
+        atom_registry = registry.restrict(self.initialise_registry().domain)
+        for a in atom_registry.domain:
+            atom_name = ".".join(a.id)
+            atom_coverage = self.coverage_root / "atom" / f"registry-{atom_name}.pkl"
+            with atom_coverage.open("wb") as atom_file:
+                pickle.dump(atom_registry.project([a]), atom_file)
 
     def process_output(self):
         """Extract values from simulation message trace"""
@@ -238,7 +259,7 @@ class SafecompControllerRunner(DigitalTwinRunner):
         missing_atoms = sorted(a for a in monitor.atoms() - trace.atoms())
         # Compute events combinations
         combinations = self.compute_events_combinations(trace)
-
+        self.compute_coverage(combinations)
         return trace, self.safety_conditions
 
 
