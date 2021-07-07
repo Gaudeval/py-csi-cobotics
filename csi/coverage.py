@@ -231,7 +231,7 @@ class EventCombinationsRegistry:
         for _, v in events.items():
             entry = set()
             for (e, d), i in zip(sorted(self.domain.items(), key=lambda d: d[0].id), v):
-                entry.add((e, i if i in d else None))
+                entry.add((e, d.value(i)))
             self.combinations.add(frozenset(entry))
 
 
