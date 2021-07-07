@@ -24,8 +24,6 @@ from csi.monitor import Trace
 D = TypeVar("D", int, float)
 
 
-# TODO Define domain based on set
-# TODO Define domain based on linear space
 # TODO Record out of domain value as None in coverage record
 # TODO Only count entries where no value is None as covered
 # TODO Add wrapper for transition/combination of domain coverage
@@ -79,8 +77,24 @@ class SpaceDomain(DomainDefinition):
 
 
 @attr.s(frozen=True, init=True)
-class Dom:
+class SetDomain(DomainDefinition):
+    contents: FrozenSet[Any] = attr.ib(converter=frozenset)
+
+    def __len__(self) -> int:
+        return len(self.contents)
+
+    def value_of(self, v) -> Optional[Any]:
+        return v if v in self.contents else None
+
+
+@attr.s(frozen=True, init=True)
+class Domain:
     _definition: DomainDefinition = attr.ib()
+
+    @_definition.validator
+    def _defined_domain(self, attribute, value):
+        if not isinstance(value, DomainDefinition):
+            raise ValueError()
 
     def __contains__(self, v) -> bool:
         return self.value(v) is not None
@@ -92,33 +106,23 @@ class Dom:
         return len(self._definition)
 
 
-@attr.s(frozen=True, init=True)
-class Domain:
-    scalars: FrozenSet[Any] = attr.ib(default=frozenset(), converter=frozenset)
-    on_transition: bool = attr.ib(default=False)
+def domain_values(values: Iterable[Any]) -> Domain:
+    return Domain(SetDomain(values))
 
-    @property
-    def values(self):
-        if self.on_transition:
-            yield from itertools.permutations(self.scalars, r=2)
-        else:
-            yield from self.scalars
 
-    @property
-    def count(self):
-        if self.on_transition:
-            return math.factorial(len(self.scalars)) / math.factorial(
-                len(self.scalars) - 2
-            )
-        else:
-            return len(self.scalars)
+def domain_range(a: float, b: float, step: float):
+    return Domain(RangeDomain(a, b, step))
+
+
+def domain_linspace(a: float, b: float, count: float):
+    return Domain(SpaceDomain(a, b, count))
 
 
 # FIXME Combinations field only valid for transition domains if coming from a projection with a single transition domain
 class EventCombinationsRegistry:
     domain: Dict[str, Domain]
     default: Dict[str, Any]
-    combinations: Set[FrozenSet[Tuple[str, Any]]]
+    combinations: Set[FrozenSet[Tuple[Tuple[str, ...], Any]]]
     per_transitions: Dict[str, Any]
 
     def __init__(self):
@@ -127,24 +131,24 @@ class EventCombinationsRegistry:
         self.combinations = set()
         self.per_transitions = defaultdict(set)
 
-    def values_of(self, k):
-        yield from zip(itertools.repeat(k), self.domain[k].values)
-
-    def all_values(self) -> Iterable[FrozenSet[Tuple[str, Any]]]:
-        yield from map(
-            frozenset, itertools.product(*[self.values_of(k) for k in self.domain])
-        )
-
-    def missing_values(self):
-        yield from (x for x in self.all_values() if x not in self.combinations)
+    #    def values_of(self, k):
+    #        yield from zip(itertools.repeat(k), self.domain[k].values)
+    #
+    #    def all_values(self) -> Iterable[FrozenSet[Tuple[str, Any]]]:
+    #        yield from map(
+    #            frozenset, itertools.product(*[self.values_of(k) for k in self.domain])
+    #        )
+    #
+    #    def missing_values(self):
+    #        yield from (x for x in self.all_values() if x not in self.combinations)
 
     @property
     def covered(self) -> int:
-        return len(self.combinations)
+        return sum(1 for c in self.combinations if all(v is not None for _, v in c))
 
     @property
     def total(self) -> int:
-        return reduce(mul, (d.count for d in self.domain.values()), 1)
+        return reduce(mul, map(len, self.domain.values()), 1)
 
     @property
     def coverage(self) -> float:
@@ -189,29 +193,31 @@ class EventCombinationsRegistry:
 
     def register(self, trace: Trace):
         event_keys = sorted(self.domain)
-        events = TimeSeries.merge([trace.values[e] for e in event_keys])
+        events = TimeSeries.merge([trace.values[e.id] for e in event_keys])
         events.compact()
         # TODO Fill gaps in missing values
         # TODO Configure behaviour on unknown values
         previous_state = {}
         for _, v in events.items():
-            if all(i in self.domain[e].scalars for e, i in zip(event_keys, v)):
-                # Compute transition pair values
-                transitions = {}
-                for e, i in zip(event_keys, v):
-                    if self.domain[e].on_transition:
-                        if e in previous_state and previous_state[e] != i:
-                            transitions[e] = (previous_state[e], i)
-                    previous_state[e] = i
-                # Combine each transition with all other values
-                for c, t in transitions.items():
-                    self.per_transitions[c].add(
-                        frozenset(
-                            (e, i if e != c else t) for e, i in zip(event_keys, v)
-                        )
-                    )
-                # If no transition is required, record the values
-                self.combinations.add(frozenset((e, i) for e, i in zip(event_keys, v)))
+            entry = set()
+            for (e, d), i in zip(sorted(self.domain.items()), v):
+                entry.add((e, i if i in d else None))
+            self.combinations.add(frozenset(entry))
+
+
+#            # TODO if all(i in self.domain[e].scalars for e, i in zip(event_keys, v)):
+#            # Compute transition pair values
+#            transitions = {}
+#            for e, i in zip(event_keys, v):
+#                if self.domain[e].on_transition:
+#                    if e in previous_state and previous_state[e] != i:
+#                        transitions[e] = (previous_state[e], i)
+#                previous_state[e] = i
+#            # Combine each transition with all other values
+#            for c, t in transitions.items():
+#                self.per_transitions[c].add(
+#                    frozenset((e, i if e != c else t) for e, i in zip(event_keys, v))
+#                )
 
 
 if __name__ == "__main__":
