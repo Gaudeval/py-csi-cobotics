@@ -50,14 +50,20 @@ class IdentityDomain(DomainDefinition):
         raise ValueError()
 
 
-@attr.s(frozen=True, init=True)
+@attr.s(frozen=True, init=True, eq=True)
 class RangeDomain(DomainDefinition):
     a: float = attr.ib()
     b: float = attr.ib()
     step: float = attr.ib()  # TODO Constrain step to be positive
+    upper_bound: bool = attr.ib(default=False)
+    lower_bound: bool = attr.ib(default=False)
 
     def value_of(self, v) -> Optional[Any]:
-        if self.a <= v < self.b:
+        if self.lower_bound and v < self.a:
+            return self.a
+        elif self.upper_bound and self.b <= v:
+            return self.b
+        elif self.a <= v < self.b:
             return math.floor((v - self.a) / self.step) * self.step + self.a
         return None
 
@@ -67,7 +73,7 @@ class RangeDomain(DomainDefinition):
         return 0
 
 
-@attr.s(frozen=True, init=True)
+@attr.s(frozen=True, init=True, eq=True)
 class SpaceDomain(DomainDefinition):
     a: float = attr.ib()
     b: float = attr.ib()
@@ -86,7 +92,7 @@ class SpaceDomain(DomainDefinition):
         return None
 
 
-@attr.s(frozen=True, init=True)
+@attr.s(frozen=True, init=True, eq=True)
 class SetDomain(DomainDefinition):
     contents: FrozenSet[Any] = attr.ib(converter=frozenset)
 
@@ -95,38 +101,6 @@ class SetDomain(DomainDefinition):
 
     def value_of(self, v) -> Optional[Any]:
         return v if v in self.contents else None
-
-
-@attr.s(frozen=True, init=True)
-class FilterDomain(DomainDefinition):
-    _definition: DomainDefinition = attr.ib()
-    _filter: Callable[
-        [
-            Any,
-        ],
-        bool,
-    ] = attr.ib()
-    _value: Any = attr.ib()
-
-    @_definition.validator
-    def _defined_domain(self, attribute, value):
-        if not isinstance(value, DomainDefinition):
-            raise ValueError()
-
-    def __len__(self) -> int:
-        if self._definition.value_of(self._value) is None:
-            return len(self._definition) + 1
-        else:
-            return len(self._definition)
-
-    def value_of(self, v) -> Optional[Any]:
-        if self._definition.value_of(v) is None:
-            if self._filter(v):
-                return self._value
-            else:
-                return None
-        else:
-            return self._definition.value_of(v)
 
 
 @attr.s(frozen=True, init=True)
@@ -171,11 +145,7 @@ def __ge(a, b):
 def domain_threshold_range(
     a: float, b: float, step: float, upper: bool = False, lower: bool = False
 ):
-    d = RangeDomain(a, b, step)
-    if upper:
-        d = FilterDomain(d, functools.partial(__ge, b=b), b)
-    if lower:
-        d = FilterDomain(d, functools.partial(__le, b=a), a)
+    d = RangeDomain(a, b, step, lower_bound=lower, upper_bound=upper)
     return Domain(d)
 
 
@@ -229,8 +199,11 @@ class EventCombinationsRegistry:
     def merge(self, other):
         # TODO check domain and fill gaps
         # TODO Create new registry containing merged domains/defaults/values
-        assert self.domain == other.domain
-        self.combinations.update(other.combinations)
+        if self.domain == other.domain:
+            self.combinations.update(other.combinations)
+        else:
+            # TODO Get all values for the other, project into current
+            raise NotImplementedError()
 
     def record(self, values: Dict[Atom, Any]):
         entry = {(k, v) for k, v in values.items() if k in self.domain}
