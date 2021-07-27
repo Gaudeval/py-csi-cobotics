@@ -217,8 +217,8 @@ class Trace:
             k = key.id
         if k not in self.values:
             self.values[k] = TimeSeries()
-        # FIXME
-        e = self.values[k]
-        while t in e._d:
-            t += 0.0001
+        # FIXME Events occuring at the same time
+        #        e = self.values[k]
+        #        while t in e._d:
+        #            t += 0.0001
         self.values[k][t] = v
