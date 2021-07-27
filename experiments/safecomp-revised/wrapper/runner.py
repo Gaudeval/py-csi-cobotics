@@ -395,15 +395,15 @@ class SafecompControllerRunner(DigitalTwinRunner):
                             registries[c].merge(registry)
                         else:
                             registries[c] = registry
-        for path, registry in sorted(registries.items()):
-            print(path, registry.coverage)
+        # for path, registry in sorted(registries.items()):
+        #    print(path, registry.coverage)
         #
         roots = collections.defaultdict(lambda: (0, 0))
         for path, registry in registries.items():
             covered, total = roots[path.parent]
             roots[path.parent] = (registry.covered + covered, registry.total + total)
-        for path, (covered, total) in sorted(roots.items()):
-            print(path, covered, total, float(covered) / total)
+        # for path, (covered, total) in sorted(roots.items()):
+        #    print(path, covered, total, float(covered) / total)
 
     def process_output(self):
         """Extract values from simulation message trace"""
