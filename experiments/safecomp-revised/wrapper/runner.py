@@ -47,9 +47,17 @@ class SafecompControllerRunner(DigitalTwinRunner):
         "inCell": "in_workspace",
     }
 
-    safety_conditions: List[SafetyCondition] = list(unsafe_control_actions) + list(
+    all_safety_conditions: List[SafetyCondition] = list(unsafe_control_actions) + list(
         hazards
     )
+
+    @property
+    def safety_conditions(self):
+        return list(
+            s for s in self.all_safety_conditions if s.uid not in self.blacklist
+        )
+
+    blacklist: Set[str] = {"UCA9-N-1", "7"}
 
     event_combinations_output: Path = Path("events_combinations.pkl")
 
