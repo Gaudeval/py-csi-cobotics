@@ -69,6 +69,8 @@ class RangeDomain(DomainDefinition):
 
     def __len__(self) -> int:
         if self.a <= self.b:
+            if self.upper_bound:
+                return math.ceil((self.b - self.a) / self.step) + 1
             return math.ceil((self.b - self.a) / self.step)
         return 0
 
