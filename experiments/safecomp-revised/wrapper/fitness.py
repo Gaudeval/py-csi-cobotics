@@ -5,13 +5,16 @@ from typing import Tuple
 import numpy
 
 from csi.experiment import Repository, RunStatus, Experiment
-from csi.twin.configuration import TemporalLogicConfiguration
+from csi.twin.configuration import TemporalLogicConfiguration, BuildConfiguration
 from csi.twin.runner import DigitalTwinConfiguration
 from scenarios.tcx import (
     hazards,
     unsafe_control_actions,
     TcxDigitalTwinRunner,
 )
+
+from .configuration import SafetyWorldConfiguration, SafetyBuildConfiguration
+from .runner import SafecompControllerRunner
 
 
 class RunnerFitnessWrapper:
@@ -103,15 +106,13 @@ class RunnerFitnessWrapper:
         evaluation = TemporalLogicConfiguration()
         evaluation.connective = self.evaluation_logic
         evaluation.quantitative = self.evaluation_quantitative
+        # Build configuration
+        b = SafetyBuildConfiguration(self.build)
         # Prepare experiment
-        exp = TcxDigitalTwinRunner(
+        exp = SafecompControllerRunner(
             self.repository.path,
-            DigitalTwinConfiguration(world, self.build, evaluation),
+            DigitalTwinConfiguration(world, b, evaluation),
         )
-        # Load default conditions
-        exp.safety_conditions = []
-        exp.safety_conditions.extend(hazards)
-        exp.safety_conditions.extend(unsafe_control_actions)
         # Run experiment and compute score
         exp.run()
         return self.score_experiment(exp)
