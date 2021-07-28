@@ -12,7 +12,6 @@ discrete-signals==0.7.3
 drs==2.0.0
 func-timeout==4.3.5
 funcy==1.15
-fuzzy-temporal-logic @ file:///C:/Users/Benjamin/Data/Code/py-csi-cobotics/fuzzy_temporal_logic-0.2.2-py3-none-any.whl
 geneticalgorithm==1.0.2
 infinity==1.5
 iniconfig==1.1.1
