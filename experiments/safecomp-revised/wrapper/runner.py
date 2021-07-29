@@ -1,9 +1,12 @@
+import attr
 import collections
 import hashlib
 import itertools
 import json
 import pickle
+from tqdm import tqdm
 
+from multiprocessing import Pool
 from pathlib import Path
 from typing import List, Iterable, Set
 
@@ -26,6 +29,38 @@ from scenarios.tcx.monitor import World
 from scenarios.tcx.safety.hazards import hazards
 
 from .utils import as_working_directory
+
+
+def load_registry(filename):
+    with filename.open("rb") as registry_file:
+        return pickle.load(registry_file)
+
+
+def merge_registry(source, target):
+    source.merge(target)
+
+
+@attr.s()
+class CoverageRecord:
+    covered: int = attr.ib()
+    total: int = attr.ib()
+
+    @property
+    def coverage(self) -> float:
+        return float(self.covered) / self.total
+
+
+class CoverageReport:
+    atom_coverage: dict[int, CoverageRecord]
+    condition_coverage: dict[int, CoverageRecord]
+    predicate_coverage: dict[int, CoverageRecord]
+    safety_coverage: dict[int, CoverageRecord]
+
+    def __init__(self):
+        self.atom_coverage = dict()
+        self.condition_coverage = dict()
+        self.predicate_coverage = dict()
+        self.safety_coverage = dict()
 
 
 class SafecompControllerRunner(DigitalTwinRunner):
@@ -383,35 +418,50 @@ class SafecompControllerRunner(DigitalTwinRunner):
         return set(itertools.chain(terms, comparisons))
 
     @staticmethod
-    def merge_coverage(repository):
+    def merge_coverage(repository) -> CoverageReport:
         # Merge coverage metrics
-        runs = set()
+        runs = {(e, r) for (e, r) in repository.completed_runs}
         coverage_files = set()
-        for e, r in repository.runs:
+        #
+        for e, r in tqdm(runs, desc="Collecting coverage record names"):
             e: SafecompControllerRunner
             runs.add((e, r))
             with as_working_directory(r.work_path):
                 coverage_files.update(e.coverage_root.glob("**/registry-*.pkl"))
         #
         registries = dict()
-        for e, r in runs:
-            with as_working_directory(r.work_path):
-                for c in coverage_files:
-                    with c.open("rb") as registry_file:
-                        registry = pickle.load(registry_file)
-                        if c in registries:
-                            registries[c].merge(registry)
-                        else:
-                            registries[c] = registry
-        # for path, registry in sorted(registries.items()):
-        #    print(path, registry.coverage)
+        with Pool(8) as p:
+            for e, r in tqdm(runs, desc="Merge coverage records across runs"):
+                with as_working_directory(r.work_path):
+                    # Load registry
+                    records = dict(zip(coverage_files, p.map(load_registry, coverage_files)))
+                    # Create missing entries
+                    for name, entry in records.items():
+                        if name not in registries:
+                            registries[name] = entry
+                    # Merge registries with existing entries
+                    p.starmap(merge_registry, ((registries[n], records[n]) for n in records))
         #
         roots = collections.defaultdict(lambda: (0, 0))
-        for path, registry in registries.items():
+        for path, registry in tqdm(registries.items(), desc="Compute coverage per metric"):
             covered, total = roots[path.parent]
             roots[path.parent] = (registry.covered + covered, registry.total + total)
-        # for path, (covered, total) in sorted(roots.items()):
-        #    print(path, covered, total, float(covered) / total)
+        for path, (covered, total) in sorted(roots.items()):
+           print(path, covered, total, float(covered) / total)
+        # Generate coverage report
+        coverage_report = CoverageReport()
+        for path, (coverage, total) in tqdm(roots.items(), desc="Generate coverage report"):
+            metric_type = path.parent.name
+            combination_size = int(path.name)
+            if metric_type == "atom":
+                coverage_report.atom_coverage[combination_size] = CoverageRecord(coverage, total)
+            elif metric_type == "condition":
+                coverage_report.condition_coverage[combination_size] = CoverageRecord(coverage, total)
+            elif metric_type == "predicate":
+                coverage_report.predicate_coverage[combination_size] = CoverageRecord(coverage, total)
+            elif metric_type == "safety":
+                coverage_report.safety_coverage[combination_size] = CoverageRecord(coverage, total)
+        return coverage_report
 
     def process_output(self):
         """Extract values from simulation message trace"""
