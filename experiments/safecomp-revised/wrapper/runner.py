@@ -31,13 +31,17 @@ from scenarios.tcx.safety.hazards import hazards
 from .utils import as_working_directory
 
 
-def load_registry(filename):
-    with filename.open("rb") as registry_file:
-        return pickle.load(registry_file)
+def load_registry(filename: Path):
+    if filename.exists():
+        with filename.open("rb") as registry_file:
+            return pickle.load(registry_file)
+    print(f"Coverage registry '{filename.absolute()}' does not exist")
+    return None
 
 
 def merge_registry(source, target):
-    source.merge(target)
+    if target is not None:
+        source.merge(target)
 
 
 @attr.s()
@@ -430,14 +434,14 @@ class SafecompControllerRunner(DigitalTwinRunner):
                 coverage_files.update(e.coverage_root.glob("**/registry-*.pkl"))
         #
         registries = dict()
-        with Pool(8) as p:
-            for e, r in tqdm(runs, desc="Merge coverage records across runs"):
-                with as_working_directory(r.work_path):
+        for e, r in tqdm(runs, desc="Merge coverage records across runs"):
+            with as_working_directory(r.work_path):
+                with Pool(8) as p:
                     # Load registry
                     records = dict(zip(coverage_files, p.map(load_registry, coverage_files)))
                     # Create missing entries
                     for name, entry in records.items():
-                        if name not in registries:
+                        if name not in registries and entry is not None:
                             registries[name] = entry
                     # Merge registries with existing entries
                     p.starmap(merge_registry, ((registries[n], records[n]) for n in records))
