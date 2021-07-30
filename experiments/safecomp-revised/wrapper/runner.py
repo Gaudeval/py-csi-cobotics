@@ -418,7 +418,7 @@ class SafecompControllerRunner(DigitalTwinRunner):
                     comparisons.add(p)
         # Remove values used in comparisons
         for p in comparisons:
-            terms.difference(p.children)
+            terms = terms.difference(p.children)
         return set(itertools.chain(terms, comparisons))
 
     @staticmethod
@@ -438,33 +438,49 @@ class SafecompControllerRunner(DigitalTwinRunner):
             with as_working_directory(r.work_path):
                 with Pool(8) as p:
                     # Load registry
-                    records = dict(zip(coverage_files, p.map(load_registry, coverage_files)))
+                    records = dict(
+                        zip(coverage_files, p.map(load_registry, coverage_files))
+                    )
                     # Create missing entries
                     for name, entry in records.items():
                         if name not in registries and entry is not None:
                             registries[name] = entry
                     # Merge registries with existing entries
-                    p.starmap(merge_registry, ((registries[n], records[n]) for n in records))
+                    p.starmap(
+                        merge_registry, ((registries[n], records[n]) for n in records)
+                    )
         #
         roots = collections.defaultdict(lambda: (0, 0))
-        for path, registry in tqdm(registries.items(), desc="Compute coverage per metric"):
+        for path, registry in tqdm(
+            registries.items(), desc="Compute coverage per metric"
+        ):
             covered, total = roots[path.parent]
             roots[path.parent] = (registry.covered + covered, registry.total + total)
         for path, (covered, total) in sorted(roots.items()):
-           print(path, covered, total, float(covered) / total)
+            print(path, covered, total, float(covered) / total)
         # Generate coverage report
         coverage_report = CoverageReport()
-        for path, (coverage, total) in tqdm(roots.items(), desc="Generate coverage report"):
+        for path, (coverage, total) in tqdm(
+            roots.items(), desc="Generate coverage report"
+        ):
             metric_type = path.parent.name
             combination_size = int(path.name)
             if metric_type == "atom":
-                coverage_report.atom_coverage[combination_size] = CoverageRecord(coverage, total)
+                coverage_report.atom_coverage[combination_size] = CoverageRecord(
+                    coverage, total
+                )
             elif metric_type == "condition":
-                coverage_report.condition_coverage[combination_size] = CoverageRecord(coverage, total)
+                coverage_report.condition_coverage[combination_size] = CoverageRecord(
+                    coverage, total
+                )
             elif metric_type == "predicate":
-                coverage_report.predicate_coverage[combination_size] = CoverageRecord(coverage, total)
+                coverage_report.predicate_coverage[combination_size] = CoverageRecord(
+                    coverage, total
+                )
             elif metric_type == "safety":
-                coverage_report.safety_coverage[combination_size] = CoverageRecord(coverage, total)
+                coverage_report.safety_coverage[combination_size] = CoverageRecord(
+                    coverage, total
+                )
         return coverage_report
 
     def process_output(self):
