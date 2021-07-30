@@ -22,7 +22,7 @@ if __name__ == "__main__":
     if not RUNS_PATH.exists():
         RUNS_PATH.mkdir(parents=True, exist_ok=True)
 
-        t = TemporalLogicConfiguration("zadeh")
+        t = TemporalLogicConfiguration("zadeh", quantitative=True)
 
         w = SafetyWorldConfiguration()
         w.wp_start.duration = 30.0
@@ -67,7 +67,7 @@ if __name__ == "__main__":
                     pass
 
             # Compute experiment score
-            s = RunnerFitnessWrapper().score_experiment(e)
+            s = RunnerFitnessWrapper(logic="zadeh").score_experiment(e)
             print(s)
 
         SafecompControllerRunner.merge_coverage(x)
