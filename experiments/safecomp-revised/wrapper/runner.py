@@ -411,11 +411,19 @@ class SafecompControllerRunner(DigitalTwinRunner):
         comparisons: Set[BinaryOpMTL] = set()
         # Extract all candidates
         for s in safety_conditions:
+            local_comparisons = set()
             for p in s.condition.walk():
                 if isinstance(p, AtomicPred):
                     terms.add(p)
                 if isinstance(p, BinaryOpMTL):
-                    comparisons.add(p)
+                    local_comparisons.add(p)
+            for p in list(local_comparisons):
+                if any(
+                    c.children == p.children and p.OP == "=" and c.OP == "<"
+                    for c in local_comparisons
+                ):
+                    local_comparisons.remove(p)
+            comparisons.update(local_comparisons)
         # Remove values used in comparisons
         for p in comparisons:
             terms = terms.difference(p.children)

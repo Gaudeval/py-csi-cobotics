@@ -23,7 +23,6 @@ default_runner = SafecompControllerRunner(".", None)
 
 domain: dict[Atom, Domain] = default_runner.initialise_registry().domain
 conditions: list[SafetyCondition] = default_runner.safety_conditions
-# FIXME Boolean predicates for le/ge operators are split in two, lt and eq. Covering eq is highly unlikely
 predicates: set[Node] = default_runner.extract_boolean_predicates(conditions)
 
 
