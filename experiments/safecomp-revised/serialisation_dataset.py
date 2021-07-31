@@ -9,7 +9,7 @@ from pathlib import Path
 
 from mtl import BOT
 from traces import TimeSeries
-from typing import Any, Iterator
+from typing import Any, Iterator, Iterable
 
 from csi.coverage import Domain
 from csi.experiment import Repository, Run
@@ -31,15 +31,20 @@ def sanitise_name(condition: SafetyCondition):
     return condition.uid.replace("-", "_").replace(".", " ")
 
 
-def collect_states(trace: Trace) -> Iterator[tuple[float, set[tuple[str, Any]]]]:
-    event_keys: list[Atom] = sorted(domain, key=lambda d: d.id)
+def collect_states(
+    trace: Trace, conditions: Iterable[SafetyCondition]
+) -> Iterator[tuple[float, set[tuple[str, Any]]]]:
+    atoms = (
+        set(domain.keys()) & Monitor(frozenset(c.condition for c in conditions)).atoms()
+    )
+    event_keys: list[Atom] = sorted(atoms, key=lambda d: d.id)
     events: TimeSeries = TimeSeries.merge([trace.values[e.id] for e in event_keys])
     events.compact()
     t: float
-    # TODO Filter values used in monitor, e.g. ignore unused atoms in any safety condition
     for t, v in events.items():
         s = set()
-        for (e, d), i in zip(sorted(domain.items(), key=lambda d: d[0].id), v):
+        for e, i in zip(atoms, v):
+            d = domain[e]
             s.add(("_".join(e.id), d.value(i)))
         yield t, s
 
@@ -110,7 +115,7 @@ if __name__ == "__main__":
     predicates_table: dataset.Table
     conditions_table: dataset.Table
     #
-    db = dataset.connect("sqlite:///test.db")
+    db = dataset.connect("sqlite:///")
     states_table = db["states"]
     predicates_table = db["predicates"]
     pred_value_table = db["predicates_values"]
@@ -134,7 +139,7 @@ if __name__ == "__main__":
         db.commit()
         #
         for run, trace in tqdm.tqdm(collect_traces(repository)):
-            for timestamp, state in collect_states(trace):
+            for timestamp, state in collect_states(trace, conditions):
                 meta = {"run": str(run.uuid), "timestamp": timestamp}
                 states_table.insert(dict(state) | meta, ensure=True)
             db.commit()
@@ -148,7 +153,7 @@ if __name__ == "__main__":
             #
             meta = {"run": str(run.uuid)}
             conditions_table.insert(
-                {sanitise_name(c): v for c, v in collect_conditions(run, trace)},
+                {sanitise_name(c): v for c, v in collect_conditions(run, trace)} | meta,
                 ensure=True,
             )
         timer_end = timeit.default_timer()
@@ -157,6 +162,9 @@ if __name__ == "__main__":
         timer_start = timeit.default_timer()
         # Atom coverage
         domain_columns = {"_".join(a.id): d for a, d in domain.items()}
+        domain_columns = {
+            a: d for a, d in domain_columns.items() if a in states_table.columns
+        }
         atoms_covered = 0
         atoms_count = sum(len(d) for d in domain_columns.values())
         for atom_column in sorted(domain_columns):
