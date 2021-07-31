@@ -21,7 +21,12 @@ default_runner = SafecompControllerRunner(".", None)
 
 domain: dict[Atom, Domain] = default_runner.initialise_registry().domain
 conditions: list[SafetyCondition] = default_runner.safety_conditions
+# FIXME Boolean predicates for le/ge operators are split in two, lt and eq. Covering eq is highly unlikely
 predicates: set[Node] = default_runner.extract_boolean_predicates(conditions)
+
+
+def sanitise_name(condition: SafetyCondition):
+    return condition.uid.replace("-", "_").replace(".", " ")
 
 
 def collect_states(trace: Trace) -> Iterator[tuple[float, set[tuple[str, Any]]]]:
@@ -63,6 +68,19 @@ def collect_predicates(trace: Trace):
         yield t, s
 
 
+def collect_conditions(run: Run, trace: Trace):
+    for condition in conditions:
+        i = Monitor().evaluate(
+            trace,
+            condition.condition,
+            dt=0.01,
+            quantitative=run.experiment.configuration.ltl.quantitative,
+            logic=run.experiment.configuration.ltl.logic,
+        )
+        # FIXME Ignore conditions which are always False/True (BOT/TOP)
+        yield condition, i >= run.experiment.configuration.ltl.logic.const_true
+
+
 def collect_traces(repository_path: Path) -> Iterator[tuple[Run, Trace]]:
     x: Repository = Repository(repository_path)
     r: Run
@@ -87,11 +105,13 @@ if __name__ == "__main__":
     db: dataset.Database
     states_table: dataset.Table
     predicates_table: dataset.Table
+    conditions_table: dataset.Table
     #
-    db = dataset.connect("sqlite:///dataset.test.db")
+    db = dataset.connect("sqlite:///")
     states_table = db["states"]
     predicates_table = db["predicates"]
     pred_value_table = db["predicates_values"]
+    conditions_table = db["conditions"]
     #
     if test_insert:
         timer_start = timeit.default_timer()
@@ -122,12 +142,18 @@ if __name__ == "__main__":
                     {str(predicate_ids[p]): v for p, v in state} | meta, ensure=True
                 )
             db.commit()
+            #
+            meta = {"run": str(run.uuid)}
+            conditions_table.insert(
+                {sanitise_name(c): v for c, v in collect_conditions(run, trace)},
+                ensure=True,
+            )
         timer_end = timeit.default_timer()
         print(f"Insertion duration: {timer_end - timer_start}")
     if test_coverage:
-        domain_columns = {"_".join(a.id): d for a, d in domain.items()}
-        # Atom coverage
         timer_start = timeit.default_timer()
+        # Atom coverage
+        domain_columns = {"_".join(a.id): d for a, d in domain.items()}
         atoms_covered = 0
         atoms_count = sum(len(d) for d in domain_columns.values())
         for atom_column in sorted(domain_columns):
@@ -147,11 +173,22 @@ if __name__ == "__main__":
             predicate = predicates_table.find_one(id=int(predicate_column))["predicate"]
             print(f"Predicate '{predicate}': {predicate_covered} / 2")
             predicates_covered += predicate_covered
-        # TODO Condition/Safety coverage
+        # Condition/Safety coverage
+        condition_columns = {sanitise_name(c) for c in conditions}
+        conditions_covered = 0
+        conditions_count = 2 * len(conditions)
+        for condition_column in sorted(condition_columns):
+            condition_covered = sum(
+                1 for _ in conditions_table.distinct(condition_column)
+            )
+            print(f"Condition '{condition_column}': {condition_covered} / 2")
+            conditions_covered += condition_covered
         timer_end = timeit.default_timer()
         print(f"Atom coverage: {atoms_covered / atoms_count}")
         print(f"               {atoms_covered} / {atoms_count}")
         print(f"Pred coverage: {predicates_covered / predicates_count}")
         print(f"               {predicates_covered} / {predicates_count}")
+        print(f"Cond coverage: {conditions_covered / conditions_count}")
+        print(f"               {conditions_covered} / {conditions_count}")
         print(f"     duration: {timer_end - timer_start}")
     db.close()
