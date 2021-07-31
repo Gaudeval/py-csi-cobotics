@@ -6,6 +6,8 @@ import mtl.connective
 import tqdm
 
 from pathlib import Path
+
+from mtl import BOT
 from traces import TimeSeries
 from typing import Any, Iterator
 
@@ -70,6 +72,8 @@ def collect_predicates(trace: Trace):
 
 def collect_conditions(run: Run, trace: Trace):
     for condition in conditions:
+        if condition.condition == BOT:
+            continue
         i = Monitor().evaluate(
             trace,
             condition.condition,
@@ -77,7 +81,6 @@ def collect_conditions(run: Run, trace: Trace):
             quantitative=run.experiment.configuration.ltl.quantitative,
             logic=run.experiment.configuration.ltl.logic,
         )
-        # FIXME Ignore conditions which are always False/True (BOT/TOP)
         yield condition, i >= run.experiment.configuration.ltl.logic.const_true
 
 
@@ -107,7 +110,7 @@ if __name__ == "__main__":
     predicates_table: dataset.Table
     conditions_table: dataset.Table
     #
-    db = dataset.connect("sqlite:///")
+    db = dataset.connect("sqlite:///test.db")
     states_table = db["states"]
     predicates_table = db["predicates"]
     pred_value_table = db["predicates_values"]
@@ -175,8 +178,9 @@ if __name__ == "__main__":
             predicates_covered += predicate_covered
         # Condition/Safety coverage
         condition_columns = {sanitise_name(c) for c in conditions}
+        condition_columns = condition_columns & set(conditions_table.columns)
         conditions_covered = 0
-        conditions_count = 2 * len(conditions)
+        conditions_count = 2 * len(condition_columns)
         for condition_column in sorted(condition_columns):
             condition_covered = sum(
                 1 for _ in conditions_table.distinct(condition_column)
