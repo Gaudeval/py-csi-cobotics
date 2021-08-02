@@ -25,19 +25,19 @@ hazards = {
         "Violation of minimum separation requirements [Two entities hold onto the same assembly])",
         # Two manipulators hold on the assembly
         (
-            reduce(
-                operator.__or__,
-                (
-                    ~(
-                        (
-                            i.has_assembly
-                            & j.has_assembly
-                            & (i.is_moving | j.is_moving)
-                        ).implies((~(i.is_moving | j.is_moving)).eventually(hi=0.1))
-                    )
-                    for i, j in itertools.combinations(Grabbers, 2)
-                ),
-                BOT,
+            (
+                P.cobot.has_assembly
+                & P.tool.has_assembly
+                & P.cobot.is_moving
+                & P.cobot.velocity.gt(2.0)
+            )
+            | (
+                P.operator.has_assembly
+                & P.cobot.has_assembly
+                & (
+                    (P.cobot.is_moving & P.cobot.velocity.gt(2.0))
+                    | P.operator.is_moving
+                )
             )
         ).eventually(),
     ),
