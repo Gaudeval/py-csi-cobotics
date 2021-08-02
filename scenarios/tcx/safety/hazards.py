@@ -5,7 +5,7 @@ from functools import reduce
 
 from csi.safety.stpa import Hazard
 from csi.monitor import Monitor
-from ..monitor import Entities
+from ..monitor import Entities, Grabbers
 from mtl import BOT
 
 from ..monitor import P
@@ -29,7 +29,7 @@ hazards = {
                 operator.__or__,
                 (
                     i.has_assembly & j.has_assembly & (i.is_moving | j.is_moving)
-                    for i, j in itertools.combinations(Entities, 2)
+                    for i, j in itertools.combinations(Grabbers, 2)
                 ),
                 BOT,
             )
