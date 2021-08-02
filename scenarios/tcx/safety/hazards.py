@@ -28,7 +28,13 @@ hazards = {
             reduce(
                 operator.__or__,
                 (
-                    i.has_assembly & j.has_assembly & (i.is_moving | j.is_moving)
+                    ~(
+                        (
+                            i.has_assembly
+                            & j.has_assembly
+                            & (i.is_moving | j.is_moving)
+                        ).implies((~(i.is_moving | j.is_moving)).eventually(hi=0.1))
+                    )
                     for i, j in itertools.combinations(Grabbers, 2)
                 ),
                 BOT,
