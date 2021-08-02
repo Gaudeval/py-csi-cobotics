@@ -33,8 +33,8 @@ def sanitise_name(condition: SafetyCondition):
 def collect_states(
     trace: Trace, conditions: Iterable[SafetyCondition]
 ) -> Iterator[tuple[float, set[tuple[str, Any]]]]:
-    atoms = (
-        set(domain.keys()) & Monitor(frozenset(c.condition for c in conditions)).atoms()
+    atoms = set(domain.keys()) | set(
+        Monitor(frozenset(c.condition for c in conditions)).atoms()
     )
     event_keys: list[Atom] = sorted(atoms, key=lambda d: d.id)
     events: TimeSeries = TimeSeries.merge([trace.values[e.id] for e in event_keys])
@@ -42,9 +42,12 @@ def collect_states(
     t: float
     for t, v in events.items():
         s = set()
-        for e, i in zip(atoms, v):
-            d = domain[e]
-            s.add(("_".join(e.id), d.value(i)))
+        for e, i in zip(event_keys, v):
+            if e in domain:
+                d = domain[e]
+                s.add(("_".join(e.id), d.value(i)))
+            else:
+                s.add(("_".join(e.id), i))
         yield t, s
 
 
@@ -160,7 +163,12 @@ if __name__ == "__main__":
     if test_coverage:
         timer_start = timeit.default_timer()
         # Atom coverage
-        domain_columns = {"_".join(a.id): d for a, d in domain.items()}
+        condition_atoms = set(
+            Monitor(frozenset(c.condition for c in conditions)).atoms()
+        )
+        domain_columns = {
+            "_".join(a.id): d for a, d in domain.items() if a in condition_atoms
+        }
         domain_columns = {
             a: d for a, d in domain_columns.items() if a in states_table.columns
         }
