@@ -504,8 +504,8 @@ class SafecompControllerRunner(DigitalTwinRunner):
             monitor += s.condition
         missing_atoms = sorted(a for a in monitor.atoms() - trace.atoms())
         # Compute events combinations
-        combinations = self.compute_events_combinations(trace)
-        self.compute_coverage(trace, monitor, combinations)
+        # combinations = self.compute_events_combinations(trace)
+        # self.compute_coverage(trace, monitor, combinations)
         return trace, self.safety_conditions
 
 
