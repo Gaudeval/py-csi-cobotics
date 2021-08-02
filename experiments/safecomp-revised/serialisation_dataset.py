@@ -189,10 +189,12 @@ if __name__ == "__main__":
         conditions_covered = 0
         conditions_count = 2 * len(condition_columns)
         for condition_column in sorted(condition_columns):
-            condition_covered = sum(
-                1 for _ in conditions_table.distinct(condition_column)
+            v = list(conditions_table.distinct(condition_column))
+            condition_covered = sum(1 for _ in v)
+            observed = any(c[condition_column] for c in v)
+            print(
+                f"Condition '{condition_column}': {condition_covered} / 2 (Seen: {observed})"
             )
-            print(f"Condition '{condition_column}': {condition_covered} / 2")
             conditions_covered += condition_covered
         timer_end = timeit.default_timer()
         print(f"Atom coverage: {atoms_covered / atoms_count}")
