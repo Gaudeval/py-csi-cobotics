@@ -160,8 +160,10 @@ class SafecompControllerRunner(DigitalTwinRunner):
             trace[self.entity[m.entity].is_moving] = (m.timestamp, bool(m.is_moving))
 
         welder_running = False
-        trace[P.tool.is_running] = (0.0, False)
         trace[P.tool.has_assembly] = (0.0, False)
+        trace[P.cobot.has_assembly] = (0.0, True)
+        trace[P.operator.has_assembly] = (0.0, False)
+        trace[P.tool.is_running] = (0.0, False)
         trace[P.assembly.under_processing] = (0.0, False)
         trace[P.assembly.is_processed] = (0.0, False)
         for m in from_table(db, "entitystatus"):
@@ -201,23 +203,19 @@ class SafecompControllerRunner(DigitalTwinRunner):
                     raise Exception("Unknown welder status")
 
         # Placeholder for know values/constants
-        trace[P.assembly.has_assembly] = (0.0, False)
         trace[P.controller.is_configured] = (0.0, True)
-        trace[P.lidar.has_assembly] = (0.0, False)
         trace[P.lidar.is_damaged] = (0.0, False)
 
         # Placeholder for non-modelled properties
         trace[P.assembly.is_orientation_valid] = (0.0, True)
         trace[P.assembly.is_secured] = (0.0, True)
         trace[P.assembly.is_valid] = (0.0, True)
-        trace[P.cobot.has_assembly] = (0.0, True)
-        trace[P.operator.has_assembly] = (0.0, False)
         trace[P.operator.provides_assembly] = (0.0, False)
 
         # Define constraints
-        trace[P.constraints.cobot.velocity.in_bench] = (0.0, 1.5)
-        trace[P.constraints.cobot.velocity.in_tool] = (0.0, 1.5)
-        trace[P.constraints.cobot.velocity.in_workspace] = (0.0, 2.5)
+        trace[P.constraints.cobot.velocity.in_bench] = (0.0, 15.0)
+        trace[P.constraints.cobot.velocity.in_tool] = (0.0, 15.0)
+        trace[P.constraints.cobot.velocity.in_workspace] = (0.0, 100.0)
         trace[P.constraints.cobot.velocity.proximity] = (0.0, 0.75)
         trace[P.constraints.cobot.distance.proximity] = (0.0, 0.5)
         trace[P.constraints.tool.distance.operation] = (0.0, 0.5)
