@@ -70,10 +70,18 @@ hazards = {
     __register_hazard(
         "2",
         "Individual or Object in dangerous area [Temp: Obstruction with active Tool]",
-        (
-            P.tool.is_running
-            & (P.tool.distance.lt(P.constraints.tool.distance.operation, __TOLERANCE))
-        ).eventually(),
+        ~(
+            (
+                P.tool.is_running
+                & (
+                    P.tool.distance.lt(
+                        P.constraints.tool.distance.operation, __TOLERANCE
+                    )
+                )
+            )
+            .implies((~P.tool.is_running).eventually(lo=0.0, hi=0.05))
+            .always()
+        ),
     ),
     __register_hazard(
         "3",
