@@ -85,7 +85,7 @@ hazards = {
                     )
                 )
             )
-            .implies((~P.tool.is_running).eventually(lo=0.0, hi=0.05))
+            .implies((~P.tool.is_running).eventually(lo=0.0, hi=1.0))
             .always()
         ),
     ),
