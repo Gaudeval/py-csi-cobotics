@@ -107,17 +107,19 @@ if __name__ == "__main__":
     #
     test_insert: bool = True
     test_coverage: bool = True
-    repository = Path(
-        "C:\\Users\\Benjamin\\Data\\repositories\\safecomp-revised\\runs.ran"
-    )
-    # repository = Path("runs")
+    test_db: bool = True
+    repository = Path("runs")
     #
     db: dataset.Database
     states_table: dataset.Table
     predicates_table: dataset.Table
     conditions_table: dataset.Table
     #
-    db = dataset.connect("sqlite:///")
+    if test_db:
+        Path("test.db").unlink(missing_ok=True)
+        db = dataset.connect("sqlite:///test.db")
+    else:
+        db = dataset.connect("sqlite:///")
     states_table = db["states"]
     predicates_table = db["predicates"]
     pred_value_table = db["predicates_values"]
