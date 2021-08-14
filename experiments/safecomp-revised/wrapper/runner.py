@@ -216,7 +216,7 @@ class SafecompControllerRunner(DigitalTwinRunner):
         trace[P.constraints.cobot.velocity.in_bench] = (0.0, 15.0)
         trace[P.constraints.cobot.velocity.in_tool] = (0.0, 15.0)
         trace[P.constraints.cobot.velocity.in_workspace] = (0.0, 100.0)
-        trace[P.constraints.cobot.velocity.proximity] = (0.0, 0.75)
+        trace[P.constraints.cobot.velocity.proximity] = (0.0, 9.0)
         trace[P.constraints.cobot.distance.proximity] = (0.0, 0.5)
         trace[P.constraints.tool.distance.operation] = (0.0, 0.5)
 
@@ -240,7 +240,7 @@ class SafecompControllerRunner(DigitalTwinRunner):
             0.0, 4.0, 0.25, upper=True
         )
         registry.domain[P.cobot.velocity] = domain_threshold_range(
-            0.0, 4.0, 0.25, upper=True
+            0.0, 16.0, 0.25, upper=True
         )
         registry.domain[P.cobot.position.in_workspace] = domain_values({True, False})
         registry.domain[P.assembly.position.in_bench] = domain_values({True, False})

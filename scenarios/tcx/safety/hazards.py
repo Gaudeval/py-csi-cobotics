@@ -29,13 +29,13 @@ hazards = {
                 P.cobot.has_assembly
                 & P.tool.has_assembly
                 & P.cobot.is_moving
-                & P.cobot.velocity.gt(2.0)
+                & P.cobot.velocity.gt(7.0)
             )
             | (
                 P.operator.has_assembly
                 & P.cobot.has_assembly
                 & (
-                    (P.cobot.is_moving & P.cobot.velocity.gt(2.0))
+                    (P.cobot.is_moving & P.cobot.velocity.gt(7.0))
                     | P.operator.is_moving
                 )
             )
