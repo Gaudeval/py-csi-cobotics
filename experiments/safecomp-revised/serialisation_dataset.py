@@ -88,7 +88,7 @@ def collect_conditions(run: Run, trace: Trace):
             quantitative=run.experiment.configuration.ltl.quantitative,
             logic=run.experiment.configuration.ltl.logic,
         )
-        yield condition, i >= run.experiment.configuration.ltl.logic.const_true
+        yield condition, i >= run.experiment.configuration.ltl.logic.const_true, i
 
 
 def collect_traces(repository_path: Path) -> Iterator[tuple[Run, Trace]]:
@@ -119,11 +119,14 @@ if __name__ == "__main__":
         Path("test.db").unlink(missing_ok=True)
         db = dataset.connect("sqlite:///test.db")
     else:
-        db = dataset.connect("sqlite:///")
+        db = dataset.connect(
+            "sqlite:///;Synchronous=NORMAL;Journal Mode=WAL;Temp Store=MEMORY;"
+        )
     states_table = db["states"]
     predicates_table = db["predicates"]
     pred_value_table = db["predicates_values"]
     conditions_table = db["conditions"]
+    fuzzy_conditions_table = db["conditions_fuzzy"]
     #
     if test_insert:
         timer_start = timeit.default_timer()
@@ -156,8 +159,15 @@ if __name__ == "__main__":
             db.commit()
             #
             meta = {"run": str(run.uuid)}
+            condition_values = {
+                sanitise_name(c): (v, i) for c, v, i in collect_conditions(run, trace)
+            }
             conditions_table.insert(
-                {sanitise_name(c): v for c, v in collect_conditions(run, trace)} | meta,
+                {k: v for k, (v, _) in condition_values.items()} | meta,
+                ensure=True,
+            )
+            fuzzy_conditions_table.insert(
+                {k: v for k, (_, v) in condition_values.items()} | meta,
                 ensure=True,
             )
         timer_end = timeit.default_timer()
