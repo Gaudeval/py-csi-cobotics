@@ -1,8 +1,30 @@
 import operator
+from enum import Enum, unique
 from functools import reduce
 from lenses import bind
 from mtl import BOT
 from csi.monitor import Alias, Context, Term
+
+
+@unique
+class SafetyMode(Enum):
+    PFLIM = 0
+    NORMAL = 1
+    STOPPED = 2
+    SRMST = 3
+    SSMON = 4
+    HGUID = 5
+
+
+@unique
+class SafetyPhase(Enum):
+    RES = 0
+    ACT = 1
+    INACT = 2
+    MIS = 3
+    MIT2 = 4
+    MIT = 5
+    MIT1 = 6
 
 
 class Position(Context):
@@ -62,6 +84,13 @@ class Workspace(Context):
     pass
 
 
+class Safety(Context):
+    mode = Term()
+    hsp = Term()
+    hcp = Term()
+    hrwp = Term()
+
+
 class World(Context):
     assembly = Assembly()
     cobot = Grabber()
@@ -71,6 +100,7 @@ class World(Context):
     tool = Grabber()
     workspace = Workspace()
     lidar = Entity()
+    safety = Safety()
 
 
 P = World()

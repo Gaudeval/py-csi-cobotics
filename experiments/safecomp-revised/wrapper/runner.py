@@ -109,6 +109,16 @@ class SafecompControllerRunner(DigitalTwinRunner):
         trace = Trace()
         P = World()
 
+        # safety.mode
+        for m in from_table(db, "safetymoderequest"):
+            # TODO
+            pass
+
+        # safety.hazards
+        for m in from_table(db, "safetyphasemessage"):
+            # TODO
+            pass
+
         # Entity.distance
         trace[P.cobot.distance] = (0.0, float("inf"))
         trace[P.tool.distance] = (0.0, float("inf"))
