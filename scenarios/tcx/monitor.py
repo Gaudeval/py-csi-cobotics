@@ -7,7 +7,7 @@ from csi.monitor import Alias, Context, Term
 
 
 @unique
-class SafetyMode(Enum):
+class SafMod(Enum):
     PFLIM = 0
     NORMAL = 1
     STOPPED = 2
@@ -17,7 +17,7 @@ class SafetyMode(Enum):
 
 
 @unique
-class SafetyPhase(Enum):
+class Phase(Enum):
     RES = 0
     ACT = 1
     INACT = 2

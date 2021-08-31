@@ -25,7 +25,7 @@ from csi.twin import DigitalTwinRunner, DataBase
 from csi.twin.importer import from_table
 from scenarios.tcx import unsafe_control_actions
 
-from scenarios.tcx.monitor import World
+from scenarios.tcx.monitor import World, SafMod
 from scenarios.tcx.safety.hazards import hazards
 
 from .utils import as_working_directory
@@ -110,9 +110,9 @@ class SafecompControllerRunner(DigitalTwinRunner):
         P = World()
 
         # safety.mode
+        trace[P.safety.mode] = (0.0, SafMod.NORMAL)
         for m in from_table(db, "safetymoderequest"):
-            # TODO
-            pass
+            trace[P.safety.mode] = (m.timestamp, SafMod(m.status))
 
         # safety.hazards
         for m in from_table(db, "safetyphasemessage"):
