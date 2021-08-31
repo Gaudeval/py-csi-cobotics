@@ -1,5 +1,5 @@
 import operator
-from enum import Enum, unique
+from enum import IntEnum, unique
 from functools import reduce
 from lenses import bind
 from mtl import BOT
@@ -7,7 +7,7 @@ from csi.monitor import Alias, Context, Term
 
 
 @unique
-class SafMod(Enum):
+class SafMod(IntEnum):
     PFLIM = 0
     NORMAL = 1
     STOPPED = 2
@@ -17,7 +17,7 @@ class SafMod(Enum):
 
 
 @unique
-class Phase(Enum):
+class Phase(IntEnum):
     RES = 0
     ACT = 1
     INACT = 2

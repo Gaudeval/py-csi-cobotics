@@ -250,6 +250,10 @@ class SafecompControllerRunner(DigitalTwinRunner):
         # registry.domain[P.constraints.tool.distance.operation] = Domain( { None, } )
         # registry.domain[P.constraints.cobot.velocity.in_tool] =
         # registry.domain[P.constraints.cobot.velocity.in_workspace] =
+        registry.domain[P.safety.mode] = domain_values(list(SafMod))
+        registry.domain[P.safety.hrwp] = domain_values(list(Phase))
+        registry.domain[P.safety.hcp] = domain_values(list(Phase))
+        registry.domain[P.safety.hsp] = domain_values(list(Phase))
         registry.domain[P.tool.distance] = domain_threshold_range(
             0.0, 4.0, 0.25, upper=True
         )
