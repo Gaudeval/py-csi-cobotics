@@ -16,6 +16,7 @@ from csi.experiment import Repository, Run
 from csi.monitor import Trace, Monitor
 from csi.safety import Atom, Node, SafetyCondition
 
+from wrapper.fitness import RunnerFitnessWrapper
 from wrapper.runner import SafecompControllerRunner
 from wrapper.utils import as_working_directory
 
@@ -146,6 +147,10 @@ if __name__ == "__main__":
         db.commit()
         #
         for run, trace in tqdm.tqdm(collect_traces(repository)):
+            fitness = -RunnerFitnessWrapper(with_features=False).score_report(
+                "hazard-report.json"
+            )
+            #
             for timestamp, state in collect_states(trace, conditions):
                 meta = {"run": str(run.uuid), "timestamp": timestamp}
                 states_table.insert(dict(state) | meta, ensure=True)
@@ -158,7 +163,7 @@ if __name__ == "__main__":
                 )
             db.commit()
             #
-            meta = {"run": str(run.uuid)}
+            meta = {"run": str(run.uuid), "fitness": fitness}
             condition_values = {
                 sanitise_name(c): (v, i) for c, v, i in collect_conditions(run, trace)
             }

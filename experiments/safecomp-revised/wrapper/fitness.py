@@ -45,32 +45,35 @@ class RunnerFitnessWrapper:
         self, experiment: Experiment
     ) -> Tuple[Tuple[int], Tuple[int, int]]:
         for run in experiment.runs:
-            run_score = 0
-            conditions = ({0}, {0})
             if run.status == RunStatus.COMPLETE:
-                with (run.work_path / "hazard-report.json").open() as json_report:
-                    report = json.load(json_report)
-                    for uid, occurs in report.items():
-                        # Constraint occurs domain to [0, 1]
-                        if occurs is None:
-                            continue
-                        occurs = float(occurs)
-                        occurs = min(1, max(0, occurs))
-                        # Weigh contribution by safety condition type
-                        is_hazard = any(h.uid == uid for h in hazards)
-                        is_uca = any(u.uid == uid for u in unsafe_control_actions)
-                        if is_hazard:
-                            run_score += occurs * 10
-                            if occurs > 0.0:
-                                conditions[0].add(self.features[uid])
-                        if is_uca:
-                            run_score += occurs * 1
-                            if occurs > 0.0:
-                                conditions[1].add(self.features[uid])
-                if self.retrieve_features:
-                    return (run_score,), (max(conditions[0]), max(conditions[1]))
-                else:
-                    return -run_score
+                return self.score_report(run.work_path / "hazard-report.json")
+
+    def score_report(self, report_path):
+        run_score = 0
+        conditions = ({0}, {0})
+        report = json.load(Path(report_path).open())
+        for uid, occurs in report.items():
+            # Constraint occurs domain to [0, 1]
+            if occurs is None:
+                continue
+            occurs = float(occurs)
+            occurs = min(1, max(0, occurs))
+            # Weigh contribution by safety condition type
+            is_hazard = any(h.uid == uid for h in hazards)
+            is_uca = any(u.uid == uid for u in unsafe_control_actions)
+            if is_hazard:
+                run_score += occurs * 10
+                if occurs > 0.0:
+                    conditions[0].add(self.features[uid])
+            if is_uca:
+                run_score += occurs * 1
+                if occurs > 0.0:
+                    conditions[1].add(self.features[uid])
+
+        if self.retrieve_features:
+            return (run_score,), (max(conditions[0]), max(conditions[1]))
+        else:
+            return -run_score
 
     @property
     def var_bound(self):
