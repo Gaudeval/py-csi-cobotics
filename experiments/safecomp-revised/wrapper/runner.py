@@ -25,7 +25,7 @@ from csi.twin import DigitalTwinRunner, DataBase
 from csi.twin.importer import from_table
 from scenarios.tcx import unsafe_control_actions
 
-from scenarios.tcx.monitor import World, SafMod
+from scenarios.tcx.monitor import World, SafMod, Phase
 from scenarios.tcx.safety.hazards import hazards
 
 from .utils import as_working_directory
@@ -115,9 +115,16 @@ class SafecompControllerRunner(DigitalTwinRunner):
             trace[P.safety.mode] = (m.timestamp, SafMod(m.status))
 
         # safety.hazards
+        trace[P.safety.hcp] = (0.0, Phase.INACT)
+        trace[P.safety.hsp] = (0.0, Phase.INACT)
+        trace[P.safety.hrwp] = (0.0, Phase.INACT)
         for m in from_table(db, "safetyphasemessage"):
-            # TODO
-            pass
+            if m.hazard == "HCp":
+                trace[P.safety.hcp] = (m.timestamp, Phase(m.status))
+            if m.hazard == "HSp":
+                trace[P.safety.hsp] = (m.timestamp, Phase(m.status))
+            if m.hazard == "HRWp":
+                trace[P.safety.hrwp] = (m.timestamp, Phase(m.status))
 
         # Entity.distance
         trace[P.cobot.distance] = (0.0, float("inf"))
