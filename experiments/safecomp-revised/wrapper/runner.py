@@ -129,8 +129,11 @@ class SafecompControllerRunner(DigitalTwinRunner):
         # Entity.distance
         trace[P.cobot.distance] = (0.0, float("inf"))
         trace[P.tool.distance] = (0.0, float("inf"))
-        for m in from_table(db, "distancemeasurement"):
-            trace[self.entity[m.entity].distance] = (m.timestamp, m.distance)
+        for m in from_table(db, "float32"):
+            if m.topic == "welder/operator_distance":
+                trace[P.tool.distance] = (m.timestamp, m.data)
+            if m.topic == "cobot/operator_distance":
+                trace[P.cobot.distance] = (m.timestamp, m.data)
 
         # Entity.velocity
         trace[P.cobot.velocity] = (0.0, 0.0)
