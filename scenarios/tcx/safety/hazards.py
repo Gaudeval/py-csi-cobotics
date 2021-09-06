@@ -29,13 +29,13 @@ hazards = {
                 P.cobot.has_assembly
                 & P.tool.has_assembly
                 & P.cobot.is_moving
-                & P.cobot.velocity.gt(7.0)
+                & P.cobot.velocity.gt(7.5)
             )
             | (
                 P.operator.has_assembly
                 & P.cobot.has_assembly
                 & (
-                    (P.cobot.is_moving & P.cobot.velocity.gt(7.0))
+                    (P.cobot.is_moving & P.cobot.velocity.gt(7.5))
                     | P.operator.is_moving
                 )
             )
@@ -85,7 +85,16 @@ hazards = {
                     )
                 )
             )
-            .implies((~P.tool.is_running).eventually(lo=0.0, hi=1.0))
+            .implies(
+                (
+                    ~(
+                        P.tool.is_running
+                        & P.tool.distance.lt(
+                            P.constraints.tool.distance.operation, __TOLERANCE
+                        )
+                    )
+                ).eventually(lo=0.0, hi=1.0)
+            )
             .always()
         ),
     ),
