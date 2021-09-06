@@ -117,7 +117,8 @@ if __name__ == "__main__":
     conditions_table: dataset.Table
     #
     if test_db:
-        Path("test.db").unlink(missing_ok=True)
+        if test_insert:
+            Path("test.db").unlink(missing_ok=True)
         db = dataset.connect("sqlite:///test.db")
     else:
         db = dataset.connect(
