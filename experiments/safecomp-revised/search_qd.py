@@ -15,6 +15,7 @@ if __name__ == "__main__":
     if runs.exists():
         shutil.rmtree(runs)
     #
+    random.seed(42)
     w = RunnerFitnessWrapper("./build/", runs, "zadeh", with_features=True)
 
     H = len([h for h in hazards if h.uid not in SafecompControllerRunner.blacklist])
@@ -35,7 +36,7 @@ if __name__ == "__main__":
 
     algo = algorithms.RandomSearchMutPolyBounded(
         grid,
-        budget=1000,
+        budget=2000,
         batch_size=1,
         dimension=9,
         optimisation_task="max",
