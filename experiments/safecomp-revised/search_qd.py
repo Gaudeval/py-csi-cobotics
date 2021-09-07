@@ -50,6 +50,7 @@ if __name__ == "__main__":
     time_start = time.time()
     best = algo.optimise(w)
     time_end = time.time()
+    print(f"Runtime: {time_end - time_start}s")
 
     print(algo.summary())
     plots.default_plots_grid(logger)
