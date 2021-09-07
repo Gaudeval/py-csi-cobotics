@@ -1,5 +1,8 @@
+import random
 import shutil
+import time
 from pathlib import Path
+
 from qdpy import algorithms, containers, plots
 
 from wrapper.runner import SafecompControllerRunner
@@ -35,7 +38,7 @@ if __name__ == "__main__":
         budget=1000,
         batch_size=1,
         dimension=9,
-        optimisation_task="minimisation",
+        optimisation_task="max",
         ind_domain=(0.0, 1.0),
     )
 
@@ -43,7 +46,9 @@ if __name__ == "__main__":
 
     eval_fn = w
 
+    time_start = time.time()
     best = algo.optimise(w)
+    time_end = time.time()
 
     print(algo.summary())
     plots.default_plots_grid(logger)
