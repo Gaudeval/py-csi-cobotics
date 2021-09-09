@@ -95,6 +95,7 @@ class DigitalTwinRunner(Experiment):
             report[safety_condition.uid] = i
         with open("./hazard-report.json", "w") as json_report:
             json.dump(report, json_report, indent=4)
+        return report
 
     def process_output(self) -> Tuple[Trace, List[SafetyCondition]]:
         raise NotImplementedError

@@ -94,6 +94,7 @@ hazards = {
                         )
                     )
                 ).eventually(lo=0.0, hi=1.0)
+                | P.tool.is_running.always()
             )
             .always()
         ),
