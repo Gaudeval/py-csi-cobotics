@@ -1,3 +1,14 @@
+"""
+Compute observed states and coverage metrics for an experiment repository.
+
+This script builds a set of system states observed across experiments. States
+are defined based on the domain defined for the use-case, that is the set of
+atoms and their domain values. The occurrence of safety conditions and their
+components are also tracked.
+
+All sampled information can be stored in a report database. A coverage report
+is produced as part of the script.
+"""
 import dataset
 import pickle
 import timeit
