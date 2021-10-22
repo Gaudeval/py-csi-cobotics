@@ -59,7 +59,6 @@ class TwinContainerRunner(Experiment):
                             "mode": "rw",
                         },
                     },
-                    working_dir=str(self.path.absolute()),
                     stdout=True,
                     stderr=True,
                 )
