@@ -12,11 +12,11 @@ if __name__ == "__main__":
     if runs.exists():
         shutil.rmtree(runs)
     #
-    w = RunnerFitnessWrapper("./build-x6/", runs, "zadeh", with_features=True)
+    w = RunnerFitnessWrapper("./build/", runs, "zadeh", with_features=True)
 
     random.seed(42)
     time_start = time.time()
-    for i in range(1000):
+    for i in range(100):
         X = [random.random() for _ in range(5)]
         w(X)
     time_end = time.time()

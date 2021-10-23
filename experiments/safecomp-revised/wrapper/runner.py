@@ -15,51 +15,19 @@ from csi.coverage import (
 )
 from csi.monitor import Trace, Monitor
 from csi.safety import SafetyCondition, Node
-from csi.twin import DigitalTwinRunner, DataBase
+from csi.twin import DataBase
 from csi.twin.importer import from_table
 from scenarios.tcx import unsafe_control_actions
 
 from scenarios.tcx.monitor import World, SafMod, Phase
 from scenarios.tcx.safety.hazards import hazards
 
-
-def load_registry(filename: Path):
-    if filename.exists():
-        with filename.open("rb") as registry_file:
-            return pickle.load(registry_file)
-    print(f"Coverage registry '{filename.absolute()}' does not exist")
-    return None
+from .container import TwinContainerRunner
 
 
-def merge_registry(source, target):
-    if target is not None:
-        source.merge(target)
+class SafecompControllerRunner(TwinContainerRunner):
+    image_name = "csi-twin:tcx"
 
-
-@attr.s()
-class CoverageRecord:
-    covered: int = attr.ib()
-    total: int = attr.ib()
-
-    @property
-    def coverage(self) -> float:
-        return float(self.covered) / self.total
-
-
-class CoverageReport:
-    atom_coverage: dict[int, CoverageRecord]
-    condition_coverage: dict[int, CoverageRecord]
-    predicate_coverage: dict[int, CoverageRecord]
-    safety_coverage: dict[int, CoverageRecord]
-
-    def __init__(self):
-        self.atom_coverage = dict()
-        self.condition_coverage = dict()
-        self.predicate_coverage = dict()
-        self.safety_coverage = dict()
-
-
-class SafecompControllerRunner(DigitalTwinRunner):
     entity = {
         "ur10-cobot": World.cobot,
         "Operator-Operator": World.operator,

@@ -1,4 +1,5 @@
 import random
+import shutil
 from pathlib import Path
 
 from csi.twin.configuration import DigitalTwinConfiguration, TemporalLogicConfiguration
@@ -10,6 +11,8 @@ if __name__ == "__main__":
     BUILD_PATH = Path("./build").absolute()
     RUNS_PATH = Path("./runs")
 
+    if RUNS_PATH.exists():
+        shutil.rmtree(RUNS_PATH)
     if not RUNS_PATH.exists():
         RUNS_PATH.mkdir(parents=True, exist_ok=True)
 
