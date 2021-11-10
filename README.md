@@ -18,9 +18,9 @@ A Python framework for controlling and processing experiments built upon the CSI
 
 ## Installation
 
-There is currently no official relase of the library. It needs to be built locally using [poetry](https://poetry.eustace.io/):
+There is an experimental release of the library available on `test.pypi.org`:
 ```shell
-$ poetry build
+pip install -i https://test.pypi.org/simple/ py-csi-cobotics
 ```
 
 ## Usage
