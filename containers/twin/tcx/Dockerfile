@@ -13,10 +13,6 @@ RUN /bin/bash -c set -ex; \
     apt-get install -y --no-install-recommends libgl1
 
 
-# Patch kinpy fixed-joint issue
-RUN /bin/bash -c set -ex; \
-    cp /csi/patch/kinpy/chain.py /usr/local/lib/python3.9/site-packages/kinpy/
-
 # Prepare build
 ADD build /build
 
