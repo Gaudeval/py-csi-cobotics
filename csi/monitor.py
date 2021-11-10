@@ -3,8 +3,8 @@ from __future__ import annotations
 import attr
 import funcy
 import lenses
-from mtl.ast import WeakUntil
-from mtl.sugar import env, alw, implies, until, timed_until
+from mtfl.ast import WeakUntil
+from mtfl.sugar import env, alw, implies, until, timed_until
 from traces import TimeSeries
 from typing import (
     Any,
@@ -21,7 +21,7 @@ from typing import (
 )
 
 from csi.safety import Atom, Node
-from mtl.connective import _ConnectivesDef, zadeh, godel, default
+from mtfl.connective import _ConnectivesDef, zadeh, godel, default
 
 PathType = Tuple[str]
 

@@ -13,12 +13,12 @@ import dataset
 import pickle
 import timeit
 
-import mtl.connective
+import mtfl.connective
 import tqdm
 
 from pathlib import Path
 
-from mtl import BOT
+from mtfl import BOT
 from traces import TimeSeries
 from typing import Any, Iterator, Iterable
 
@@ -73,10 +73,10 @@ def collect_predicates(trace: Trace):
             predicate,
             dt=0.01,
             quantitative=True,
-            logic=mtl.connective.zadeh,
+            logic=mtfl.connective.zadeh,
             time=None,
         )
-        v = [(t, c >= mtl.connective.zadeh.const_true) for t, c in v]
+        v = [(t, c >= mtfl.connective.zadeh.const_true) for t, c in v]
         ts: TimeSeries = TimeSeries(v)
         ts.compact()
         predicate_values.append(ts)

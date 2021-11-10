@@ -3,7 +3,6 @@ from . import jacobian
 from . import ik
 
 
-
 class Chain(object):
     def __init__(self, root_frame):
         self._root = root_frame
@@ -90,15 +89,16 @@ class Chain(object):
 
 
 class SerialChain(Chain):
-    def __init__(self, chain, end_frame_name,
-                 root_frame_name=""):
+    def __init__(self, chain, end_frame_name, root_frame_name=""):
         if root_frame_name == "":
             self._root = chain._root
         else:
             self._root = chain.find_frame(root_frame_name)
             if self._root is None:
                 raise ValueError("Invalid root frame name %s." % root_frame_name)
-        self._serial_frames = self._generate_serial_chain_recurse(self._root, end_frame_name)
+        self._serial_frames = self._generate_serial_chain_recurse(
+            self._root, end_frame_name
+        )
         if self._serial_frames is None:
             raise ValueError("Invalid end frame name %s." % end_frame_name)
 
@@ -108,7 +108,9 @@ class SerialChain(Chain):
             if child.name == end_frame_name:
                 return [child]
             else:
-                frames = SerialChain._generate_serial_chain_recurse(child, end_frame_name)
+                frames = SerialChain._generate_serial_chain_recurse(
+                    child, end_frame_name
+                )
                 if not frames is None:
                     return [child] + frames
         return None
@@ -116,7 +118,7 @@ class SerialChain(Chain):
     def get_joint_parameter_names(self, exclude_fixed=True):
         names = []
         for f in self._serial_frames:
-            if exclude_fixed and f.joint.joint_type == 'fixed':
+            if exclude_fixed and f.joint.joint_type == "fixed":
                 continue
             names.append(f.joint.name)
         return names
@@ -133,7 +135,11 @@ class SerialChain(Chain):
             link_transforms[f.link.name] = trans * f.link.offset
             if f.joint.joint_type != "fixed":
                 cnt += 1
-        return link_transforms[self._serial_frames[-1].link.name] if end_only else link_transforms
+        return (
+            link_transforms[self._serial_frames[-1].link.name]
+            if end_only
+            else link_transforms
+        )
 
     def jacobian(self, th):
         return jacobian.calc_jacobian(self, th)

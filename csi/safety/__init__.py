@@ -1,7 +1,7 @@
 import attr
 from typing import TypeVar
 
-from mtl.ast import AtomicPred, And, Or, Lt, Eq, G, WeakUntil, Implies, Neg, Next
+from mtfl.ast import AtomicPred, And, Or, Lt, Eq, G, WeakUntil, Implies, Neg, Next
 
 Atom = AtomicPred
 
