@@ -5,7 +5,7 @@ from functools import reduce
 
 from csi.safety.stpa import Hazard
 from csi.monitor import Monitor
-from ..monitor import Entities
+from ..monitor import Entities, Grabbers
 from mtl import BOT
 
 from ..monitor import P
@@ -25,13 +25,19 @@ hazards = {
         "Violation of minimum separation requirements [Two entities hold onto the same assembly])",
         # Two manipulators hold on the assembly
         (
-            reduce(
-                operator.__or__,
-                (
-                    i.has_assembly & j.has_assembly
-                    for i, j in itertools.combinations(Entities, 2)
-                ),
-                BOT,
+            (
+                P.cobot.has_assembly
+                & P.tool.has_assembly
+                & P.cobot.is_moving
+                & P.cobot.velocity.gt(7.5)
+            )
+            | (
+                P.operator.has_assembly
+                & P.cobot.has_assembly
+                & (
+                    (P.cobot.is_moving & P.cobot.velocity.gt(7.5))
+                    | P.operator.is_moving
+                )
             )
         ).eventually(),
     ),
@@ -70,10 +76,28 @@ hazards = {
     __register_hazard(
         "2",
         "Individual or Object in dangerous area [Temp: Obstruction with active Tool]",
-        (
-            P.tool.is_running
-            & (P.tool.distance.lt(P.constraints.tool.distance.operation, __TOLERANCE))
-        ).eventually(),
+        ~(
+            (
+                P.tool.is_running
+                & (
+                    P.tool.distance.lt(
+                        P.constraints.tool.distance.operation, __TOLERANCE
+                    )
+                )
+            )
+            .implies(
+                (
+                    ~(
+                        P.tool.is_running
+                        & P.tool.distance.lt(
+                            P.constraints.tool.distance.operation, __TOLERANCE
+                        )
+                    )
+                ).eventually(lo=0.0, hi=1.0)
+                | P.tool.is_running.always()
+            )
+            .always()
+        ),
     ),
     __register_hazard(
         "3",

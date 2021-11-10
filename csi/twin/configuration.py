@@ -2,7 +2,7 @@ import dataclasses
 from pathlib import Path
 from typing import Any
 
-import mtl.connective
+import mtfl.connective
 
 
 @dataclasses.dataclass

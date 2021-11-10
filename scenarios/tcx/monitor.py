@@ -1,8 +1,30 @@
 import operator
+from enum import IntEnum, unique
 from functools import reduce
 from lenses import bind
 from mtl import BOT
 from csi.monitor import Alias, Context, Term
+
+
+@unique
+class SafMod(IntEnum):
+    PFLIM = 0
+    NORMAL = 1
+    STOPPED = 2
+    SRMST = 3
+    SSMON = 4
+    HGUID = 5
+
+
+@unique
+class Phase(IntEnum):
+    RES = 0
+    ACT = 1
+    INACT = 2
+    MIS = 3
+    MIT2 = 4
+    MIT = 5
+    MIT1 = 6
 
 
 class Position(Context):
@@ -14,7 +36,6 @@ class Position(Context):
 class Entity(Context):
     distance = Term()
     position = Position()
-    has_assembly = Term()
     is_damaged = Term()
     is_running = Term()
     provides_assembly = Term()
@@ -22,6 +43,10 @@ class Entity(Context):
     velocity = Term()
     has_target = Term()
     reaches_target = Term()
+
+
+class Grabber(Entity):
+    has_assembly = Term()
 
 
 class ConstraintProximity(Context):
@@ -59,14 +84,23 @@ class Workspace(Context):
     pass
 
 
+class Safety(Context):
+    mode = Term()
+    hsp = Term()
+    hcp = Term()
+    hrwp = Term()
+
+
 class World(Context):
     assembly = Assembly()
-    cobot = Entity()
+    cobot = Grabber()
     controller = Controller()
     constraints = Constraints()
-    operator = Entity()
-    tool = Entity()
+    operator = Grabber()
+    tool = Grabber()
     workspace = Workspace()
+    lidar = Entity()
+    safety = Safety()
 
 
 P = World()
@@ -78,22 +112,27 @@ Controller.gets_configured = Alias(
 # FIXME Extend to any non-expected entity
 Workspace.has_obstruction = P.operator.position.in_workspace
 
-Entity.grabs_assembly = Alias((~Entity.has_assembly) & (Entity.has_assembly >> 1))
+Grabber.grabs_assembly = Alias((~Grabber.has_assembly) & (Grabber.has_assembly >> 1))
 
 
-Entity.releases_assembly = Alias(Entity.has_assembly & (~Entity.has_assembly >> 1))
+Grabber.releases_assembly = Alias(Grabber.has_assembly & (~Grabber.has_assembly >> 1))
 
 
 Entity.starts = Alias((~Entity.is_running) & (Entity.is_running >> 1))
 
 
-Entity.acts = Alias(Entity.grabs_assembly | Entity.releases_assembly | Entity.is_moving)
+Grabber.acts = Alias(
+    Grabber.grabs_assembly | Grabber.releases_assembly | Grabber.is_moving
+)
 
 
 Entities = bind(World).Recur(Entity).collect()
 
 
-Assembly.is_held = reduce(operator.or_, (e.has_assembly for e in Entities), BOT)
+Grabbers = bind(World).Recur(Grabber).collect()
+
+
+Assembly.is_held = reduce(operator.or_, (e.has_assembly for e in Grabbers), BOT)
 
 
 Assembly.is_delivered = (

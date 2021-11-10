@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "py-csi-cobotics"
+version = "0.1.0"
+description = "A Python framework for controlling and processing experiments built upon the CSI:Cobot Digital Twin"
+authors = ["Gaudeval <bl778@york.ac.uk>"]
+# TODO Add licence
+# TODO Add homepage and repository links
+
+[tool.poetry.dependencies]
+python = "^3.9"
+dataset = "^1.5.0"
+geneticalgorithm = "^1.0.2"
+jsonpath2 = "^0.4.4"
+metric-temporal-fuzzy-logic = "^0.0.5"
+qdpy = "^0.1.2"
+tqdm = "^4.62.3"
+traces = "^0.6.0"
+
+[tool.poetry.dev-dependencies]
+black = "^21.10b0"
+mypy = "^0.910"
+Flask = "^2.0.2"
+kinpy = "^0.1.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

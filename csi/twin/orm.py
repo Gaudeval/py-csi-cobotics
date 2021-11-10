@@ -5,6 +5,8 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Generator, List, MutableMapping, Tuple, Union
 
+import funcy
+
 from csi.transform import json_transform, json_parse
 
 structural_fields = {
@@ -222,7 +224,7 @@ class DataBase:
 
     def __init__(self, path: Union[str, Path]):
         self.db_path = Path(path)
-        self.connection = sqlite3.connect(path)
+        self.connection = sqlite3.connect(path.absolute().as_uri(), uri=True)
         # Retrieve the list of tables in the database
         all_tbl_query = "SELECT name FROM sqlite_master WHERE type='table'"
         tables = self.connection.execute(all_tbl_query).fetchall()
@@ -253,14 +255,25 @@ class DataBase:
         #
         for message in self.messages(*tables):
             # Remove indexing by foreign table primary id
-            message = json_transform(self.path_foreign_index, message, reduce_fk)
+            # TODO Check if some messages still use foreign keys
+            # message = json_transform(self.path_foreign_index, message, reduce_fk)
             # Flatten foreign tables with a single element
-            message = json_transform(self.path_foreign_data, message, lambda d: d[0])
+            # TODO Check if some messages still use foreign keys
+            # message = json_transform(self.path_foreign_data, message, lambda d: d[0])
             # Flatten tables containing only data
-            message = json_transform(self.path_data_table, message, lambda d: d["data"])
+            # TODO Check if some table still only carry foreign data
+            # message = json_transform(self.path_data_table, message, lambda d: d["data"])
             # Convert terms to snake_case
-            message = json_transform(self.path_snake_case, message, keys_case)
-            yield message
+            # message = json_transform(self.path_snake_case, message, keys_case)
+            yield self.flatten_message(message)
+
+    def flatten_message(self, message):
+        # TODO Check if messages are nested/contain lists
+
+        def snake_case(name):
+            return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+
+        return funcy.walk_keys(snake_case, message)
 
 
 # TODO Index the database when first accessed to fasten queries -> Compare cost of indexing+query vs. query

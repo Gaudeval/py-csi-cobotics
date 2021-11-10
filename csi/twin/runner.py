@@ -72,6 +72,12 @@ class DigitalTwinRunner(Experiment):
             self.collect_build_output()
         # Check for hazard occurrence
         trace, conditions = self.process_output()
+        self.produce_safety_report(trace, conditions)
+        # Backup processed trace
+        with self.trace_output.open("wb") as trace_file:
+            pickle.dump(trace, trace_file)
+
+    def produce_safety_report(self, trace, conditions, quiet=False):
         report = {}
         safety_condition: SafetyCondition
         for safety_condition in conditions:
@@ -82,15 +88,14 @@ class DigitalTwinRunner(Experiment):
                 quantitative=self.configuration.ltl.quantitative,
                 logic=self.configuration.ltl.logic,
             )
-            print(type(safety_condition), safety_condition.uid)
-            print(getattr(safety_condition, "description", ""))
-            print("Occurs: ", i)
+            if not quiet:
+                print(type(safety_condition), safety_condition.uid)
+                print(getattr(safety_condition, "description", ""))
+                print("Occurs: ", i)
             report[safety_condition.uid] = i
         with open("./hazard-report.json", "w") as json_report:
             json.dump(report, json_report, indent=4)
-        # Backup processed trace
-        with self.trace_output.open("wb") as trace_file:
-            pickle.dump(trace, trace_file)
+        return report
 
     def process_output(self) -> Tuple[Trace, List[SafetyCondition]]:
         raise NotImplementedError
