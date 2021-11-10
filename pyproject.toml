@@ -19,6 +19,8 @@ traces = "^0.6.0"
 [tool.poetry.dev-dependencies]
 black = "^21.10b0"
 mypy = "^0.910"
+Flask = "^2.0.2"
+kinpy = "^0.1.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

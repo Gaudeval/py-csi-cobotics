@@ -1,3 +1,6 @@
+import pathlib
+
+import click
 import kinpy as kp
 from flask import Flask, request, jsonify
 from typing import Optional, Dict
@@ -31,13 +34,27 @@ def compute_ik():
     )
 
 
+@click.command()
+@click.argument("urdf", type=click.Path(exists=True, path_type=pathlib.Path))
+@click.option("--port", "-p", default=21000, help="IK server query port")
+@click.option("--debug/--no-debug", default=False, help="Verbose server output")
+@click.option("--root-link", "-r", default="base_link", help="Selected arm base link name")
+@click.option("--end-link", "-e", default="ee_link", help="Selected arm end link name")
+def pyik_start_server(urdf, port, debug, root_link, end_link):
+    """Start IK solver for a robot arm described by URDF
+
+    URDF Description of the selected arm.
+    """
+    global arm
+    with urdf.open() as urdf_file:
+        arm = kp.build_serial_chain_from_urdf(
+            urdf_file.read(),
+            root_link_name="base_link",
+            end_link_name="ee_link",
+        )
+    app.run(host="127.0.0.1", port=port, debug=debug)
+
+
 if __name__ == "__main__":
-    # TODO Add port as parameter
-    # TODO Add debug as parameter
     # TODO Add URDF, root and end link, as parameters
-    arm = kp.build_serial_chain_from_urdf(
-        open("urdfs/UR10/robot_description.urdf").read(),
-        root_link_name="base_link",
-        end_link_name="ee_link",
-    )
-    app.run(host="127.0.0.1", port=21000, debug=True)
+    pyik_start_server()
