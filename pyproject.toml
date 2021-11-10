@@ -5,6 +5,9 @@ description = "A Python framework for controlling and processing experiments bui
 authors = ["Gaudeval <bl778@york.ac.uk>"]
 # TODO Add licence
 # TODO Add homepage and repository links
+packages = [
+    { include = "csi" },
+]
 
 [tool.poetry.dependencies]
 python = "^3.9"
