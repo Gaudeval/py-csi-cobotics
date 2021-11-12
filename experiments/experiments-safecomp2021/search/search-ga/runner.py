@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy
 from geneticalgorithm import geneticalgorithm as ga
 
-from experiments.search.fitness import RunnerFitnessWrapper
+from ..fitness import RunnerFitnessWrapper
 
 
 if __name__ == "__main__":

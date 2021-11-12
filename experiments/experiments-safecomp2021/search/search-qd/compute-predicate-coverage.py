@@ -5,7 +5,7 @@ from itertools import combinations
 from typing import Iterable, Set, Dict
 from pathlib import Path
 from funcy import chain
-from mtl.ast import AtomicPred, BinaryOpMTL, Node, BOT
+from mtfl.ast import AtomicPred, BinaryOpMTL, Node, BOT
 from traces import TimeSeries
 
 from csi.experiment import Repository, RunStatus

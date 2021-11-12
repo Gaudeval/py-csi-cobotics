@@ -4,7 +4,7 @@ from qdpy import algorithms, containers, plots
 
 from scenarios.tcx import hazards, unsafe_control_actions
 
-from experiments.search.fitness import RunnerFitnessWrapper
+from ..fitness import RunnerFitnessWrapper
 
 
 if __name__ == "__main__":

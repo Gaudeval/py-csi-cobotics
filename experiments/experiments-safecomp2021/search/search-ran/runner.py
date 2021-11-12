@@ -2,7 +2,7 @@ import shutil
 from pathlib import Path
 
 
-from experiments.search.fitness import RunnerFitnessWrapper
+from ..fitness import RunnerFitnessWrapper
 import random
 
 

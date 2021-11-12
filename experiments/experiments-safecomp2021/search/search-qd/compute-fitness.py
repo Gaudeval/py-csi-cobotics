@@ -1,7 +1,7 @@
 from tqdm import tqdm
 
 from csi.experiment import Repository
-from experiments.search.fitness import RunnerFitnessWrapper
+from ..fitness import RunnerFitnessWrapper
 
 
 def compute_fitness_bounds(repository_path):
