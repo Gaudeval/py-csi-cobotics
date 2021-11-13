@@ -20,6 +20,8 @@ qdpy = "^0.1.2"
 tqdm = "^4.62.3"
 traces = "^0.6.0"
 docker = "^5.0.3"
+drs = "^2.0.0"
+seaborn = "^0.11.2"
 
 [tool.poetry.dev-dependencies]
 black = "^21.10b0"
