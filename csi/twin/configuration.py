@@ -30,9 +30,9 @@ class BuildConfiguration:
 @dataclasses.dataclass
 class TemporalLogicConfiguration:
     _logics = {
-        "default": mtl.connective.default,
-        "zadeh": mtl.connective.zadeh,
-        "godel": mtl.connective.godel,
+        "default": mtfl.connective.default,
+        "zadeh": mtfl.connective.zadeh,
+        "godel": mtfl.connective.godel,
     }
 
     @property
