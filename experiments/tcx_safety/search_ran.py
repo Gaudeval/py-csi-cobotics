@@ -19,8 +19,8 @@ def run(seed):
 
 if __name__ == "__main__":
     runs = Path("./runs/")
-    # if runs.exists():
-    # shutil.rmtree(runs)
+    if runs.exists():
+        shutil.rmtree(runs)
     #
     random.seed(42)
     time_start = time.time()

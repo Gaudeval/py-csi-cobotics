@@ -1,6 +1,6 @@
 from tests.safety.common import SafetyTest
 from csi.monitor import Trace, Monitor
-from scenarios.tcx import hazards, P
+from experiments.tcx_safety.wrapper.safety import hazards, P
 
 
 class HazardTest(SafetyTest):

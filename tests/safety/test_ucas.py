@@ -2,7 +2,7 @@ import pytest
 
 from tests.safety.common import SafetyTest
 from csi.monitor import Monitor, Trace
-from scenarios.tcx.monitor import P
+from experiments.tcx_safety.wrapper.safety import P
 
 
 class UCATest(SafetyTest):
@@ -14,7 +14,7 @@ class UCATest(SafetyTest):
 
     @staticmethod
     def identify(uca_id):
-        from scenarios.tcx import unsafe_control_actions
+        from experiments.tcx_safety.wrapper.safety import unsafe_control_actions
 
         for uca in unsafe_control_actions:
             if uca.uid == uca_id:

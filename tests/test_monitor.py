@@ -1,9 +1,9 @@
 import enum
-import mtl
 
 from pprint import pprint
 
 import pytest
+import mtfl
 
 from csi.monitor import Context, Monitor, Trace, Term
 
@@ -66,7 +66,7 @@ class TestMonitor:
 
         print("== Trace eval test =====")
         print("-- Dummy -----")
-        p = mtl.parse("dummy_predicate")
+        p = mtfl.parse("dummy_predicate")
         print(p)
         print(w.evaluate(t, p))
         print("-- Op Height == 5 -----")
