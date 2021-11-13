@@ -19,6 +19,7 @@ metric-temporal-fuzzy-logic = "^0.0.5"
 qdpy = "^0.1.2"
 tqdm = "^4.62.3"
 traces = "^0.6.0"
+docker = "^5.0.3"
 
 [tool.poetry.dev-dependencies]
 black = "^21.10b0"
