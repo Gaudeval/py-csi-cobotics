@@ -16,11 +16,9 @@ from csi.monitor import Trace
 from csi.safety import SafetyCondition, Node
 from csi.twin import DataBase
 from csi.twin.importer import from_table
-from ..safety.ucas import unsafe_control_actions
 
 from .monitor import World, SafMod, Phase
-from ..safety.hazards import hazards
-
+from .safety import hazards, unsafe_control_actions
 from .container import TwinContainerRunner
 
 
