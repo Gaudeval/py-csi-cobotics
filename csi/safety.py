@@ -1,4 +1,5 @@
 import attr
+
 from typing import TypeVar
 
 from mtfl.ast import AtomicPred, And, Or, Lt, Eq, G, WeakUntil, Implies, Neg, Next
@@ -12,3 +13,13 @@ Node = TypeVar("Node", AtomicPred, And, Or, Lt, Eq, G, WeakUntil, Implies, Neg, 
 class SafetyCondition:
     uid: str
     condition: Node
+
+
+@attr.s(frozen=True, auto_attribs=True, slots=True, hash=True)
+class UnsafeControlAction(SafetyCondition):
+    description: str
+
+
+@attr.s(frozen=True, auto_attribs=True, slots=True, hash=True)
+class Hazard(SafetyCondition):
+    description: str

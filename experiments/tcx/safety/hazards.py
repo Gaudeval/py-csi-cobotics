@@ -2,7 +2,7 @@ import operator
 
 from functools import reduce
 
-from csi.safety.stpa import Hazard
+from csi.safety import Hazard
 from csi.monitor import Monitor
 from ..monitor import Entities, Grabbers
 from mtfl import BOT

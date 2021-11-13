@@ -1,5 +1,5 @@
 from csi.monitor import Monitor
-from csi.safety.stpa import SafetyCondition
+from csi.safety import SafetyCondition
 
 sanity_checks = set()
 

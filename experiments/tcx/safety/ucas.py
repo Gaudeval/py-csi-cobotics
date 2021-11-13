@@ -1,5 +1,5 @@
 from csi.monitor import Monitor
-from csi.safety.stpa import UnsafeControlAction
+from csi.safety import UnsafeControlAction
 from mtfl import BOT
 from ..monitor import P
 
