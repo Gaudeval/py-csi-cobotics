@@ -5,12 +5,11 @@ from typing import Tuple
 import numpy
 
 from csi.experiment import Repository, RunStatus, Experiment
-from csi.twin.configuration import TemporalLogicConfiguration, BuildConfiguration
+from csi.twin.configuration import TemporalLogicConfiguration
 from csi.twin.runner import DigitalTwinConfiguration
-from scenarios.tcx import (
+from ...tcx import (
     hazards,
     unsafe_control_actions,
-    TcxDigitalTwinRunner,
 )
 
 from .configuration import SafetyWorldConfiguration, SafetyBuildConfiguration

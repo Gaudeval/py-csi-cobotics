@@ -1,6 +1,6 @@
 from csi.monitor import Monitor
 from csi.safety.stpa import UnsafeControlAction
-from mtl import BOT
+from mtfl import BOT
 from ..monitor import P
 
 # Capture a list of selected unsafe control actions relevant to the Digital Twin

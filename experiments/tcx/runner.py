@@ -6,7 +6,8 @@ from typing import Any, Mapping
 from csi.monitor import Trace, Monitor
 from csi.twin.importer import as_object
 from csi.twin import DigitalTwinConfiguration, DigitalTwinRunner, DataBase
-from scenarios.tcx import WorldData, P
+from .configuration import WorldData
+from .monitor import P
 
 
 @dataclasses.dataclass

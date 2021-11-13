@@ -1,4 +1,3 @@
-import itertools
 import operator
 
 from functools import reduce
@@ -6,7 +5,7 @@ from functools import reduce
 from csi.safety.stpa import Hazard
 from csi.monitor import Monitor
 from ..monitor import Entities, Grabbers
-from mtl import BOT
+from mtfl import BOT
 
 from ..monitor import P
 
