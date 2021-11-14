@@ -12,6 +12,10 @@ from typing import Any, Mapping, MutableMapping, Optional, Type, TypeVar, Union
 _S = TypeVar("_S")
 
 
+# TODO Declare JsonValue type (Union of Dict, List, float, int, str) to clarify Configuration manager
+# TODO Declare Configuration type to identify configuration items and distinguish from serialised
+
+
 class JsonSerializable(abc.ABC):
     """Json-serializable class"""
 
@@ -26,14 +30,14 @@ class JsonSerializable(abc.ABC):
 
 
 class ConfigurationEncoder(json.JSONEncoder):
-    """"Json encoder for Configuration objects."""
+    """Json encoder for Configuration objects."""
 
     @staticmethod
     def rename_encoded(
         values: Mapping[str, Any],
         encoded_fieldnames: Optional[Mapping[str, str]] = None,
     ) -> Mapping[str, Any]:
-        """"Rename keys in Json dictionary from configuration field names to Json names."""
+        """Rename keys in Json dictionary from configuration field names to Json names."""
         if encoded_fieldnames is None:
             encoded_fieldnames = {}
         renamed_values = {}
@@ -43,7 +47,7 @@ class ConfigurationEncoder(json.JSONEncoder):
         return renamed_values
 
     def default(self, o: Any) -> Any:
-        """"Encode object `o` into Json-compatible structure."""
+        """Encode object `o` into Json-compatible structure."""
         if isinstance(o, datetime.datetime):
             return o.strftime("%m/%d/%Y %H:%M:%S")
         if isinstance(o, Path):
@@ -70,7 +74,7 @@ class ConfigurationEncoder(json.JSONEncoder):
 
 
 class ConfigurationManager:
-    """"Json-serializable configuration file manager."""
+    """Json-serializable configuration file manager."""
 
     def __init__(self, root_type: Type[Any] = dict):
         self.root_type = root_type
@@ -122,7 +126,7 @@ class ConfigurationManager:
         encoded_value: MutableMapping[str, Any],
         encoded_fieldnames: Mapping[str, str],
     ) -> MutableMapping[str, Any]:
-        """"Rename keys in dictionary from Json names to configuration field names."""
+        """Rename keys in dictionary from Json names to configuration field names."""
         for local_name, encoded_name in encoded_fieldnames.items():
             if encoded_name in encoded_value:
                 assert local_name not in encoded_value
