@@ -6,7 +6,7 @@ import numpy
 
 from csi.experiment import Repository, RunStatus, Experiment
 from csi.twin.configuration import TemporalLogicConfiguration
-from csi.twin.runner import DigitalTwinConfiguration
+from csi.twin.configuration import DigitalTwinConfiguration
 from .safety import hazards, unsafe_control_actions
 
 from .configuration import SafetyWorldConfiguration, SafetyBuildConfiguration
