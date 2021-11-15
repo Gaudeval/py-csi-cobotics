@@ -13,6 +13,7 @@ from .configuration import SafetyWorldConfiguration, SafetyBuildConfiguration
 from .runner import SafecompControllerRunner
 
 
+# TODO Add typing to all primitives where appropriate
 class RunnerFitnessWrapper:
     def __init__(
         self, build="../build/", runs="runs/", logic="default", with_features=True

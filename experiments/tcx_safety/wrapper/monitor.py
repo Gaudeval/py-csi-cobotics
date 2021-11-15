@@ -103,6 +103,8 @@ class World(Context):
     safety = Safety()
 
 
+# TODO Assess whether Context could have an atoms() method to list all terms/atoms
+
 P = World()
 
 Controller.gets_configured = Alias(

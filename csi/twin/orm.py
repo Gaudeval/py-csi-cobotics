@@ -61,12 +61,14 @@ class DataTable:
             yield from self.all("{}.parent_id == 'NULL'".format(self.table_name))
 
 
+# TODO Clarify or remove filter parameter to queries. What is the expected format, SQL string or rich data?
 class SelectionQuery:
     def __init__(self, table: DataTable):
         self.table = table
         self.fields = self.compute_query_fields()
         self.clauses = self.compute_query_clauses()
 
+    # TODO Refactor return value to use structure with names to clarify intent
     def compute_query_fields(self) -> List[Tuple[bool, Tuple, List[Tuple[str, str]]]]:
         """Prepare a list of fields selected by the query, with metadata.
 
@@ -276,6 +278,7 @@ class DataBase:
         return funcy.walk_keys(snake_case, message)
 
 
+# TODO Feasibility/usability of following TODOs, remove if necessary
 # TODO Index the database when first accessed to fasten queries -> Compare cost of indexing+query vs. query
 # TODO Check if IO or CPU bound by loading database in memory first
 # TODO Add immutable and nolock to db uri to increase access speed

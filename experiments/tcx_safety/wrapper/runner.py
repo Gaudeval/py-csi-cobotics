@@ -22,6 +22,7 @@ from .safety import hazards, unsafe_control_actions
 from .container import TwinContainerRunner
 
 
+# TODO Merge definition with Twin Container Runner
 class SafecompControllerRunner(TwinContainerRunner):
     image_name = "csi-twin:tcx"
 

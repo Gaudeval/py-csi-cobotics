@@ -105,6 +105,7 @@ class SetDomain(DomainDefinition):
         return v if v in self.contents else None
 
 
+# TODO Rename to AtomDomain
 @attr.s(frozen=True, init=True)
 class Domain:
     _definition: DomainDefinition = attr.ib()
@@ -155,10 +156,14 @@ def domain_identity():
     return Domain(IdentityDomain())
 
 
+# TODO Introduce Domain definition to capture domain definitions for set of atoms (Generic[K] with K key type?)
+# TODO Add method to Domain to register new atom, its domain, and default value
+# TODO Add parameters/configuration to clarify behaviour on out of domain value
 # FIXME Combinations field only valid for transition domains if coming from a projection where a single transition domain is defined
 class EventCombinationsRegistry:
     domain: Dict[Atom, Domain]
     default: Dict[Atom, Any]
+    # TODO Rename to clarify field captures encountered values
     combinations: Set[FrozenSet[Tuple[Atom, Any]]]
 
     def __init__(self):
@@ -213,7 +218,7 @@ class EventCombinationsRegistry:
         self.combinations.add(frozenset(entry | undefined))
 
     def restrict(self, restrictions: Dict[Atom, Domain]):
-        """ Restrict domain of a specific variable """
+        """Restrict domain of a specific variable"""
         restriction = EventCombinationsRegistry()
         restriction.domain |= {
             k: restrictions.get(k, d) for k, d in self.domain.items()

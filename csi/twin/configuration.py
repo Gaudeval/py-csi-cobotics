@@ -5,6 +5,9 @@ from typing import Any
 import mtfl.connective
 
 
+# TODO Specialise configuration (Build and Logic) per experiment
+
+
 @dataclasses.dataclass
 class BuildConfiguration:
     path: Path = dataclasses.field(default_factory=Path)

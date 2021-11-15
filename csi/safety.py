@@ -19,6 +19,7 @@ class SafetyCondition:
     condition: Node
 
 
+# TODO Remove if no usage is made and no distinction from Safety Condition
 @attr.s(frozen=True, auto_attribs=True, slots=True, hash=True)
 class UnsafeControlAction(SafetyCondition):
     """STPA Unsafe Control Action definition"""
@@ -26,6 +27,7 @@ class UnsafeControlAction(SafetyCondition):
     description: str
 
 
+# TODO Remove if no usage is made and no distinction from Safety Condition
 @attr.s(frozen=True, auto_attribs=True, slots=True, hash=True)
 class Hazard(SafetyCondition):
     """STPA Hazard definition"""

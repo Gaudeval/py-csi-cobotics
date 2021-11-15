@@ -1,5 +1,7 @@
 from jsonpath2 import Path
 
+# TODO Comment all methods for usage and check usage
+
 
 def json_parse(path: str):
     return Path.parse_str(path)

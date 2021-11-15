@@ -6,7 +6,11 @@ from csi.transform import json_transform
 MessageType = Mapping[str, Any]
 PathType = Tuple[str, ...]
 
+# TODO Assess suitability of declaration as JSONObject/JSONValue for methods and functions
+# TODO Review usage of following methods in example experiments
 
+
+# TODO Check replacement by funcy primitives
 def as_items(element: Any, prefix: PathType = ()) -> Generator[Tuple, None, None]:
     """Convert nested structure into flat list with tuple capturing nested paths."""
     if isinstance(element, Mapping):
