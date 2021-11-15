@@ -10,12 +10,8 @@ from wrapper.runner import SafecompControllerRunner
 from wrapper.configuration import SafetyWorldConfiguration, SafetyBuildConfiguration
 
 
-with open("H2-runs.txt") as replay_file:
-    replay_ids = list(map(int, replay_file))
-
-
 def needs_replaying(e: Experiment, r: Run):
-    return r.uuid in replay_ids
+    return True
 
 
 if __name__ == "__main__":

@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import (
     Any,
     Iterator,
-    Iterable,
     Mapping,
     Optional,
     Type,
@@ -121,11 +120,15 @@ class ConfigurationEncoder(json.JSONEncoder):
 
 
 T = TypeVar("T")
-U = TypeVar("U")
 
 
 class ConfigurationManager(Generic[T]):
     """Json-serializable configuration file manager."""
+
+    root: Type
+
+    def __init__(self, root: Type = dict):
+        self.root = root
 
     def load(self, path: Union[str, Path]) -> T:
         """Load configuration from file."""
@@ -142,10 +145,9 @@ class ConfigurationManager(Generic[T]):
         """Encode configuration to Json string"""
         return json.dumps(value, indent=4, cls=ConfigurationEncoder)
 
-    @classmethod
-    def decode(cls, encoded_value: JSONValue) -> T:
+    def decode(self, encoded_value: JSONValue) -> T:
         """Decode configuration from Json object"""
-        return cls._decode(encoded_value, typing.get_args(cls)[0])
+        return self._decode(encoded_value, self.root)
 
     @classmethod
     def _decode(cls, encoded_value: JSONValue, root_type: Type) -> Any:
@@ -167,6 +169,7 @@ class ConfigurationManager(Generic[T]):
             else:
                 return root_type(**{k: encoded_value[k] for k in encoded_value})
         elif isinstance(encoded_value, list):
+            # Recursively decode list elements from root type
             return [cls._decode(i, root_type) for i in encoded_value]
         elif isinstance(encoded_value, root_type):
             return encoded_value
