@@ -1,30 +1,38 @@
-import attr
 import itertools
+import pickle
+import shutil
+import tempfile
 
 from pathlib import Path
 from typing import List, Set
 
+import docker
 from mtfl import AtomicPred
 from mtfl.ast import BinaryOpMTL
 
+from csi.configuration import ConfigurationManager
 from csi.coverage import (
     EventCombinationsRegistry,
     domain_values,
     domain_threshold_range,
 )
-from csi.monitor import Trace
+from csi.experiment import Experiment
+from csi.monitor import Trace, Monitor
 from csi.safety import SafetyCondition, Node
 from csi.twin import DataBase
 from csi.twin.importer import from_table
 
 from .monitor import World, SafMod, Phase
 from .safety import hazards, unsafe_control_actions
-from .container import TwinContainerRunner
 
 
-# TODO Merge definition with Twin Container Runner
-class SafecompControllerRunner(TwinContainerRunner):
-    image_name = "csi-twin:tcx"
+class SafecompControllerRunner(Experiment):
+    image_name: str = "csi-twin:tcx"
+
+    # Collected or generated run files
+    configuration_output = Path("assets/configuration.json")
+    database_output = Path("assets/database.sqlite")
+    trace_output: Path = Path("events_trace.pkl")
 
     entity = {
         "ur10-cobot": World.cobot,
@@ -44,22 +52,63 @@ class SafecompControllerRunner(TwinContainerRunner):
         "inCell": "in_workspace",
     }
 
-    all_safety_conditions: List[SafetyCondition] = list(unsafe_control_actions) + list(
-        hazards
-    )
-
     @property
     def safety_conditions(self):
         return list(
-            s for s in self.all_safety_conditions if s.uid not in self.blacklist
+            s
+            for s in list(unsafe_control_actions) + list(hazards)
+            if s.uid not in self.blacklist
         )
 
     blacklist: Set[str] = {"UCA9-N-1", "7"}
 
-    event_combinations_output: Path = Path("events_combinations.pkl")
+    def execute(self) -> None:
+        """Run digital twin container with the specified configuration"""
+        with tempfile.TemporaryDirectory() as configuration_root, tempfile.TemporaryDirectory() as database_root:
+            # Setup configuration
+            configuration_dir = Path(configuration_root)
+            configuration_file = self.configuration.build.configuration.name
+            configuration_path = configuration_dir / configuration_file
+            ConfigurationManager().save(self.configuration.world, configuration_path)
+            # Setup database output
+            database_dir = Path(database_root)
+            database_file = self.configuration.build.database.name
+            database_path = database_dir / database_file
+            # Run twin container
+            try:
+                client = docker.from_env()
+                logs = client.containers.run(
+                    self.image_name,
+                    auto_remove=True,
+                    volumes={
+                        str(configuration_dir.absolute()): {
+                            "bind": "/csi/configuration",
+                            "mode": "rw",
+                        },
+                        str(database_dir.absolute()): {
+                            "bind": "/csi/databases",
+                            "mode": "rw",
+                        },
+                    },
+                    stdout=True,
+                    stderr=True,
+                )
+                print(logs)
+            finally:
+                self.collect_output(configuration_path, database_path)
+        # Check for hazard occurrence
+        trace, conditions = self.process_output()
+        self.produce_safety_report(trace, conditions)
+        # Backup processed trace
+        with self.trace_output.open("wb") as trace_file:
+            pickle.dump(trace, trace_file)
 
-    coverage_root: Path = Path("coverage")
-    coverage_combinations: int = 2
+    def collect_output(self, configuration_path, database_path):
+        """Collect generated files in run folder"""
+        self.database_output.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(database_path, self.database_output)
+        self.configuration_output.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(configuration_path, self.configuration_output)
 
     def build_event_trace(self, db: DataBase) -> Trace:
         """Extract event stream from run message stream"""
@@ -201,20 +250,40 @@ class SafecompControllerRunner(TwinContainerRunner):
         return trace
 
     def initialise_registry(self) -> EventCombinationsRegistry:
+        """Define event domain for use case."""
         P = World
         # TODO Declare domain with Term definition in monitor
         registry = EventCombinationsRegistry()
-        # registry.domain[P.notif.id] = Domain({n for n in Notif})
-        # registry.domain[P.constraints.cobot.distance.proximity] = Domain( { None, } )
-        # registry.domain[P.constraints.cobot.velocity.proximity] = Domain({None,})
-        # registry.domain[P.constraints.cobot.velocity.in_bench] = Domain({None,})
-        # registry.domain[P.constraints.tool.distance.operation] = Domain( { None, } )
-        # registry.domain[P.constraints.cobot.velocity.in_tool] =
-        # registry.domain[P.constraints.cobot.velocity.in_workspace] =
+        registry.domain[P.assembly.position.in_bench] = domain_values({True, False})
+        registry.domain[P.assembly.is_damaged] = domain_values({True, False})
+        registry.domain[P.assembly.is_moving] = domain_values({True, False})
+        registry.domain[P.assembly.is_orientation_valid] = domain_values({True, False})
+        registry.domain[P.assembly.is_processed] = domain_values({True, False})
+        registry.domain[P.assembly.is_secured] = domain_values({True, False})
+        registry.domain[P.assembly.is_valid] = domain_values({True, False})
+        registry.domain[P.assembly.under_processing] = domain_values({True, False})
+        registry.domain[P.cobot.is_damaged] = domain_values({True, False})
+        registry.domain[P.cobot.is_moving] = domain_values({True, False})
+        registry.domain[P.cobot.has_assembly] = domain_values({True, False})
+        registry.domain[P.cobot.has_target] = domain_values({True, False})
+        registry.domain[P.cobot.position.in_bench] = domain_values({True, False})
+        registry.domain[P.cobot.position.in_tool] = domain_values({True, False})
+        registry.domain[P.cobot.position.in_workspace] = domain_values({True, False})
+        registry.domain[P.cobot.reaches_target] = domain_values({True, False})
+        registry.domain[P.controller.is_configured] = domain_values({True, False})
+        registry.domain[P.lidar.is_damaged] = domain_values({True, False})
+        registry.domain[P.operator.is_damaged] = domain_values({True, False})
+        registry.domain[P.operator.has_assembly] = domain_values({True, False})
+        registry.domain[P.operator.position.in_bench] = domain_values({True, False})
+        registry.domain[P.operator.provides_assembly] = domain_values({True, False})
+        registry.domain[P.operator.position.in_workspace] = domain_values({True, False})
         registry.domain[P.safety.mode] = domain_values(list(SafMod))
         registry.domain[P.safety.hrwp] = domain_values(list(Phase))
         registry.domain[P.safety.hcp] = domain_values(list(Phase))
         registry.domain[P.safety.hsp] = domain_values(list(Phase))
+        registry.domain[P.tool.has_assembly] = domain_values({True, False})
+        registry.domain[P.tool.is_damaged] = domain_values({True, False})
+        registry.domain[P.tool.is_running] = domain_values({True, False})
         registry.domain[P.tool.distance] = domain_threshold_range(
             0.0, 4.0, 0.25, upper=True
         )
@@ -224,36 +293,12 @@ class SafecompControllerRunner(TwinContainerRunner):
         registry.domain[P.cobot.velocity] = domain_threshold_range(
             0.0, 16.0, 0.25, upper=True
         )
-        registry.domain[P.cobot.position.in_workspace] = domain_values({True, False})
-        registry.domain[P.assembly.position.in_bench] = domain_values({True, False})
-        registry.domain[P.assembly.is_damaged] = domain_values({True, False})
-        registry.domain[P.cobot.reaches_target] = domain_values({True, False})
-        registry.domain[P.operator.is_damaged] = domain_values({True, False})
-        registry.domain[P.cobot.is_damaged] = domain_values({True, False})
-        registry.domain[P.operator.position.in_bench] = domain_values({True, False})
-        registry.domain[P.tool.is_damaged] = domain_values({True, False})
-        registry.domain[P.tool.is_running] = domain_values({True, False})
-        registry.domain[P.cobot.has_target] = domain_values({True, False})
-        registry.domain[P.assembly.is_secured] = domain_values({True, False})
-        registry.domain[P.assembly.is_processed] = domain_values({True, False})
-        registry.domain[P.controller.is_configured] = domain_values({True, False})
-        registry.domain[P.operator.provides_assembly] = domain_values({True, False})
-        registry.domain[P.assembly.is_orientation_valid] = domain_values({True, False})
-        registry.domain[P.cobot.has_assembly] = domain_values({True, False})
-        registry.domain[P.cobot.position.in_bench] = domain_values({True, False})
-        registry.domain[P.assembly.is_moving] = domain_values({True, False})
-        registry.domain[P.cobot.is_moving] = domain_values({True, False})
-        registry.domain[P.assembly.under_processing] = domain_values({True, False})
-        registry.domain[P.assembly.is_valid] = domain_values({True, False})
-        registry.domain[P.operator.position.in_workspace] = domain_values({True, False})
-        registry.domain[P.cobot.position.in_tool] = domain_values({True, False})
-        registry.domain[P.operator.has_assembly] = domain_values({True, False})
-        registry.domain[P.lidar.is_damaged] = domain_values({True, False})
-        registry.domain[P.tool.has_assembly] = domain_values({True, False})
         return registry
 
     @staticmethod
     def extract_boolean_predicates(safety_conditions) -> Set[Node]:
+        # TODO Include as part of monitor
+        """Extract the boolean predicates used in the specified conditions."""
         terms: Set[AtomicPred] = set()
         comparisons: Set[BinaryOpMTL] = set()
         # Extract all candidates
@@ -264,10 +309,11 @@ class SafecompControllerRunner(TwinContainerRunner):
                     terms.add(p)
                 if isinstance(p, BinaryOpMTL):
                     local_comparisons.add(p)
+            # Remove a = b cases resulting from a <= b in condition s
             for p in list(local_comparisons):
                 if any(
-                    c.children == p.children and p.OP == "=" and c.OP == "<"
-                    for c in local_comparisons
+                        c.children == p.children and p.OP == "=" and c.OP == "<"
+                        for c in local_comparisons
                 ):
                     local_comparisons.remove(p)
             comparisons.update(local_comparisons)
@@ -284,3 +330,25 @@ class SafecompControllerRunner(TwinContainerRunner):
         db = DataBase(self.database_output)
         trace = self.build_event_trace(db)
         return trace, self.safety_conditions
+
+    def produce_safety_report(self, trace, conditions, quiet=False):
+        """Compute the occurrence of the conditions on the provided trace"""
+        report = {}
+        safety_condition: SafetyCondition
+        for safety_condition in conditions:
+            i = Monitor().evaluate(
+                trace,
+                safety_condition.condition,
+                dt=0.01,
+                quantitative=self.configuration.ltl.quantitative,
+                logic=self.configuration.ltl.logic,
+            )
+            if not quiet:
+                print(type(safety_condition), safety_condition.uid)
+                print(getattr(safety_condition, "description", ""))
+                print("Occurs: ", i)
+            report[safety_condition.uid] = i
+        with open("./hazard-report.json", "w") as json_report:
+            import json
+            json.dump(report, json_report, indent=4)
+        return report
