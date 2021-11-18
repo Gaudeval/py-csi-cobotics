@@ -95,7 +95,7 @@ class Term:
     hash=True,
 )
 class Monitor:
-    """Group of conditions to verify """
+    """Ensemble of temporal logic conditions"""
 
     conditions: FrozenSet[Node] = attr.ib(factory=frozenset)
 
@@ -109,11 +109,12 @@ class Monitor:
         return Monitor(self.conditions | other.conditions)
 
     def atoms(self, condition=None) -> Set[Atom]:
+        """Extract the atoms used in the monitor or the specified condition"""
         reference = self.conditions if condition is None else {condition}
         return {a for c in reference for a in c.walk() if isinstance(a, Atom)}
 
     def extract_boolean_predicates(self, conditions=None) -> Set[Node]:
-        """Extract the boolean predicates used in the specified conditions."""
+        """Extract the boolean predicates used in the monitor or the specified conditions."""
         terms: Set[AtomicPred] = set()
         comparisons: Set[BinaryOpMTL] = set()
         conditions = self.conditions if conditions is None else conditions
@@ -138,7 +139,6 @@ class Monitor:
             terms = terms.difference(p.children)
         return set(itertools.chain(terms, comparisons))
 
-
     def evaluate(
         self,
         trace: Trace,
@@ -149,6 +149,7 @@ class Monitor:
         quantitative=False,
         logic: _ConnectivesDef = default
     ) -> Mapping[Node, Optional[bool]]:
+        """Evaluate the truth values of the monitor conditions on the specified trace."""
         evaluated_conditions: Iterable[Node] = (
             self.conditions if condition is None else {condition}
         )

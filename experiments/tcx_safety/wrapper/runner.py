@@ -304,23 +304,18 @@ class SafecompControllerRunner(Experiment):
         trace = self.build_event_trace(db)
         return trace, self.safety_conditions
 
-    def produce_safety_report(self, trace, conditions, quiet=False):
+    def produce_safety_report(self, trace, conditions):
         """Compute the occurrence of the conditions on the provided trace"""
         report = {}
-        safety_condition: SafetyCondition
-        for safety_condition in conditions:
-            i = Monitor().evaluate(
-                trace,
-                safety_condition.condition,
-                dt=0.01,
-                quantitative=self.configuration.ltl.quantitative,
-                logic=self.configuration.ltl.logic,
-            )
-            if not quiet:
-                print(type(safety_condition), safety_condition.uid)
-                print(getattr(safety_condition, "description", ""))
-                print("Occurs: ", i)
-            report[safety_condition.uid] = i
+        monitor = Monitor(c.condition for c in conditions)
+        r = monitor.evaluate(
+            trace,
+            dt=0.01,
+            quantitative=self.configuration.ltl.quantitative,
+            logic=self.configuration.ltl.logic,
+        )
+        for c in conditions:
+            report[c.uid] = r[c.condition]
         with open("./hazard-report.json", "w") as json_report:
             import json
             json.dump(report, json_report, indent=4)
