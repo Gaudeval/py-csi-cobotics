@@ -5,11 +5,9 @@ from typing import Tuple
 import numpy
 
 from csi.experiment import Repository, RunStatus, Experiment
-from csi.twin.configuration import TemporalLogicConfiguration
-from csi.twin.configuration import DigitalTwinConfiguration
 from .safety import hazards, unsafe_control_actions
 
-from .configuration import SafetyWorldConfiguration, SafetyBuildConfiguration
+from .configuration import RunnerConfiguration, BuildConfiguration, MonitorConfiguration, SceneConfiguration
 from .runner import SafecompControllerRunner
 
 
@@ -92,7 +90,7 @@ class RunnerFitnessWrapper:
             )
 
         # Prepare configuration
-        world = SafetyWorldConfiguration()
+        world = SceneConfiguration()
         world.wp_start.duration = val(0)
         world.wp_bench.duration = val(1)
         world.wp_wait.duration = val(2)
@@ -103,15 +101,15 @@ class RunnerFitnessWrapper:
     def __call__(self, X):
         world = self.generate_configuration(X)
         # Condition evaluation
-        evaluation = TemporalLogicConfiguration()
+        evaluation = MonitorConfiguration()
         evaluation.connective = self.evaluation_logic
         evaluation.quantitative = self.evaluation_quantitative
         # Build configuration
-        b = SafetyBuildConfiguration(self.build)
+        b = BuildConfiguration(self.build)
         # Prepare experiment
         exp = SafecompControllerRunner(
             self.repository.path,
-            DigitalTwinConfiguration(world, b, evaluation),
+            RunnerConfiguration(world, b, evaluation),
         )
         # Run experiment and compute score
         exp.run()

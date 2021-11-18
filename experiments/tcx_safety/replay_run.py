@@ -5,9 +5,8 @@ from pathlib import Path
 
 from csi.configuration import ConfigurationManager
 from csi.experiment import Repository, Experiment, Run
-from csi.twin.configuration import DigitalTwinConfiguration, TemporalLogicConfiguration
 from wrapper.runner import SafecompControllerRunner
-from wrapper.configuration import SafetyWorldConfiguration, SafetyBuildConfiguration
+from wrapper.configuration import SceneConfiguration, BuildConfiguration, MonitorConfiguration, RunnerConfiguration
 
 
 def needs_replaying(e: Experiment, r: Run):
@@ -30,14 +29,14 @@ if __name__ == "__main__":
                 print(r.path)
                 j = json.load((e.path / "configuration.json").open("r"))
                 # Run configuration
-                cfg_build = SafetyBuildConfiguration(BUILD_PATH)
-                cfg_world = ConfigurationManager(SafetyWorldConfiguration).load(
+                cfg_build = BuildConfiguration(BUILD_PATH)
+                cfg_world = ConfigurationManager(SceneConfiguration).load(
                     r.work_path / e.configuration_output
                 )
-                cfg_logic = TemporalLogicConfiguration(
+                cfg_logic = MonitorConfiguration(
                     j["ltl"]["connective"], j["ltl"]["quantitative"]
                 )
-                cfg_run = DigitalTwinConfiguration(cfg_world, cfg_build, cfg_logic)
+                cfg_run = RunnerConfiguration(cfg_world, cfg_build, cfg_logic)
                 #
                 s = SafecompControllerRunner(REPLAY_PATH, cfg_run)
                 s.run()

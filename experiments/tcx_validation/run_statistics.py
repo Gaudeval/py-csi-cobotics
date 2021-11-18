@@ -13,7 +13,7 @@ import matplotlib.pyplot as mpl
 from csi.configuration import ConfigurationManager
 from csi.experiment import Repository, Experiment, Run, RunStatus
 
-from wrapper.configuration import SafetyWorldConfiguration
+from wrapper.configuration import SceneConfiguration
 from wrapper.runner import SafetyDigitalTwinRunner
 
 
@@ -28,9 +28,9 @@ def plot_waypoint_times(t: Repository):
     for e, r in t.completed_runs:
         assert isinstance(e, SafetyDigitalTwinRunner)
         # Compute completion rate
-        c: SafetyWorldConfiguration
+        c: SceneConfiguration
         r = next(r for r in e.runs if r.status == RunStatus.COMPLETE)
-        c = ConfigurationManager(SafetyWorldConfiguration).load(
+        c = ConfigurationManager(SceneConfiguration).load(
             r.work_path / e.configuration_output
         )
         # Collect waypoints arrival and wait times

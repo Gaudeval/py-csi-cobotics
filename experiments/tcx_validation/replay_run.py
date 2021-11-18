@@ -7,8 +7,7 @@ from typing import Optional
 
 from csi.configuration import ConfigurationManager
 from csi.experiment import Repository, Experiment, Run, RunStatus
-from csi.twin.configuration import DigitalTwinConfiguration
-from wrapper.configuration import SafetyWorldConfiguration, SafetyBuildConfiguration
+from wrapper.configuration import SceneConfiguration, BuildConfiguration, RunnerConfiguration
 from wrapper.runner import SafetyDigitalTwinRunner
 
 
@@ -42,10 +41,10 @@ if __name__ == "__main__":
             # if not classified_as(e, r, "U1"):
             if not satisfies_property(e, r, None):
                 print(r.path)
-                w = ConfigurationManager(SafetyWorldConfiguration).load(
+                w = ConfigurationManager(SceneConfiguration).load(
                     r.work_path / e.configuration_output
                 )
-                c = DigitalTwinConfiguration(w, SafetyBuildConfiguration(BUILD_PATH))
+                c = RunnerConfiguration(w, BuildConfiguration(BUILD_PATH))
                 s = SafetyDigitalTwinRunner(REPLAY_PATH, c)
                 s.run()
                 exit(0)

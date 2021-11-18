@@ -5,12 +5,12 @@ import pickle
 from pathlib import Path
 
 from csi.experiment import Repository, Run
-from csi.twin import DigitalTwinRunner
+from wrapper.runner import SafetyDigitalTwinRunner
 
 if __name__ == "__main__":
     RUNS_PATH = Path("./runs-replays")
     t: Repository = Repository(RUNS_PATH)
-    e: DigitalTwinRunner
+    e: SafetyDigitalTwinRunner
     r: Run
     for e, r in t.completed_runs:
         print(e.uuid)

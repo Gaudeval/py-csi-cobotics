@@ -13,19 +13,20 @@ from csi.coverage import EventCombinationsRegistry, Domain
 from csi.experiment import Experiment
 from csi.monitor import Trace, Monitor
 from csi.safety import SafetyCondition
-from csi.twin import DataBase, DigitalTwinConfiguration
+from csi.twin import DataBase
 from csi.twin.importer import from_table
 
 from .monitor import SafetyControllerStatus, Notif, Act, Loc, RngDet, SafMod, Phase
 from .uc import SafetyUseCase, U1, U2, MU
 from .validation import predicates
+from .configuration import RunnerConfiguration
 
 
 class SafetyDigitalTwinRunner(Experiment):
     """Digital twin experiment runner"""
 
     safety_conditions: List[SafetyCondition] = predicates
-    configuration: DigitalTwinConfiguration
+    configuration: RunnerConfiguration
 
     configuration_output: Path = Path("assets/configuration.json")
     database_output: Path = Path("assets/database.sqlite")

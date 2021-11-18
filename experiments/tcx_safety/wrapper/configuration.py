@@ -2,8 +2,7 @@ import dataclasses
 from datetime import datetime
 from pathlib import Path
 
-from csi.configuration import ConfigurationManager
-from csi.twin.configuration import BuildConfiguration
+import mtfl.connective
 
 
 @dataclasses.dataclass
@@ -16,7 +15,7 @@ class Waypoint:
 
 
 @dataclasses.dataclass
-class SafetyWorldConfiguration:
+class SceneConfiguration:
     timestamp: datetime = dataclasses.field(default_factory=lambda: datetime.now())
     version: str = "0.0.0.2"
 
@@ -37,17 +36,46 @@ class SafetyWorldConfiguration:
     }
 
 
-class SafetyBuildConfiguration(BuildConfiguration):
+@dataclasses.dataclass
+class MonitorConfiguration:
+    _logics = {
+        "default": mtfl.connective.default,
+        "zadeh": mtfl.connective.zadeh,
+        "godel": mtfl.connective.godel,
+    }
+
+    @property
+    def logic(self):
+        return self._logics[self.connective]
+
+    connective: str = dataclasses.field(default="default")
+    quantitative: bool = dataclasses.field(default=False)
+
+
+@dataclasses.dataclass
+class BuildConfiguration:
+    path: Path = dataclasses.field(default_factory=Path)
+
+    @property
+    def assets(self) -> Path:
+        """Location of simulation assets in build"""
+        return self.path / "Unity_Data" / "StreamingAssets" / "CSI"
+
     @property
     def database(self) -> Path:
         return self.assets / "Databases" / "messages.safety.db"
 
+    @property
+    def configuration(self) -> Path:
+        return self.assets / "Configuration" / "configuration.json"
 
-if __name__ == "__main__":
-    w = SafetyWorldConfiguration()
-    w.wp_start.duration = 0.0
-    w.wp_bench.duration = 2.0
-    w.wp_wait.duration = 4.0
-    w.wp_cell.duration = 8.0
-    w.wp_exit.duration = 16.0
-    print(ConfigurationManager().encode(w))
+
+@dataclasses.dataclass
+class RunnerConfiguration:
+    """Digital twin experiment configuration"""
+
+    world: SceneConfiguration
+    build: BuildConfiguration
+    ltl: MonitorConfiguration = dataclasses.field(
+        default_factory=MonitorConfiguration
+    )
