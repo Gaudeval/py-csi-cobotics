@@ -21,10 +21,10 @@ from .uc import SafetyUseCase, U1, U2, MU
 from .validation import predicates
 
 
-class DigitalTwinRunner(Experiment):
+class SafetyDigitalTwinRunner(Experiment):
     """Digital twin experiment runner"""
 
-    safety_conditions: List[SafetyCondition]
+    safety_conditions: List[SafetyCondition] = predicates
     configuration: DigitalTwinConfiguration
 
     configuration_output: Path = Path("assets/configuration.json")
@@ -33,6 +33,35 @@ class DigitalTwinRunner(Experiment):
     trace_output: Path = Path("events_trace.pkl")
 
     additional_output: Dict[str, Tuple[Path, Path]] = {}
+
+    use_cases: List[SafetyUseCase] = [U1, U2, MU]
+    use_cases_classification: Path = Path("uc-classification.json")
+    use_cases_events: Path = Path("uc-events_combinations.pkl")
+
+    event_combinations_output: Path = Path("events_combinations.pkl")
+
+    def execute(self) -> None:
+        """Run digital twin build with specified configuration"""
+        # Setup build and IO
+        database_path = self.configuration.build.configuration
+        executable_path = self.configuration.build.path / "Unity.exe"
+        configuration_path = self.configuration.build.configuration
+        self.clear_build_output()
+        # Setup configuration
+        if not configuration_path.parent.exists():
+            configuration_path.parent.mkdir(parents=True, exist_ok=True)
+        ConfigurationManager().save(self.configuration.world, configuration_path)
+        # Run Unity build
+        try:
+            subprocess.run(str(executable_path), shell=True, check=True)
+        finally:
+            self.collect_build_output()
+        # Check for hazard occurrence
+        trace, conditions = self.process_output()
+        self.produce_safety_report(trace, conditions)
+        # Backup processed trace
+        with self.trace_output.open("wb") as trace_file:
+            pickle.dump(trace, trace_file)
 
     def clear_build_output(self):
         """Cleanup generated files in build folder"""
@@ -59,62 +88,6 @@ class DigitalTwinRunner(Experiment):
             if (self.configuration.build.path / saved).exists():
                 backup.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy(saved, backup)
-
-    def execute(self) -> None:
-        """Run digital twin build with specified configuration"""
-        # Setup build and IO
-        database_path = self.configuration.build.configuration
-        executable_path = self.configuration.build.path / "Unity.exe"
-        configuration_path = self.configuration.build.configuration
-        self.clear_build_output()
-        # Setup configuration
-        if not configuration_path.parent.exists():
-            configuration_path.parent.mkdir(parents=True, exist_ok=True)
-        ConfigurationManager().save(self.configuration.world, configuration_path)
-        # Run Unity build
-        try:
-            subprocess.run(str(executable_path), shell=True, check=True)
-        finally:
-            self.collect_build_output()
-        # Check for hazard occurrence
-        trace, conditions = self.process_output()
-        self.produce_safety_report(trace, conditions)
-        # Backup processed trace
-        with self.trace_output.open("wb") as trace_file:
-            pickle.dump(trace, trace_file)
-
-    def produce_safety_report(self, trace, conditions, quiet=False):
-        report = {}
-        safety_condition: SafetyCondition
-        for safety_condition in conditions:
-            i = Monitor().evaluate(
-                trace,
-                safety_condition.condition,
-                dt=0.01,
-                quantitative=self.configuration.ltl.quantitative,
-                logic=self.configuration.ltl.logic,
-            )
-            if not quiet:
-                print(type(safety_condition), safety_condition.uid)
-                print(getattr(safety_condition, "description", ""))
-                print("Occurs: ", i)
-            report[safety_condition.uid] = i
-        with open("./hazard-report.json", "w") as json_report:
-            json.dump(report, json_report, indent=4)
-        return report
-
-    def process_output(self) -> Tuple[Trace, List[SafetyCondition]]:
-        raise NotImplementedError
-
-
-class SafetyDigitalTwinRunner(DigitalTwinRunner):
-    safety_conditions: List[SafetyCondition] = predicates
-
-    use_cases: List[SafetyUseCase] = [U1, U2, MU]
-    use_cases_classification: Path = Path("uc-classification.json")
-    use_cases_events: Path = Path("uc-events_combinations.pkl")
-
-    event_combinations_output: Path = Path("events_combinations.pkl")
 
     def classify_use_cases(self, trace):
         """Classify trace use case"""
@@ -264,8 +237,22 @@ class SafetyDigitalTwinRunner(DigitalTwinRunner):
 
         return trace, self.safety_conditions
 
-
-if __name__ == "__main__":
-    SafetyDigitalTwinRunner.process_output(
-        Path("../build/Unity_Data/StreamingAssets/CSI/Databases/messages.safety.db")
-    )
+    def produce_safety_report(self, trace, conditions, quiet=False):
+        report = {}
+        safety_condition: SafetyCondition
+        for safety_condition in conditions:
+            i = Monitor().evaluate(
+                trace,
+                safety_condition.condition,
+                dt=0.01,
+                quantitative=self.configuration.ltl.quantitative,
+                logic=self.configuration.ltl.logic,
+            )
+            if not quiet:
+                print(type(safety_condition), safety_condition.uid)
+                print(getattr(safety_condition, "description", ""))
+                print("Occurs: ", i)
+            report[safety_condition.uid] = i
+        with open("./hazard-report.json", "w") as json_report:
+            json.dump(report, json_report, indent=4)
+        return report
