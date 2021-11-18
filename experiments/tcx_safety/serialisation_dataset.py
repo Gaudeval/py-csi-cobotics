@@ -35,7 +35,7 @@ default_runner = SafecompControllerRunner(".", None)
 
 domain: dict[Atom, Domain] = default_runner.initialise_registry().domain
 conditions: list[SafetyCondition] = default_runner.safety_conditions
-predicates: set[Node] = default_runner.extract_boolean_predicates(conditions)
+predicates: set[Node] = Monitor().extract_boolean_predicates(conditions)
 
 
 def sanitise_name(condition: SafetyCondition):

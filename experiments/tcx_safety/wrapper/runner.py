@@ -295,33 +295,6 @@ class SafecompControllerRunner(Experiment):
         )
         return registry
 
-    @staticmethod
-    def extract_boolean_predicates(safety_conditions) -> Set[Node]:
-        # TODO Include as part of monitor
-        """Extract the boolean predicates used in the specified conditions."""
-        terms: Set[AtomicPred] = set()
-        comparisons: Set[BinaryOpMTL] = set()
-        # Extract all candidates
-        for s in safety_conditions:
-            local_comparisons = set()
-            for p in s.condition.walk():
-                if isinstance(p, AtomicPred):
-                    terms.add(p)
-                if isinstance(p, BinaryOpMTL):
-                    local_comparisons.add(p)
-            # Remove a = b cases resulting from a <= b in condition s
-            for p in list(local_comparisons):
-                if any(
-                        c.children == p.children and p.OP == "=" and c.OP == "<"
-                        for c in local_comparisons
-                ):
-                    local_comparisons.remove(p)
-            comparisons.update(local_comparisons)
-        # Remove values used in comparisons
-        for p in comparisons:
-            terms = terms.difference(p.children)
-        return set(itertools.chain(terms, comparisons))
-
     def process_output(self):
         """Extract values from simulation message trace"""
         # Process run database

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import itertools
+
 import attr
 import funcy
 import lenses
-from mtfl.ast import WeakUntil
+from mtfl.ast import WeakUntil, AtomicPred, BinaryOpMTL
 from mtfl.sugar import env, alw, implies, until, timed_until
 from traces import TimeSeries
 from typing import (
@@ -95,7 +97,7 @@ class Term:
 class Monitor:
     """Group of conditions to verify """
 
-    conditions: FrozenSet[Node] = attr.ib(frozenset())
+    conditions: FrozenSet[Node] = attr.ib(factory=frozenset)
 
     def __iadd__(self, other: Node) -> Monitor:
         return Monitor(self.conditions | {other})
@@ -109,6 +111,33 @@ class Monitor:
     def atoms(self, condition=None) -> Set[Atom]:
         reference = self.conditions if condition is None else {condition}
         return {a for c in reference for a in c.walk() if isinstance(a, Atom)}
+
+    def extract_boolean_predicates(self, conditions=None) -> Set[Node]:
+        """Extract the boolean predicates used in the specified conditions."""
+        terms: Set[AtomicPred] = set()
+        comparisons: Set[BinaryOpMTL] = set()
+        conditions = self.conditions if conditions is None else conditions
+        # Extract all candidates
+        for s in conditions:
+            local_comparisons = set()
+            for p in s.condition.walk():
+                if isinstance(p, AtomicPred):
+                    terms.add(p)
+                if isinstance(p, BinaryOpMTL):
+                    local_comparisons.add(p)
+            # Remove a = b cases resulting from a <= b in condition s
+            for p in list(local_comparisons):
+                if any(
+                        c.children == p.children and p.OP == "=" and c.OP == "<"
+                        for c in local_comparisons
+                ):
+                    local_comparisons.remove(p)
+            comparisons.update(local_comparisons)
+        # Remove values used in comparisons
+        for p in comparisons:
+            terms = terms.difference(p.children)
+        return set(itertools.chain(terms, comparisons))
+
 
     def evaluate(
         self,
