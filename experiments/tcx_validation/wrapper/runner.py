@@ -9,9 +9,10 @@ from pathlib import Path
 from typing import List, Iterable, Dict, Tuple
 
 from csi.configuration import ConfigurationManager
-from csi.coverage import EventCombinationsRegistry, Domain
+from csi.situation.coverage import EventCombinationsRegistry
+from csi.situation.domain import Domain
 from csi.experiment import Experiment
-from csi.monitor import Trace, Monitor
+from csi.situation.monitoring import Monitor, Trace
 from csi.safety import SafetyCondition
 from csi.twin import DataBase
 from csi.twin.importer import from_table

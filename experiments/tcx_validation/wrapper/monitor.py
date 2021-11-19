@@ -1,7 +1,8 @@
 """Define monitor trace format for safety controller evaluation."""
 from enum import Enum
 
-from csi.monitor import Context, Term, Trace
+from csi.situation.monitoring import Trace
+from csi.situation.components import Context, Term
 
 
 class Act(Enum):

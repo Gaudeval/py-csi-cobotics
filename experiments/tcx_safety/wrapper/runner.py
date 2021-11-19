@@ -11,14 +11,12 @@ from mtfl import AtomicPred
 from mtfl.ast import BinaryOpMTL
 
 from csi.configuration import ConfigurationManager
-from csi.coverage import (
-    EventCombinationsRegistry,
-    domain_values,
-    domain_threshold_range,
-)
+from csi.situation.coverage import EventCombinationsRegistry
+from csi.situation.domain import domain_values, domain_threshold_range
 from csi.experiment import Experiment
-from csi.monitor import Trace, Monitor
-from csi.safety import SafetyCondition, Node
+from csi.situation.monitoring import Monitor, Trace
+from csi.safety import SafetyCondition
+from csi.situation.components import Node
 from csi.twin import DataBase
 from csi.twin.importer import from_table
 

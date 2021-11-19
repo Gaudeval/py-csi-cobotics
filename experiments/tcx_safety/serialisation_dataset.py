@@ -22,10 +22,11 @@ from mtfl import BOT
 from traces import TimeSeries
 from typing import Any, Iterator, Iterable
 
-from csi.coverage import Domain
+from csi.situation.domain import Domain
 from csi.experiment import Repository, Run
-from csi.monitor import Trace, Monitor
-from csi.safety import Atom, Node, SafetyCondition
+from csi.situation.monitoring import Monitor, Trace
+from csi.safety import SafetyCondition
+from csi.situation.components import Atom, Node
 
 from wrapper.fitness import RunnerFitnessWrapper
 from wrapper.runner import SafecompControllerRunner

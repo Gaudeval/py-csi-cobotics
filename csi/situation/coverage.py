@@ -1,159 +1,17 @@
-import abc
-import itertools
-import functools
-import math
-import operator
+"""
+Definition and calculation of coverage metrics and coverage-related helpers.
+
+"""
+from collections import defaultdict
 from functools import reduce
 from operator import mul
-from collections import defaultdict
-from typing import (
-    Mapping,
-    FrozenSet,
-    Any,
-    Tuple,
-    Set,
-    Iterable,
-    Dict,
-    TypeVar,
-    Optional,
-    Callable,
-)
+from typing import Dict, Any, Set, FrozenSet, Tuple
 
-import attr
 from traces import TimeSeries
 
-from csi.monitor import Trace
-from csi.safety import Atom
-
-D = TypeVar("D", int, float)
-
-
-# TODO Add wrapper for transition/combination of domain coverage
-# TODO Add method to highlight missing values in coverage
-
-
-class DomainDefinition(abc.ABC):
-    @abc.abstractmethod
-    def value_of(self, v) -> Optional[Any]:
-        return None
-
-    @abc.abstractmethod
-    def __len__(self) -> int:
-        return 0
-
-
-class IdentityDomain(DomainDefinition):
-    def value_of(self, v) -> Optional[Any]:
-        return v
-
-    def __len__(self) -> int:
-        raise ValueError()
-
-
-@attr.s(frozen=True, init=True, eq=True)
-class RangeDomain(DomainDefinition):
-    a: float = attr.ib()
-    b: float = attr.ib()
-    step: float = attr.ib()  # TODO Constrain step to be positive
-    upper_bound: bool = attr.ib(default=False)
-    lower_bound: bool = attr.ib(default=False)
-
-    def value_of(self, v) -> Optional[Any]:
-        if self.lower_bound and v < self.a:
-            return self.a
-        elif self.upper_bound and self.b <= v:
-            return self.b
-        elif self.a <= v < self.b:
-            return math.floor((v - self.a) / self.step) * self.step + self.a
-        return None
-
-    def __len__(self) -> int:
-        if self.a <= self.b:
-            if self.upper_bound:
-                return math.ceil((self.b - self.a) / self.step) + 1
-            return math.ceil((self.b - self.a) / self.step)
-        return 0
-
-
-@attr.s(frozen=True, init=True, eq=True)
-class SpaceDomain(DomainDefinition):
-    a: float = attr.ib()
-    b: float = attr.ib()
-    count: float = attr.ib()  # TODO Constraint count to be strictly positive
-
-    def __len__(self) -> int:
-        return self.count
-
-    def value_of(self, v) -> Optional[Any]:
-        if self.a <= v < self.b:
-            return (
-                math.floor((v - self.a) * self.count / (self.b - self.a))
-                * (self.b - self.a)
-                / self.count
-            )
-        return None
-
-
-@attr.s(frozen=True, init=True, eq=True)
-class SetDomain(DomainDefinition):
-    contents: FrozenSet[Any] = attr.ib(converter=frozenset)
-
-    def __len__(self) -> int:
-        return len(self.contents)
-
-    def value_of(self, v) -> Optional[Any]:
-        return v if v in self.contents else None
-
-
-# TODO Rename to AtomDomain
-@attr.s(frozen=True, init=True)
-class Domain:
-    _definition: DomainDefinition = attr.ib()
-
-    @_definition.validator
-    def _defined_domain(self, attribute, value):
-        if not isinstance(value, DomainDefinition):
-            raise ValueError()
-
-    def __contains__(self, v) -> bool:
-        return self.value(v) is not None
-
-    def value(self, v):
-        return self._definition.value_of(v)
-
-    def __len__(self):
-        return len(self._definition)
-
-
-def domain_values(values: Iterable[Any]) -> Domain:
-    return Domain(SetDomain(values))
-
-
-def domain_range(a: float, b: float, step: float):
-    return Domain(RangeDomain(a, b, step))
-
-
-def domain_linspace(a: float, b: float, count: float):
-    return Domain(SpaceDomain(a, b, count))
-
-
-def __le(a, b):
-    return operator.le(a, b)
-
-
-def __ge(a, b):
-    return operator.ge(a, b)
-
-
-def domain_threshold_range(
-    a: float, b: float, step: float, upper: bool = False, lower: bool = False
-):
-    d = RangeDomain(a, b, step, lower_bound=lower, upper_bound=upper)
-    return Domain(d)
-
-
-def domain_identity():
-    return Domain(IdentityDomain())
+from csi.situation.components import Atom
+from csi.situation.domain import Domain
+from csi.situation.monitoring import Trace
 
 
 # TODO Introduce Domain definition to capture domain definitions for set of atoms (Generic[K] with K key type?)

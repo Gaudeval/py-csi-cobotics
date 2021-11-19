@@ -3,7 +3,7 @@ import json
 import tqdm
 
 from csi.experiment import Repository, Experiment, Run
-from csi.monitor import Monitor
+from csi.situation.monitoring import Monitor
 from csi.safety import SafetyCondition
 
 from wrapper.utils import as_working_directory

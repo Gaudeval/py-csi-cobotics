@@ -24,8 +24,8 @@ if __name__ == "__main__":
     #
     random.seed(42)
     time_start = time.time()
-    with Pool(processes=10) as pool:
-        for i in pool.imap_unordered(run, range(10)):
+    with Pool(processes=2) as pool:
+        for i in pool.imap_unordered(run, range(2)):
             print(i)
     time_end = time.time()
     print(f"Runtime: {time_end - time_start}s")

@@ -1,88 +1,19 @@
-from __future__ import annotations
+"""
+Collection of events occurring in the system and monitoring of situation occurrences.
 
+"""
+from __future__ import annotations
 import itertools
+from typing import FrozenSet, Set, Optional, Any, Mapping, Iterable, MutableMapping, Dict, List, Tuple, Callable
 
 import attr
 import funcy
-import lenses
-from mtfl.ast import WeakUntil, AtomicPred, BinaryOpMTL
-from mtfl.sugar import env, alw, implies, until, timed_until
+from mtfl import AtomicPred
+from mtfl.ast import BinaryOpMTL
+from mtfl.connective import _ConnectivesDef, default
 from traces import TimeSeries
-from typing import (
-    Any,
-    Callable,
-    List,
-    Mapping,
-    Optional,
-    Tuple,
-    Iterable,
-    Set,
-    FrozenSet,
-    Dict,
-    MutableMapping,
-)
 
-from csi.safety import Atom, Node
-from mtfl.connective import _ConnectivesDef, zadeh, godel, default
-
-PathType = Tuple[str]
-
-
-F = env
-
-G = alw
-
-
-def weak_until(phi, psi):
-    return WeakUntil(phi, psi)
-
-
-@attr.s(
-    auto_attribs=True,
-    repr=True,
-    slots=True,
-    eq=True,
-    order=True,
-    hash=True,
-)
-class Context:
-    path: PathType = attr.ib(tuple())
-
-    def __set_name__(self, owner, name):
-        self.name = name
-
-    def __get__(self, instance, owner):
-        return self.__build(getattr(instance, "path", tuple()) + (self.name,))
-
-    @classmethod
-    def __build(cls, path):
-        return cls(path)
-
-
-@attr.s(
-    auto_attribs=True,
-    repr=True,
-    slots=True,
-    eq=True,
-    order=True,
-    hash=True,
-)
-class Alias:
-    condition: Node
-
-    def __get__(self, instance, owner):
-        path = getattr(instance, "path", tuple())
-        atoms = set(lenses.bind(self.condition.walk()).Each().Instance(Atom).collect())
-        v = {a.id: Atom(path + a.id) for a in atoms if isinstance(a.id, tuple)}
-        return self.condition[v]
-
-
-class Term:
-    def __set_name__(self, owner, name):
-        self._name = name
-
-    def __get__(self, instance, owner):
-        return Atom(getattr(instance, "path", tuple()) + (self._name,))
+from csi.situation.components import Node, Atom, PathType
 
 
 @attr.s(

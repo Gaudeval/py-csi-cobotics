@@ -1,5 +1,5 @@
 from tests.safety.common import SafetyTest
-from csi.monitor import Trace, Monitor
+from csi.situation.monitoring import Monitor, Trace
 from experiments.tcx_safety.wrapper.safety import hazards, P
 
 

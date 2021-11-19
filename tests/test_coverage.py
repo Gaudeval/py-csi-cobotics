@@ -1,4 +1,4 @@
-from csi.coverage import Domain, RangeDomain, SpaceDomain
+from csi.situation.domain import RangeDomain, SpaceDomain, Domain
 
 
 class TestDomain:

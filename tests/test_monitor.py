@@ -5,7 +5,8 @@ from pprint import pprint
 import pytest
 import mtfl
 
-from csi.monitor import Context, Monitor, Trace, Term
+from csi.situation.monitoring import Monitor, Trace
+from csi.situation.components import Context, Term
 
 
 class Constraint(Context):

@@ -3,7 +3,7 @@ from enum import IntEnum, unique
 from functools import reduce
 from lenses import bind
 from mtfl import BOT
-from csi.monitor import Alias, Context, Term
+from csi.situation.components import Context, Alias, Term
 
 
 @unique

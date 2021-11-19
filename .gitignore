@@ -4,3 +4,7 @@
 /workspace/
 /experiments/**/runs*/
 #/experiments/**/build*/
+/experiments/tcx_validation/build/
+/experiments/tcx_validation/build-server/
+/experiments-safecomp2021/
+/dist/

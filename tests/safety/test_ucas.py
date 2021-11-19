@@ -1,7 +1,7 @@
 import pytest
 
 from tests.safety.common import SafetyTest
-from csi.monitor import Monitor, Trace
+from csi.situation.monitoring import Monitor, Trace
 from experiments.tcx_safety.wrapper.safety import P
 
 
