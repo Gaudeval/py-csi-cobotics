@@ -8,7 +8,6 @@ from functools import reduce
 
 from mtfl import BOT
 
-import csi.situation.helpers
 from csi.situation.monitoring import Monitor
 from csi.safety import Hazard, UnsafeControlAction
 
@@ -315,7 +314,7 @@ __register_uca(
     "The Cobot does not reach the target position",
     ~(
         P.cobot.has_target.implies(
-            csi.situation.helpers.weak_until(P.cobot.reaches_target)
+            (P.cobot.has_target & P.cobot.is_moving).weak_until(P.cobot.reaches_target)
         ).always()
     ),
 )
