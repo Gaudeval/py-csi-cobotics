@@ -39,6 +39,7 @@ Node = typing.Union[Atom, And, Or, Lt, Eq, G, WeakUntil, Implies, Neg, Next]
 
 PathType = Tuple[str]
 
+
 @attr.s(
     auto_attribs=True,
     repr=True,
@@ -75,7 +76,7 @@ class Alias:
     def __get__(self, instance, owner):
         path = getattr(instance, "path", tuple())
         atoms = set(lenses.bind(self.condition.walk()).Each().Instance(Atom).collect())
-        v = {a.id: Atom(path + a.id) for a in atoms if isinstance(a.id, tuple)}
+        v = {a.id: Atom(path + a.path, a.domain) for a in atoms}
         return self.condition[v]
 
 
