@@ -17,9 +17,27 @@ import lenses
 from mtfl import AtomicPred, And, G, WeakUntil, Implies, Neg, Next
 from mtfl.ast import Or, Lt, Eq
 
-Atom = AtomicPred
-Node = typing.Union[AtomicPred, And, Or, Lt, Eq, G, WeakUntil, Implies, Neg, Next]
+from csi.situation.domain import Domain
 
+
+@attr.s(frozen=True, auto_attribs=True, repr=False, slots=True, order=False, init=False)
+class Atom(AtomicPred):
+    path: Tuple[str]
+    domain: Domain
+
+    def __init__(self, path, domain=None):
+        object.__setattr__(self, "path", path)
+        object.__setattr__(self, "domain", domain)
+        super(Atom, self).__init__("::".join(path))
+
+    def __str__(self):
+        return "::".join(self.path)
+
+
+# TODO Check for duplicate definition
+Node = typing.Union[Atom, And, Or, Lt, Eq, G, WeakUntil, Implies, Neg, Next]
+
+PathType = Tuple[str]
 
 @attr.s(
     auto_attribs=True,
@@ -68,5 +86,3 @@ class Term:
     def __get__(self, instance, owner):
         return Atom(getattr(instance, "path", tuple()) + (self._name,))
 
-
-PathType = Tuple[str]

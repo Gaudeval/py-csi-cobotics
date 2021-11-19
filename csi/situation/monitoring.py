@@ -87,7 +87,7 @@ class Monitor:
 
         results: MutableMapping[Node, Optional[bool]] = dict()
         for phi in evaluated_conditions:
-            signals = trace.project(self.atoms(phi), logic)
+            signals = {k.id: v for k, v in trace.project(self.atoms(phi), logic).items()}
             # FIXME A default value is required by mtl even if no atoms required (TOP/BOT)
             signals[None] = [(0, logic.const_false)]
             if all(a.id in signals for a in self.atoms(phi)):
@@ -104,27 +104,27 @@ class Monitor:
 
 
 class Trace:
-    values: Dict[PathType, TimeSeries]
+    values: Dict[Atom, TimeSeries]
 
     def __init__(self):
         self.values = {}
 
     def atoms(self) -> Set[Atom]:
-        return {Atom(k) for k in self.values.keys()}
+        return set(self.values.keys())
 
     def project(
         self, atoms: Iterable[Atom], logic=default
-    ) -> Mapping[str, List[(int, Any)]]:
+    ) -> Mapping[Atom, List[(int, Any)]]:
         results = {}
         for a in set(atoms) & self.atoms():
-            results[a.id] = []
-            for (t, v) in self.values[a.id].items():
+            results[a] = []
+            for (t, v) in self.values[a].items():
                 if isinstance(v, bool):
-                    results[a.id].append(
+                    results[a].append(
                         (t, logic.const_true if v else logic.const_false)
                     )
                 else:
-                    results[a.id].append((t, v))
+                    results[a].append((t, v))
         return results
 
     @staticmethod
@@ -174,8 +174,6 @@ class Trace:
     def __setitem__(self, key: Atom, value: Tuple[float, Any]):
         t, v = value
         k = key
-        if isinstance(key, Atom):
-            k = key.id
         if k not in self.values:
             self.values[k] = TimeSeries()
         # FIXME Events occuring at the same time
