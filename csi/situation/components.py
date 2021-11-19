@@ -9,8 +9,7 @@ As an example a situation where the operator is close to an active welder can
 be built upon the distance between the operator and the welder, and the active
 status of the welder.
 """
-import typing
-from typing import Tuple
+from typing import Optional, Tuple, Union
 
 import attr
 import lenses
@@ -35,7 +34,7 @@ class Atom(AtomicPred):
 
 
 # TODO Check for duplicate definition
-Node = typing.Union[Atom, And, Or, Lt, Eq, G, WeakUntil, Implies, Neg, Next]
+Node = Union[Atom, And, Or, Lt, Eq, G, WeakUntil, Implies, Neg, Next]
 
 PathType = Tuple[str, ...]
 
@@ -80,10 +79,21 @@ class Alias:
         return self.condition[v]
 
 
+@attr.s(
+    auto_attribs=True,
+    repr=True,
+    slots=True,
+    eq=True,
+    order=True,
+    hash=True,
+)
 class Term:
+    domain: Optional[Domain] = attr.ib(None)
+    _name: str = attr.ib(init=False)
+
     def __set_name__(self, owner, name):
         self._name = name
 
     def __get__(self, instance, owner):
-        return Atom(getattr(instance, "path", tuple()) + (self._name,))
+        return Atom(getattr(instance, "path", tuple()) + (self._name,), self.domain)
 
