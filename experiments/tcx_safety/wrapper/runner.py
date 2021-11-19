@@ -250,47 +250,9 @@ class SafecompControllerRunner(Experiment):
     def initialise_registry(self) -> EventCombinationsRegistry:
         """Define event domain for use case."""
         P = World
-        # TODO Declare domain with Term definition in monitor
         registry = EventCombinationsRegistry()
-        registry.domain[P.assembly.position.in_bench] = domain_values({True, False})
-        registry.domain[P.assembly.is_damaged] = domain_values({True, False})
-        registry.domain[P.assembly.is_moving] = domain_values({True, False})
-        registry.domain[P.assembly.is_orientation_valid] = domain_values({True, False})
-        registry.domain[P.assembly.is_processed] = domain_values({True, False})
-        registry.domain[P.assembly.is_secured] = domain_values({True, False})
-        registry.domain[P.assembly.is_valid] = domain_values({True, False})
-        registry.domain[P.assembly.under_processing] = domain_values({True, False})
-        registry.domain[P.cobot.is_damaged] = domain_values({True, False})
-        registry.domain[P.cobot.is_moving] = domain_values({True, False})
-        registry.domain[P.cobot.has_assembly] = domain_values({True, False})
-        registry.domain[P.cobot.has_target] = domain_values({True, False})
-        registry.domain[P.cobot.position.in_bench] = domain_values({True, False})
-        registry.domain[P.cobot.position.in_tool] = domain_values({True, False})
-        registry.domain[P.cobot.position.in_workspace] = domain_values({True, False})
-        registry.domain[P.cobot.reaches_target] = domain_values({True, False})
-        registry.domain[P.controller.is_configured] = domain_values({True, False})
-        registry.domain[P.lidar.is_damaged] = domain_values({True, False})
-        registry.domain[P.operator.is_damaged] = domain_values({True, False})
-        registry.domain[P.operator.has_assembly] = domain_values({True, False})
-        registry.domain[P.operator.position.in_bench] = domain_values({True, False})
-        registry.domain[P.operator.provides_assembly] = domain_values({True, False})
-        registry.domain[P.operator.position.in_workspace] = domain_values({True, False})
-        registry.domain[P.safety.mode] = domain_values(list(SafMod))
-        registry.domain[P.safety.hrwp] = domain_values(list(Phase))
-        registry.domain[P.safety.hcp] = domain_values(list(Phase))
-        registry.domain[P.safety.hsp] = domain_values(list(Phase))
-        registry.domain[P.tool.has_assembly] = domain_values({True, False})
-        registry.domain[P.tool.is_damaged] = domain_values({True, False})
-        registry.domain[P.tool.is_running] = domain_values({True, False})
-        registry.domain[P.tool.distance] = domain_threshold_range(
-            0.0, 4.0, 0.25, upper=True
-        )
-        registry.domain[P.cobot.distance] = domain_threshold_range(
-            0.0, 4.0, 0.25, upper=True
-        )
-        registry.domain[P.cobot.velocity] = domain_threshold_range(
-            0.0, 16.0, 0.25, upper=True
-        )
+        # TODO List all domains and register them from World
+        # TODO Remove method... kind of unused
         return registry
 
     def process_output(self):
