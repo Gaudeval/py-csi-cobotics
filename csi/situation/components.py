@@ -37,7 +37,7 @@ class Atom(AtomicPred):
 # TODO Check for duplicate definition
 Node = typing.Union[Atom, And, Or, Lt, Eq, G, WeakUntil, Implies, Neg, Next]
 
-PathType = Tuple[str]
+PathType = Tuple[str, ...]
 
 
 @attr.s(
