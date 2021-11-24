@@ -83,7 +83,7 @@ def json_get(path, contents):
 
 
 def json_match(path, contents):
-    if path is str:
+    if isinstance(path, str):
         return [m for m in Path.parse_str(path).match(contents)]
     else:
         return [m for m in path.match(contents)]
