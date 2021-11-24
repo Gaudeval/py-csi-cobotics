@@ -230,7 +230,7 @@ class DataBase:
 
     def __init__(self, path: Union[str, Path]):
         self.db_path = Path(path)
-        self.connection = sqlite3.connect(path.absolute().as_uri(), uri=True)
+        self.connection = sqlite3.connect(self.db_path.absolute().as_uri(), uri=True)
         # Retrieve the list of tables in the database
         all_tbl_query = "SELECT name FROM sqlite_master WHERE type='table'"
         tables = self.connection.execute(all_tbl_query).fetchall()
