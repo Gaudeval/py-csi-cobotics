@@ -26,7 +26,7 @@ from csi.situation.domain import Domain
 from csi.experiment import Repository, Run
 from csi.situation.monitoring import Monitor, Trace
 from csi.safety import SafetyCondition
-from csi.situation.components import Atom, Node
+from csi.situation.components import _Atom, Node
 
 from wrapper.fitness import RunnerFitnessWrapper
 from wrapper.runner import SafecompControllerRunner
@@ -34,7 +34,8 @@ from wrapper.utils import as_working_directory
 
 default_runner = SafecompControllerRunner(".", None)
 
-domain: dict[Atom, Domain] = default_runner.initialise_registry().domain
+# FIXME domain is empty, fix computation
+domain: dict[_Atom, Domain] = default_runner.initialise_registry().domain
 conditions: list[SafetyCondition] = default_runner.safety_conditions
 predicates: set[Node] = Monitor().extract_boolean_predicates(conditions)
 
@@ -49,8 +50,8 @@ def collect_states(
     atoms = set(domain.keys()) | set(
         Monitor(frozenset(c.condition for c in conditions)).atoms()
     )
-    event_keys: list[Atom] = sorted(atoms, key=lambda d: d.id)
-    events: TimeSeries = TimeSeries.merge([trace.values[e.id] for e in event_keys])
+    event_keys: list[_Atom] = sorted(atoms, key=lambda d: d.id)
+    events: TimeSeries = TimeSeries.merge([trace.values[e] for e in event_keys])
     events.compact()
     t: float
     for t, v in events.items():
@@ -58,9 +59,9 @@ def collect_states(
         for e, i in zip(event_keys, v):
             if e in domain:
                 d = domain[e]
-                s.add(("_".join(e.id), d.value(i)))
+                s.add((e.id, d.value(i)))
             else:
-                s.add(("_".join(e.id), i))
+                s.add((e.id, i))
         yield t, s
 
 
@@ -197,7 +198,7 @@ if __name__ == "__main__":
             Monitor(frozenset(c.condition for c in conditions)).atoms()
         )
         domain_columns = {
-            "_".join(a.id): d for a, d in domain.items() if a in condition_atoms
+            a.id: d for a, d in domain.items() if a in condition_atoms
         }
         domain_columns = {
             a: d for a, d in domain_columns.items() if a in states_table.columns

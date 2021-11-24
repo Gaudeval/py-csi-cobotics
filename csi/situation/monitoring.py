@@ -13,7 +13,7 @@ from mtfl.ast import BinaryOpMTL
 from mtfl.connective import _ConnectivesDef, default
 from traces import TimeSeries
 
-from csi.situation.components import Node, Atom, PathType
+from csi.situation.components import Node, _Atom, PathType
 
 
 @attr.s(
@@ -39,10 +39,10 @@ class Monitor:
     def __or__(self, other: Monitor) -> Monitor:
         return Monitor(self.conditions | other.conditions)
 
-    def atoms(self, condition=None) -> Set[Atom]:
+    def atoms(self, condition=None) -> Set[_Atom]:
         """Extract the atoms used in the monitor or the specified condition"""
         reference = self.conditions if condition is None else {condition}
-        return {a for c in reference for a in c.walk() if isinstance(a, Atom)}
+        return {a for c in reference for a in c.walk() if isinstance(a, _Atom)}
 
     def extract_boolean_predicates(self, conditions=None) -> Set[Node]:
         """Extract the boolean predicates used in the monitor or the specified conditions."""
@@ -104,17 +104,17 @@ class Monitor:
 
 
 class Trace:
-    values: Dict[Atom, TimeSeries]
+    values: Dict[_Atom, TimeSeries]
 
     def __init__(self):
         self.values = {}
 
-    def atoms(self) -> Set[Atom]:
+    def atoms(self) -> Set[_Atom]:
         return set(self.values.keys())
 
     def project(
-        self, atoms: Iterable[Atom], logic=default
-    ) -> Mapping[Atom, List[(int, Any)]]:
+        self, atoms: Iterable[_Atom], logic=default
+    ) -> Mapping[_Atom, List[(int, Any)]]:
         results = {}
         for a in set(atoms) & self.atoms():
             results[a] = []
@@ -171,7 +171,7 @@ class Trace:
                     self.values[path] = TimeSeries()
                 self.values[path][t] = value
 
-    def __setitem__(self, key: Atom, value: Tuple[float, Any]):
+    def __setitem__(self, key: _Atom, value: Tuple[float, Any]):
         t, v = value
         k = key
         if k not in self.values:

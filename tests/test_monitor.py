@@ -6,26 +6,26 @@ import pytest
 import mtfl
 
 from csi.situation.monitoring import Monitor, Trace
-from csi.situation.components import Context, Term
+from csi.situation.components import Context, Component
 
 
 class Constraint(Context):
-    maximum_height = Term()
+    maximum_height = Component()
 
 
 class Operator(Context):
-    has_component = Term()
-    height = Term()
-    position = Term()
+    has_component = Component()
+    height = Component()
+    position = Component()
 
 
 class World(Context):
     operator = Operator()
     constraint = Constraint()
     props = Operator()
-    height = Term()
-    speed = Term()
-    position = Term()
+    height = Component()
+    speed = Component()
+    position = Component()
 
 
 class TestMonitor:

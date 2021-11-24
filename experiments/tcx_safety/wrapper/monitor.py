@@ -3,7 +3,7 @@ from enum import IntEnum, unique
 from functools import reduce
 from lenses import bind
 from mtfl import BOT
-from csi.situation.components import Context, Alias, Term
+from csi.situation.components import Context, Alias, Component
 from csi.situation.domain import domain_values, domain_threshold_range
 
 
@@ -29,34 +29,34 @@ class Phase(IntEnum):
 
 
 class Position(Context):
-    in_workspace = Term(domain_values({True, False}))
-    in_bench = Term(domain_values({True, False}))
-    in_tool = Term(domain_values({True, False}))
+    in_workspace = Component(domain_values({True, False}))
+    in_bench = Component(domain_values({True, False}))
+    in_tool = Component(domain_values({True, False}))
 
 
 class Entity(Context):
-    distance = Term(domain_threshold_range(0.0, 4.0, 0.25, upper=True))
+    distance = Component(domain_threshold_range(0.0, 4.0, 0.25, upper=True))
     position = Position()
-    is_damaged = Term(domain_values({True, False}))
-    is_running = Term(domain_values({True, False}))
-    provides_assembly = Term(domain_values({True, False}))
-    is_moving = Term(domain_values({True, False}))
-    velocity = Term(domain_threshold_range(0.0, 16.0, 0.25, upper=True))
-    has_target = Term(domain_values({True, False}))
-    reaches_target = Term(domain_values({True, False}))
+    is_damaged = Component(domain_values({True, False}))
+    is_running = Component(domain_values({True, False}))
+    provides_assembly = Component(domain_values({True, False}))
+    is_moving = Component(domain_values({True, False}))
+    velocity = Component(domain_threshold_range(0.0, 16.0, 0.25, upper=True))
+    has_target = Component(domain_values({True, False}))
+    reaches_target = Component(domain_values({True, False}))
 
 
 class Grabber(Entity):
-    has_assembly = Term(domain_values({True, False}))
+    has_assembly = Component(domain_values({True, False}))
 
 
 class ConstraintProximity(Context):
-    proximity = Term()
-    operation = Term()
-    in_bench = Term()
-    in_tool = Term()
-    in_workspace = Term()
-    oob = Term()
+    proximity = Component()
+    operation = Component()
+    in_bench = Component()
+    in_tool = Component()
+    in_workspace = Component()
+    oob = Component()
 
 
 class ConstraintCobot(Context):
@@ -70,15 +70,15 @@ class Constraints(Context):
 
 
 class Assembly(Entity):
-    is_processed = Term(domain_values({True, False}))
-    under_processing = Term(domain_values({True, False}))
-    is_valid = Term(domain_values({True, False}))
-    is_orientation_valid = Term(domain_values({True, False}))
-    is_secured = Term(domain_values({True, False}))
+    is_processed = Component(domain_values({True, False}))
+    under_processing = Component(domain_values({True, False}))
+    is_valid = Component(domain_values({True, False}))
+    is_orientation_valid = Component(domain_values({True, False}))
+    is_secured = Component(domain_values({True, False}))
 
 
 class Controller(Context):
-    is_configured = Term(domain_values({True, False}))
+    is_configured = Component(domain_values({True, False}))
 
 
 class Workspace(Context):
@@ -86,10 +86,10 @@ class Workspace(Context):
 
 
 class Safety(Context):
-    mode = Term(domain_values(list(SafMod)))
-    hsp = Term(domain_values(list(Phase)))
-    hcp = Term(domain_values(list(Phase)))
-    hrwp = Term(domain_values(list(Phase)))
+    mode = Component(domain_values(list(SafMod)))
+    hsp = Component(domain_values(list(Phase)))
+    hcp = Component(domain_values(list(Phase)))
+    hrwp = Component(domain_values(list(Phase)))
 
 
 class World(Context):

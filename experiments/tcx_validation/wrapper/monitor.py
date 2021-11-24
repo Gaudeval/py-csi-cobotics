@@ -2,7 +2,7 @@
 from enum import Enum
 
 from csi.situation.monitoring import Trace
-from csi.situation.components import Context, Term
+from csi.situation.components import Context, Component
 
 
 class Act(Enum):
@@ -52,21 +52,21 @@ class Phase(Enum):
 class SafetyControllerStatus(Context):
     """Safety controller status variables"""
 
-    notif = Term()
-    ract = Term()
-    lgtBar = Term()
-    rloc = Term()
-    wact = Term()
-    safmod = Term()
-    notif_leaveWrkb = Term()
-    rngDet = Term()
+    notif = Component()
+    ract = Component()
+    lgtBar = Component()
+    rloc = Component()
+    wact = Component()
+    safmod = Component()
+    notif_leaveWrkb = Component()
+    rngDet = Component()
 
-    hsp = Term()
-    hcp = Term()
-    hrwp = Term()
+    hsp = Component()
+    hcp = Component()
+    hrwp = Component()
 
-    oloc = Term()
-    otab = Term()
+    oloc = Component()
+    otab = Component()
 
 
 # class Robot(Context):

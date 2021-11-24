@@ -9,7 +9,7 @@ from typing import Dict, Any, Set, FrozenSet, Tuple
 
 from traces import TimeSeries
 
-from csi.situation.components import Atom
+from csi.situation.components import _Atom
 from csi.situation.domain import Domain
 from csi.situation.monitoring import Trace
 
@@ -19,10 +19,10 @@ from csi.situation.monitoring import Trace
 # TODO Add parameters/configuration to clarify behaviour on out of domain value
 # FIXME Combinations field only valid for transition domains if coming from a projection where a single transition domain is defined
 class EventCombinationsRegistry:
-    domain: Dict[Atom, Domain]
-    default: Dict[Atom, Any]
+    domain: Dict[_Atom, Domain]
+    default: Dict[_Atom, Any]
     # TODO Rename to clarify field captures encountered values
-    combinations: Set[FrozenSet[Tuple[Atom, Any]]]
+    combinations: Set[FrozenSet[Tuple[_Atom, Any]]]
 
     def __init__(self):
         self.domain = {}
@@ -70,12 +70,12 @@ class EventCombinationsRegistry:
             # TODO Get all values for the other, project into current
             raise NotImplementedError()
 
-    def record(self, values: Dict[Atom, Any]):
+    def record(self, values: Dict[_Atom, Any]):
         entry = {(k, v) for k, v in values.items() if k in self.domain}
         undefined = {(k, None) for k in self.domain if k not in values}
         self.combinations.add(frozenset(entry | undefined))
 
-    def restrict(self, restrictions: Dict[Atom, Domain]):
+    def restrict(self, restrictions: Dict[_Atom, Domain]):
         """Restrict domain of a specific variable"""
         restriction = EventCombinationsRegistry()
         restriction.domain |= {

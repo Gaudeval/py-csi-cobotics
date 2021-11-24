@@ -25,7 +25,7 @@ C = TypeVar("C", bound="Context")
 
 
 @attr.s(frozen=True, auto_attribs=True, repr=False, slots=True, order=False, init=False)
-class Atom(AtomicPred):
+class _Atom(AtomicPred):
     """A single component used in the definition of a situation"""
     path: PathType
     domain: Domain
@@ -33,14 +33,14 @@ class Atom(AtomicPred):
     def __init__(self, path, domain=None):
         object.__setattr__(self, "path", path)
         object.__setattr__(self, "domain", domain)
-        super(Atom, self).__init__("::".join(path))
+        super(_Atom, self).__init__("::".join(path))
 
     def __str__(self):
         return "::".join(self.path)
 
 
 # TODO Check for duplicate definition
-Node = Union[Atom, And, Or, Lt, Eq, G, WeakUntil, Implies, Neg, Next]
+Node = Union[_Atom, And, Or, Lt, Eq, G, WeakUntil, Implies, Neg, Next]
 
 
 @attr.s(frozen=True, repr=True, eq=True, order=True, hash=True)
@@ -77,13 +77,13 @@ class Alias:
             path = tuple()
         else:
             path = instance._path
-        atoms = set(lenses.bind(self.condition.walk()).Each().Instance(Atom).collect())
-        v = {a.id: Atom(path + a.path, a.domain) for a in atoms}
+        atoms = set(lenses.bind(self.condition.walk()).Each().Instance(_Atom).collect())
+        v = {a.id: _Atom(path + a.path, a.domain) for a in atoms}
         return self.condition[v]
 
 
 @attr.s(frozen=True, repr=True, eq=True, order=True, hash=True)
-class Term:
+class Component:
     """Defines a component in its context"""
     domain: Optional[Domain] = attr.ib(default=None)
     _name: str = attr.ib(factory=str)
@@ -92,14 +92,14 @@ class Term:
         object.__setattr__(self, "_name", name)
 
     @overload
-    def __get__(self, instance: None, owner: None) -> Atom:
+    def __get__(self, instance: None, owner: None) -> _Atom:
         ...
 
     @overload
-    def __get__(self, instance: Context, owner: Type[Context]) -> Atom:
+    def __get__(self, instance: Context, owner: Type[Context]) -> _Atom:
         ...
 
-    def __get__(self, instance: Context | None, owner: Type[Context] | None) -> Atom:
+    def __get__(self, instance: Context | None, owner: Type[Context] | None) -> _Atom:
         if instance is None:
-            return Atom((self._name,), self.domain)
-        return Atom(instance._path + (self._name,), self.domain)
+            return _Atom((self._name,), self.domain)
+        return _Atom(instance._path + (self._name,), self.domain)
