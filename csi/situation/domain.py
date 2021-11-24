@@ -68,7 +68,7 @@ class RangeDomain(DomainDefinition):
 class SpaceDomain(DomainDefinition):
     a: float = attr.ib()
     b: float = attr.ib()
-    count: float = attr.ib()  # TODO Constraint count to be strictly positive
+    count: int = attr.ib()  # TODO Constraint count to be strictly positive
 
     def __len__(self) -> int:
         return self.count

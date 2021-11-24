@@ -83,6 +83,7 @@ class SelectionQuery:
         foreign key. As an example, `(True, ('label', 'id'), [('String', 'parent_id')])` describes the path to the `id`
         field of the `String` table. The current table `label` field is linked to table `String` on field `parent_id`.
         """
+        fields: List[Tuple[bool, Tuple, List[Tuple[str, str]]]]
         fields = []
         # First query for the table primary keys
         for primary_key in self.table.primary_keys:

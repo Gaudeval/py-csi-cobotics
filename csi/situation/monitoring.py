@@ -136,9 +136,9 @@ class Trace:
 
     def project(
         self, atoms: Iterable[_Atom], logic=default
-    ) -> Mapping[_Atom, List[(int, Any)]]:
+    ) -> Mapping[_Atom, List[Tuple[int, Any]]]:
         """Reduce the trace to the specified atoms"""
-        results = {}
+        results: Mapping[_Atom, List[Tuple[int, Any]]] = {}
         for a in set(atoms) & self.atoms():
             results[a] = []
             for (t, v) in self.values[a].items():
@@ -183,7 +183,6 @@ class Trace:
 
     def record(self, element: Any, *, timestamp: Callable[[Mapping], int]) -> None:
         """Record the values encoded in the element at the specified time"""
-        # TODO Assess if the record method still behaves as expected following the atom refactoring
         if isinstance(element, Mapping):
             element = [element]
         for e in element:
@@ -191,6 +190,7 @@ class Trace:
             if t is None:
                 continue
             for path, value in self._extract_atom_values(e):
+                # FIXME Identify an atom with a matching path else... ignore value? or keep value (change typing)?
                 if path not in self.values:
                     self.values[path] = TimeSeries()
                 self.values[path][t] = value

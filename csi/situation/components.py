@@ -27,6 +27,7 @@ C = TypeVar("C", bound="Context")
 @attr.s(frozen=True, auto_attribs=True, repr=False, slots=True, order=False, init=False)
 class _Atom(AtomicPred):
     """A single component used in the definition of a situation"""
+
     path: PathType
     domain: Domain
 
@@ -46,6 +47,7 @@ Node = Union[_Atom, And, Or, Lt, Eq, G, WeakUntil, Implies, Neg, Next]
 @attr.s(frozen=True, repr=True, eq=True, order=True, hash=True)
 class Context:
     """Acts as a namespace to organise atoms"""
+
     _name: str = attr.ib(factory=str)
     _path: PathType = attr.ib(factory=tuple)
 
@@ -70,9 +72,11 @@ class Context:
 @attr.s(frozen=True, repr=True, eq=True, order=True, hash=True)
 class Alias:
     """Defines a situation within a specific context"""
+
     condition: Node = attr.ib()
 
     def __get__(self, instance: Context | None, owner: Type[Context] | None) -> Node:
+        path: PathType
         if instance is None:
             path = tuple()
         else:
@@ -85,6 +89,7 @@ class Alias:
 @attr.s(frozen=True, repr=True, eq=True, order=True, hash=True)
 class Component:
     """Defines a component in its context"""
+
     domain: Optional[Domain] = attr.ib(default=None)
     _name: str = attr.ib(factory=str)
 

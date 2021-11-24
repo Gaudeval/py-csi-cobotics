@@ -91,7 +91,7 @@ class EventCombinationsRegistry:
         return restriction
 
     def register(self, trace: Trace):
-        """Record the consecutives states encountered in the trace"""
+        """Record the consecutive states encountered in the trace"""
         # FIXME Key sorting relies on id field being present, not the case for non Atom keys
         event_keys = sorted(
             self.domain,
@@ -112,33 +112,3 @@ class EventCombinationsRegistry:
             ):
                 entry.add((e, d.value(i)))
             self.combinations.add(frozenset(entry))
-
-
-if __name__ == "__main__":
-    e = EventCombinationsRegistry()
-    e.domain["a"] = Domain({1, 2, 3})
-    e.domain["b"] = Domain({"x", "y"})
-
-    print(list(e.all_values()))
-    e.combinations.add(frozenset([("a", 1), ("b", "x")]))
-    print(list(e.missing_values()))
-
-    e = EventCombinationsRegistry()
-    e.domain["a"] = Domain({1, 2, 3}, True)
-    e.domain["b"] = Domain({"x", "y"})
-
-    t = Trace()
-    t["a"] = (0, 1)
-    t["a"] = (1, 2)
-    t["a"] = (2, 3)
-    t["a"] = (3, 1)
-    t["a"] = (4, 3)
-    t["a"] = (5, 2)
-    t["b"] = (0, "y")
-    t["b"] = (3, "x")
-    e.register(t)
-    print(e.combinations)
-
-    print(e.domain["a"].count, e.domain["b"].count)
-    print(list(e.all_values()))
-    print(e.coverage)
