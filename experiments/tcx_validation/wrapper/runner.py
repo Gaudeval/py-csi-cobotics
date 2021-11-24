@@ -8,14 +8,9 @@ import subprocess
 from pathlib import Path
 from typing import List, Iterable, Dict, Tuple
 
-from csi.configuration import ConfigurationManager
-from csi.situation.coverage import EventCombinationsRegistry
-from csi.situation.domain import Domain
-from csi.experiment import Experiment
-from csi.situation.monitoring import Monitor, Trace
-from csi.safety import SafetyCondition
-from csi.twin import DataBase
-from csi.twin.importer import from_table
+from csi import ConfigurationManager, Experiment, SafetyCondition
+from csi.situation import Domain, EventCombinationsRegistry, Monitor, Trace
+from csi.twin import DataBase, from_table
 
 from .monitor import SafetyControllerStatus, Notif, Act, Loc, RngDet, SafMod, Phase
 from .uc import SafetyUseCase, U1, U2, MU

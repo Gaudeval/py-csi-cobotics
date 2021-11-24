@@ -7,7 +7,7 @@ import tqdm
 
 from pathlib import Path
 
-from csi.experiment import Repository, Experiment, Run
+from csi import Repository, Experiment, Run
 from wrapper.runner import SafecompControllerRunner
 
 

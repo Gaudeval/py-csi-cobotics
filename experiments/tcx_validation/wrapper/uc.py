@@ -2,8 +2,7 @@ from typing import List, Tuple, Iterable
 
 import attr
 
-from csi.situation.helpers import F, G, weak_until, implies, until
-from csi.situation.monitoring import Monitor, Trace
+from csi.situation import Monitor, Trace, F, G, weak_until, implies, until
 from csi.safety import SafetyCondition
 
 from .monitor import SafetyControllerStatus, Loc, Act, RngDet
@@ -24,7 +23,7 @@ class SafetyUseCase:
         return all(s for s, _ in self.evaluate_conditions(trace))
 
 
-_P = SafetyControllerStatus()
+_P = SafetyControllerStatus
 
 _P.ractive = _P.ract.eq(Act.welding) | _P.ract.eq(Act.exchWrkp)
 _P.ocell = _P.oloc.eq(Loc.inCell)

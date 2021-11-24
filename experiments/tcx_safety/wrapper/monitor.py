@@ -3,8 +3,13 @@ from enum import IntEnum, unique
 from functools import reduce
 from lenses import bind
 from mtfl import BOT
-from csi.situation.components import Context, Alias, Component
-from csi.situation.domain import domain_values, domain_threshold_range
+from csi.situation import (
+    Context,
+    Alias,
+    Component,
+    domain_values,
+    domain_threshold_range,
+)
 
 
 @unique

@@ -2,9 +2,8 @@
 import json
 import tqdm
 
-from csi.experiment import Repository, Experiment, Run
-from csi.situation.monitoring import Monitor
-from csi.safety import SafetyCondition
+from csi import Repository, Experiment, Run, SafetyCondition
+from csi.situation import Monitor
 
 from wrapper.utils import as_working_directory
 from wrapper.runner import SafetyDigitalTwinRunner

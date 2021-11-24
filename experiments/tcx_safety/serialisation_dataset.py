@@ -22,11 +22,8 @@ from mtfl import BOT
 from traces import TimeSeries
 from typing import Any, Iterator, Iterable, Dict
 
-from csi.situation.coverage import EventCombinationsRegistry
-from csi.situation.domain import Domain
-from csi.experiment import Repository, Run
-from csi.situation.monitoring import Monitor, Trace
-from csi.safety import SafetyCondition
+from csi import Repository, Run, SafetyCondition
+from csi.situation import Domain, Monitor, Trace
 from csi.situation.components import _Atom, Node
 
 from wrapper.fitness import RunnerFitnessWrapper
@@ -207,9 +204,7 @@ if __name__ == "__main__":
         condition_atoms = set(
             Monitor(frozenset(c.condition for c in conditions)).atoms()
         )
-        domain_columns = {
-            a.id: d for a, d in domain.items() if a in condition_atoms
-        }
+        domain_columns = {a.id: d for a, d in domain.items() if a in condition_atoms}
         domain_columns = {
             a: d for a, d in domain_columns.items() if a in states_table.columns
         }

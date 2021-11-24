@@ -7,11 +7,9 @@ from typing import Set
 
 import docker
 
-from csi.configuration import ConfigurationManager
-from csi.experiment import Experiment
-from csi.situation.monitoring import Monitor, Trace
-from csi.twin import DataBase
-from csi.twin.importer import from_table
+from csi import ConfigurationManager, Experiment
+from csi.situation import Monitor, Trace
+from csi.twin import DataBase, from_table
 
 from .monitor import World, SafMod, Phase
 from .safety import hazards, unsafe_control_actions
@@ -263,5 +261,6 @@ class SafecompControllerRunner(Experiment):
             report[c.uid] = r[c.condition]
         with open("./hazard-report.json", "w") as json_report:
             import json
+
             json.dump(report, json_report, indent=4)
         return report

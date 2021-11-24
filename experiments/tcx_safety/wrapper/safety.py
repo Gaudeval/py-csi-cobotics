@@ -8,8 +8,8 @@ from functools import reduce
 
 from mtfl import BOT
 
-from csi.situation.monitoring import Monitor
-from csi.safety import Hazard, UnsafeControlAction
+from csi.situation import Monitor
+from csi import Hazard, UnsafeControlAction
 
 from .monitor import P, Entities
 

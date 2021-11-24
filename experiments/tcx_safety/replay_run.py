@@ -3,10 +3,14 @@
 import json
 from pathlib import Path
 
-from csi.configuration import ConfigurationManager
-from csi.experiment import Repository, Experiment, Run
+from csi import Repository, Experiment, Run, ConfigurationManager
 from wrapper.runner import SafecompControllerRunner
-from wrapper.configuration import SceneConfiguration, BuildConfiguration, MonitorConfiguration, RunnerConfiguration
+from wrapper.configuration import (
+    SceneConfiguration,
+    BuildConfiguration,
+    MonitorConfiguration,
+    RunnerConfiguration,
+)
 
 
 def needs_replaying(e: Experiment, r: Run):

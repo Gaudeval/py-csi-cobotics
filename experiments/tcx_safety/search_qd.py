@@ -7,7 +7,7 @@ from qdpy import algorithms, containers, plots
 
 from wrapper.runner import SafecompControllerRunner
 from wrapper.fitness import RunnerFitnessWrapper
-from ..tcx import hazards, unsafe_control_actions
+from wrapper.safety import hazards, unsafe_control_actions
 
 
 if __name__ == "__main__":

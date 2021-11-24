@@ -10,8 +10,7 @@ from typing import List, Tuple, Dict
 import seaborn as sns
 import matplotlib.pyplot as mpl
 
-from csi.configuration import ConfigurationManager
-from csi.experiment import Repository, Experiment, Run, RunStatus
+from csi import ConfigurationManager, Repository, Experiment, Run, RunStatus
 
 from wrapper.configuration import SceneConfiguration
 from wrapper.runner import SafetyDigitalTwinRunner

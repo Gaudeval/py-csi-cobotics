@@ -4,7 +4,7 @@ import json
 import pickle
 from pathlib import Path
 
-from csi.experiment import Repository, Run
+from csi import Repository, Run
 from wrapper.runner import SafetyDigitalTwinRunner
 
 if __name__ == "__main__":
