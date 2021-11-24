@@ -150,8 +150,8 @@ class TestMonitor:
         t[P.position] = (9, DummyEnum.FOO)
 
         print("t:", t.values)
-        print("s|t:", list((s | t).values[("operator", "height")].items()))
-        print("t|s:", list((t | s).values[("operator", "height")].items()))
+        print("s|t:", list((s | t).values[P.operator.height].items()))
+        print("t|s:", list((t | s).values[P.operator.height].items()))
 
         print("== Out-of-order updates =====")
         w = Monitor()
@@ -164,7 +164,7 @@ class TestMonitor:
         t[P.operator.height] = (25, 42)
         t[P.operator.height] = (5, 10)
 
-        print(list(t.values[("operator", "height")].items()))
+        print(list(t.values[P.operator.height].items()))
 
         print("== Overlapping updates =====")
         t = Trace()
@@ -173,21 +173,12 @@ class TestMonitor:
         t[P.operator.height] = (10, 160)
         t[P.operator.height] = (25, 42)
         t[P.operator.height] = (50, 200)
-        print(
-            list(
-                t.values[
-                    (
-                        "operator",
-                        "height",
-                    )
-                ].items()
-            )
-        )
+        print(list(t.values[P.operator.height].items()))
 
         t[P.height] = (0, 100)
         t[P.height] = (11, 161)
         t[P.height] = (49, 40)
         t[P.height] = (50, 150)
-        print(list(t.values[("height",)].items()))
+        print(list(t.values[P.height].items()))
 
         print(t)

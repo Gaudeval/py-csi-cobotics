@@ -54,7 +54,12 @@ class Monitor:
     def atoms(self, condition=None) -> Set[_Atom]:
         """Extract the atoms used in the monitor or the specified condition"""
         reference = self.conditions if condition is None else {condition}
-        return {a for c in reference for a in c.walk() if isinstance(a, _Atom)}
+        return {
+            a
+            for c in reference
+            for a in c.walk()
+            if isinstance(a, _Atom) or isinstance(a, AtomicPred)
+        }
 
     def extract_boolean_predicates(self, conditions=None) -> Set[Node]:
         """Extract the boolean predicates used in the monitor or the specified conditions."""
