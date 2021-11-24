@@ -23,7 +23,9 @@ class UCATest(SafetyTest):
     def evaluate(self, trace, expected=True):
         uca = self.identify(self.uca_id)
         monitor = Monitor({uca.condition})
-        assert len(monitor.atoms() - trace.atoms()) == 0
+        assert (
+            len(monitor.atoms() - trace.atoms()) == 0
+        ), f"Test trace is missing atoms required by UCA ({monitor.atoms() - trace.atoms()})"
         occurs = monitor.evaluate(trace, uca.condition)
         assert occurs is not None
         assert occurs == expected
@@ -721,6 +723,7 @@ class Test7N1(UCATest):
     def test_occurs(self):
         trace = Trace()
         #
+        trace[P.assembly.is_processed] = (0, False)
         trace[P.assembly.position.in_bench] = (0, True)
         trace[P.cobot.has_assembly] = (0, False)
         trace[P.cobot.position.in_bench] = (0, True)
@@ -732,11 +735,13 @@ class Test7N1(UCATest):
         trace[P.assembly.position.in_bench] = (0, True)
         trace[P.cobot.has_assembly] = (0, True)
         trace[P.cobot.position.in_bench] = (0, True)
+        trace[P.assembly.is_processed] = (0, False)
         self.evaluate(trace, expected=False)
 
     def test_cobot_away(self):
         trace = Trace()
         #
+        trace[P.assembly.is_processed] = (0, False)
         trace[P.assembly.position.in_bench] = (0, True)
         trace[P.cobot.has_assembly] = (0, False)
         trace[P.cobot.position.in_tool] = (0, True)
@@ -746,6 +751,7 @@ class Test7N1(UCATest):
     def test_occurs_move(self):
         trace = Trace()
         #
+        trace[P.assembly.is_processed] = (0, False)
         trace[P.assembly.position.in_bench] = (0, True)
         trace[P.cobot.has_assembly] = (0, False)
         trace[P.cobot.position.in_tool] = (0, True)
@@ -758,6 +764,7 @@ class Test7N1(UCATest):
     def test_delayed_grab(self):
         trace = Trace()
         #
+        trace[P.assembly.is_processed] = (0, False)
         trace[P.assembly.position.in_bench] = (0, True)
         trace[P.cobot.has_assembly] = (0, False)
         trace[P.cobot.position.in_tool] = (0, True)
@@ -769,6 +776,7 @@ class Test7N1(UCATest):
     def test_multiple_occurrences(self):
         trace = Trace()
         #
+        trace[P.assembly.is_processed] = (0, False)
         trace[P.assembly.position.in_bench] = (0, True)
         trace[P.cobot.has_assembly] = (0, False)
         trace[P.cobot.position.in_tool] = (0, True)
@@ -963,8 +971,10 @@ class Test8N1(UCATest):
     def test_wrong_release(self):
         trace = self.setup_trace()
         trace[P.assembly.is_processed] = (0, True)
-        trace[P.cobot.has_assembly] = (0, False)
+        trace[P.cobot.has_assembly] = (0, True)
         trace[P.cobot.position.in_tool] = (0, True)
+        trace[P.cobot.position.in_bench] = (0, False)
+        trace[P.cobot.has_assembly] = (1, False)
         self.evaluate(trace)
 
 
@@ -1014,25 +1024,30 @@ class Test9N1(UCATest):
 
     def test_occurs(self):
         trace = Trace()
+        trace[P.cobot.is_moving] = (0, False)
         trace[P.cobot.has_target] = (0, True)
         trace[P.cobot.reaches_target] = (0, False)
         self.evaluate(trace)
 
     def test_reaches_target(self):
         trace = Trace()
+        trace[P.cobot.is_moving] = (0, True)
         trace[P.cobot.has_target] = (0, True)
+        trace[P.cobot.is_moving] = (1, False)
         trace[P.cobot.reaches_target] = (1, True)
         trace[P.cobot.has_target] = (1, False)
         self.evaluate(trace, expected=False)
 
     def test_delayed_reach(self):
         trace = Trace()
+        trace[P.cobot.is_moving] = (0, True)
         trace[P.cobot.has_target] = (0, True)
         trace[P.cobot.reaches_target] = (25000, True)
         self.evaluate(trace, expected=False)
 
     def test_multiple_targets(self):
         trace = Trace()
+        trace[P.cobot.is_moving] = (0, True)
         trace[P.cobot.has_target] = (0, True)
         trace[P.cobot.reaches_target] = (1, True)
         trace[P.cobot.has_target] = (2, False)
@@ -1043,6 +1058,7 @@ class Test9N1(UCATest):
 
     def test_multiple_occurs(self):
         trace = Trace()
+        trace[P.cobot.is_moving] = (0, True)
         trace[P.cobot.has_target] = (0, True)
         trace[P.cobot.reaches_target] = (1, True)
         trace[P.cobot.has_target] = (1, False)
@@ -1053,6 +1069,7 @@ class Test9N1(UCATest):
 
     def test_multiple_passes(self):
         trace = Trace()
+        trace[P.cobot.is_moving] = (0, True)
         trace[P.cobot.has_target] = (0, True)
         trace[P.cobot.reaches_target] = (1, True)
         trace[P.cobot.has_target] = (1, False)
@@ -1065,6 +1082,7 @@ class Test9N1(UCATest):
 
     def test_target_loss(self):
         trace = Trace()
+        trace[P.cobot.is_moving] = (0, True)
         trace[P.cobot.reaches_target] = (0, False)
         trace[P.cobot.has_target] = (0, True)
         trace[P.cobot.has_target] = (2, False)
@@ -1430,6 +1448,7 @@ class Test10P5(UCATest):
         trace = Trace()
         trace[P.assembly.under_processing] = (0, False)
         trace[P.operator.position.in_workspace] = (0, True)
+        trace[P.operator.position.in_tool] = (0, False)
         return trace
 
     def test_occurs(self):
@@ -1458,6 +1477,7 @@ class Test10P5(UCATest):
 
     def test_tool_stops(self):
         trace = self.setup_trace()
+        trace[P.operator.position.in_workspace] = (0, False)
         trace[P.assembly.under_processing] = (0, True)
         trace[P.operator.position.in_bench] = (0, True)
         trace[P.assembly.under_processing] = (1, False)
@@ -1467,6 +1487,7 @@ class Test10P5(UCATest):
 
     def test_nominal(self):
         trace = self.setup_trace()
+        trace[P.operator.position.in_workspace] = (0, False)
         trace[P.assembly.under_processing] = (0, True)
         trace[P.operator.position.in_bench] = (0, True)
         self.evaluate(trace, expected=False)
