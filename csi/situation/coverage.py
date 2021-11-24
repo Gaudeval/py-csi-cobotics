@@ -17,6 +17,8 @@ from csi.situation.monitoring import Trace
 # TODO Add method to Domain to register new atom, its domain, and default value
 # TODO Add parameters/configuration to clarify behaviour on out of domain value
 class EventCombinationsRegistry:
+    """Registry for covered system states, based on its combined components' values"""
+
     domain: Dict[_Atom, Domain]
     default: Dict[_Atom, Any]
     # TODO Rename to clarify field captures encountered values
@@ -51,6 +53,7 @@ class EventCombinationsRegistry:
         return float(self.covered) / self.total
 
     def project(self, keys):
+        """Reduce the registry to only include the specified keys."""
         projection = EventCombinationsRegistry()
         projection.domain |= {k: v for k, v in self.domain.items() if k in keys}
         projection.default |= {k: v for k, v in self.default.items() if k in keys}
@@ -69,6 +72,7 @@ class EventCombinationsRegistry:
             raise NotImplementedError()
 
     def record(self, values: Dict[_Atom, Any]):
+        """Record the specified system state"""
         entry = {(k, v) for k, v in values.items() if k in self.domain}
         undefined = {(k, None) for k in self.domain if k not in values}
         self.combinations.add(frozenset(entry | undefined))
@@ -87,6 +91,7 @@ class EventCombinationsRegistry:
         return restriction
 
     def register(self, trace: Trace):
+        """Record the consecutives states encountered in the trace"""
         # FIXME Key sorting relies on id field being present, not the case for non Atom keys
         event_keys = sorted(
             self.domain,

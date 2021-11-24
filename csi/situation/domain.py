@@ -97,6 +97,16 @@ class SetDomain(DomainDefinition):
 # TODO Rename to AtomDomain
 @attr.s(frozen=True, init=True)
 class Domain:
+    """Domain of values for a component.
+
+    A domain captures the possible values for a component. To support range of
+    values, different values in the same range might be converted to a single
+    one, unique to the range itself. A domain thus only requires to define
+    such a conversion operation, and a length if applicable.
+
+    None identifies out of scope values (as a value, or a range identifier).
+    """
+
     _definition: DomainDefinition = attr.ib()
 
     @_definition.validator
@@ -115,23 +125,28 @@ class Domain:
 
 
 def domain_values(values: Iterable[Any]) -> Domain:
+    """Define a domain from the exact set of possible values"""
     return Domain(SetDomain(values))
 
 
 def domain_range(a: float, b: float, step: float):
+    """Define a domain partitioned into ranges of size step in [a;b)"""
     return Domain(RangeDomain(a, b, step))
 
 
 def domain_linspace(a: float, b: float, count: float):
+    """Define a domain partitioned into count ranges in [a;b)"""
     return Domain(SpaceDomain(a, b, count))
 
 
 def domain_threshold_range(
     a: float, b: float, step: float, upper: bool = False, lower: bool = False
 ):
+    """Define a range domain including upper or lower values outside [a, b)"""
     d = RangeDomain(a, b, step, lower_bound=lower, upper_bound=upper)
     return Domain(d)
 
 
 def domain_identity():
+    """Define the identity domain containing all values"""
     return Domain(IdentityDomain())

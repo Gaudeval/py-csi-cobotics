@@ -19,6 +19,7 @@ def extract_subscript(node):
 
 
 def json_map(path, contents, function, *args):
+    """Apply the specified function to all elements in contents matching path."""
     has_changed = True
     while (
         (match := json_match(path, contents)) and contents is not None and has_changed
@@ -54,6 +55,7 @@ def json_map_removal(element, subscript):
 
 
 def json_remove(path, contents):
+    """Remove elements specified in path from contents"""
     return json_map(path, contents, json_map_removal)
 
 
@@ -71,10 +73,12 @@ def json_map_transform(element, subscript, transform):
 
 
 def json_transform(path, contents, transform):
+    """Apply secified transform for path-matching elements in contents"""
     return json_map(path, contents, json_map_transform, transform)
 
 
 def json_get(path, contents):
+    """Retrieve elements specified by path in contents"""
     return [m.current_value for m in json_match(path, contents)]
 
 

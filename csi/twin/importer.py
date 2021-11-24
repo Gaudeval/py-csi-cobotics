@@ -23,10 +23,12 @@ def as_items(element: Any, prefix: PathType = ()) -> Generator[Tuple, None, None
 
 
 def from_table(db, *table):
+    """Read all messages in the table as objects"""
     return map(as_object, db.flatten_messages(*table))
 
 
 def as_object(element: Union[Mapping, Any]):
+    """Convert element into an object for property access instead of fields"""
     if isinstance(element, Mapping):
         return SimpleNamespace(**{k: as_object(v) for k, v in element.items()})
     return element

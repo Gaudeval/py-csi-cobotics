@@ -3,11 +3,11 @@ import collections.abc
 import re
 import sqlite3
 from pathlib import Path
-from typing import Any, Generator, List, MutableMapping, Tuple, Union
+from typing import Generator, List, Tuple, Union
 
 import funcy
 
-from csi.transform import json_transform, json_parse
+from csi.transform import json_parse
 
 structural_fields = {
     "id",
@@ -20,6 +20,8 @@ scalar_fields = {
 
 
 class DataTable:
+    """Representation of a single message table in the database"""
+
     def __init__(self, db, table_name):
         self.db = db
         self.table_name = table_name.lower()
@@ -217,6 +219,8 @@ class SelectionQuery:
 
 
 class DataBase:
+    """Representation of a digital twin message database"""
+
     path_foreign_index = json_parse("$[*]..[?(@.__table__)]")
     path_foreign_data = json_parse(
         "$..[?(@.length() = 1 and @[0][?(@.__table__ and @.__pk__)])]"
@@ -237,6 +241,7 @@ class DataBase:
         }
 
     def messages(self, *tables) -> Generator:
+        """List all raw messages in the database"""
         if tables:
             from_tables = [self.tables[t] for t in tables if t in self.tables]
         else:
@@ -245,6 +250,7 @@ class DataBase:
             yield from table.messages()
 
     def flatten_messages(self, *tables) -> Generator:
+        """List all messages in the database, with Python-compliant key names"""
         reduce_fk = lambda c: {
             k: v for k, v in c.items() if k not in ["__table__", "__pk__"]
         }
