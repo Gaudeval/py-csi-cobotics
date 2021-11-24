@@ -14,10 +14,8 @@ from csi.situation.domain import Domain
 from csi.situation.monitoring import Trace
 
 
-# TODO Introduce Domain definition to capture domain definitions for set of atoms (Generic[K] with K key type?)
 # TODO Add method to Domain to register new atom, its domain, and default value
 # TODO Add parameters/configuration to clarify behaviour on out of domain value
-# FIXME Combinations field only valid for transition domains if coming from a projection where a single transition domain is defined
 class EventCombinationsRegistry:
     domain: Dict[_Atom, Domain]
     default: Dict[_Atom, Any]

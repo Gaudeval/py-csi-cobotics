@@ -20,8 +20,9 @@ from pathlib import Path
 
 from mtfl import BOT
 from traces import TimeSeries
-from typing import Any, Iterator, Iterable
+from typing import Any, Iterator, Iterable, Dict
 
+from csi.situation.coverage import EventCombinationsRegistry
 from csi.situation.domain import Domain
 from csi.experiment import Repository, Run
 from csi.situation.monitoring import Monitor, Trace
@@ -33,11 +34,20 @@ from wrapper.runner import SafecompControllerRunner
 from wrapper.utils import as_working_directory
 
 default_runner = SafecompControllerRunner(".", None)
-
-# FIXME domain is empty, fix computation
-domain: dict[_Atom, Domain] = default_runner.initialise_registry().domain
 conditions: list[SafetyCondition] = default_runner.safety_conditions
 predicates: set[Node] = Monitor().extract_boolean_predicates(conditions)
+
+
+def compute_domain():
+    e: Dict[_Atom, Domain] = {}
+    for atom in Monitor(frozenset(c.condition for c in conditions)).atoms():
+        if atom.domain is not None:
+            e[atom] = atom.domain
+    return e
+
+
+# FIXME domain is empty, fix computation
+domain: Dict[_Atom, Domain] = compute_domain()
 
 
 def sanitise_name(condition: SafetyCondition):

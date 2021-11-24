@@ -1,22 +1,15 @@
-import itertools
 import pickle
 import shutil
 import tempfile
 
 from pathlib import Path
-from typing import List, Set
+from typing import Set
 
 import docker
-from mtfl import AtomicPred
-from mtfl.ast import BinaryOpMTL
 
 from csi.configuration import ConfigurationManager
-from csi.situation.coverage import EventCombinationsRegistry
-from csi.situation.domain import domain_values, domain_threshold_range
 from csi.experiment import Experiment
 from csi.situation.monitoring import Monitor, Trace
-from csi.safety import SafetyCondition
-from csi.situation.components import Node
 from csi.twin import DataBase
 from csi.twin.importer import from_table
 
@@ -246,14 +239,6 @@ class SafecompControllerRunner(Experiment):
         trace[P.constraints.tool.distance.operation] = (0.0, 0.5)
 
         return trace
-
-    def initialise_registry(self) -> EventCombinationsRegistry:
-        """Define event domain for use case."""
-        P = World
-        registry = EventCombinationsRegistry()
-        # TODO List all domains and register them from World
-        # TODO Remove method... kind of unused
-        return registry
 
     def process_output(self):
         """Extract values from simulation message trace"""
