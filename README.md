@@ -382,7 +382,9 @@ are collected by processing the outputs of a twin instance and discussed in the 
 
 ### Running the twin
 
-
+A run of a Digital Twin instance, allows the user to evaluate the response of the system under a given configuration. It
+does require some care to ensure the appropriate files and configuration are generated to execute the run, and to collect
+the data produced by the run for further processing.
 
 Experiment definition
 Gotcha of concurrent runs from same build folder
@@ -393,8 +395,99 @@ Processing outputs
 
 ### Building a trace of events
 
+Each run of the Digital Twin produces a record of the messages exchanged between the different entities modelled by the
+system. This record carries little information regarding the semantic of the messages, their contents, or their
+relations to the components required for monitoring situations of interests. It is up to the user to provide some
+meaning to said messages for a given twin instance, based on their type, contents, or communication channels.
+
+The `csi.twin` module provides primitives to ease the access to a message record. The `DataBase` type covers the basic
+interaction with the message database. `from_table` iterates over all messages in the specified tables, returning each
+as a separate object with the same fields as the original message. Note that the message types and contents may vary
+based on your twin instance. It is recommended to assess the available messages on a trial run of each instance.
+
+```python
+from csi.twin import DataBase, from_table
+
+db = DataBase("/path/to/db")
+
+for m in from_table(db, "movablestatus"):
+    print("At time {}, Entity {} is {}moving".format(m.timestamp, m.entity, "not " if not m.is_moving else ""))
+```
+
+The `csi.situation` module defines the notion of an event trace to track the values of components' over time, and assess
+the occurrence of specific situations. Entries are indexed by their component. Each new value should be recorded with
+the instant, as a timestamp, at which the change occurs.
+
+```python
+from csi.twin import DataBase, from_table
+from csi.situation import Trace
+
+db = DataBase("/path/to/db")
+trace = Trace()
+P = IndustrialContext()
+
+# Define fixed-value constraint
+trace[P.constraints.cobot.velocity.in_bench] = (0.0, 15.0)
+
+# Record operator movement in cell
+trace[P.operator.is_moving] = ( 0.0, False)
+trace[P.operator.is_moving] = ( 1.0, True)
+trace[P.operator.is_moving] = ( 4.0, True)
+trace[P.operator.is_moving] = (10.0, False)
+```
+
+Situations can be evaluated against a trace to assess whether they occur or not. This is achieved through a monitor,
+which operators on a set of situations for evaluation, and extracting relevant properties such as the set of components
+used throughout said situations.
+```python
+from csi.situation import Monitor
+# An operator in movement always stops within 5.0 time units
+c = (P.operator.is_moving.implies((~P.operator.is_moving).eventually(0, 5.0))).always()
+# The operator eventually moves
+d = P.operator.is_moving.eventually()
+
+m = Monitor({c, d})
+
+assert m.evaluate(trace)[c] == True
+assert m.evaluate(trace)[d] == True
+```
+
+
 ### Coverage computation and metrics
 
-## API
+The experimental `EventCombinationsRegistry` maintains a record of all combinations of values encountered for a given
+set of components. It can process traces to extract such combinations and provide some primitives to compute the
+combined components' domain coverage. 
+
+> **WARNING**: This is an experimental feature which is neither pleasant to use nor reliable. Consider the example
+> ad-hoc script provided by `experiments/tcx_safety/serialisation_dataset.py` instead.
+
+```python
+from csi.situation import EventCombinationsRegistry
+
+e = EventsCombinationsRegistry()
+
+# Define the tracked components' domain (reuse in-situ domain definitions where possible)
+e.domain[P.operator.is_moving] = P.operator.is_moving.domain
+e.domain[P.operator.velocity] = P.operator.velocity.domain
+
+# Register the events' combinations encountered by a trace
+e.register(trace)
+
+print(e.coverage)
+```
 
 ## Citing
+
+```bibtex
+@InProceedings{sassi,
+    author="Lesage, Benjamin and Alexander, Rob",
+    title="SASSI: Safety Analysis Using Simulation-Based Situation Coverage for Cobot Systems",
+    booktitle="Computer Safety, Reliability, and Security (Proceedings of SafeComp)",
+    year="2021",
+    publisher="Springer International Publishing",
+    pages="195--209",
+    isbn="978-3-030-83903-1"
+}
+```
+
