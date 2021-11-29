@@ -264,12 +264,132 @@ class ComplexWaypoint(JsonSerializable):
 ```
 
 
-### Monitoring for situations
+### Defining situations of interest
 
-Defining the situations domain (hierarchy and terms' domains)
-Defining the situations
+Monitoring encapsulates all steps required to define the events and metrics exposed by a twin instance, and the
+definition of situations to be monitored in the environment. This is the core of the `csi.situation` module. Situations
+capture states of interest in the system, and they can enforce requirements to be maintained or hazardous configurations
+to be avoided over its lifetime. They are concretely defined as temporal logic predicates, through
+the [py-metric-temporal-logic](https://github.com/mvcisback/py-metric-temporal-logic) library, combining components
+using boolean or temporal operators. As an example the twin might expose the velocity of different autonomous agents
+throughout the simulation, and their proximity to various obstacles. Specific monitors can be defined to ensure that
+agents in proximity to each other do slow down to reduce the likelihood of accidents, and that they never exceed their
+speed limit.
+
+#### Defining the components of the system
+
+Components are the building blocks of a situation. They represent individual metrics which evolution over time might
+satisfy a specific situation, a state of interest in the system. Related components are defined under the same context,
+and contexts themselves may be nested in other contexts. Components of a system are thus defined as a type hierarchy
+built on top of the `Component` and `Context` base types.
+
+```python
+from csi.situation import Context, Component
+
+
+class Position(Context):
+    in_cell = Component()
+    in_bench = Component()
+    in_tool = Component()
+
+
+class Entity(Context):
+    position = Position()
+    is_moving = Component()
+    velocity = Component()
+
+
+class Welder(Entity):
+    is_active = Component()
+
+
+class Cell(Context):
+    welder = Welder()
+    robot = Entity()
+
+
+class IndustrialContext(Context):
+    operator = Entity()
+    cell = Cell()
+```
+
+#### Formalising situations
+
+Situations capture states of interest in the system, requirements that should be maintained across its lifecycles,
+occurrences which should be avoided, or combinations of events that need to be encountered during testing. Situations
+are formalised as temporal logic predicates which condition components through boolean and temporal operators, using
+the `mtl` library. `Component` can be combined into complex boolean or temporal operators using the syntax proposed in
+[py-metric-temporal-logic](https://github.com/mvcisback/py-metric-temporal-logic).
+
+```python
+i = IndustrialContext()
+
+# Hazard: the operator is in the cell while the welder is active
+h = ((i.operator.position.in_cell | i.operator.position.in_tool) & i.cell.welder.is_active).eventually()
+
+# Req: only an active robot at the tool can trigger the welder
+r = i.cell.welder.is_active.implies(i.cell.robot.position.in_tool)
+
+# Check: the welder never moves
+c = (~i.cell.welder.is_moving).always()
+```
+
+In some instances, it might be useful to define a situation for any instance of a context, irrespective of how it can be
+nested or reused in other contexts. The purpose of the `Alias` primitive is to make such self-referencing definitions
+more convenient.
+
+```python
+from csi.situation import Alias
+
+Position.reaches_tool = Alias((~Position.in_tool) & (Position.in_tool >> 1))
+# Automatically defines the following:
+# - i.operator.position.reaches_tool
+# - i.cell.robot.reaches_tool
+# - i.cell.welder.reaches_tool
+
+Welder.check_setup = Alias(~Welder.is_moving & Welder.position.in_tool)
+assert i.cell.welder.check_setup == (~i.cell.welder.is_moving & i.cell.position.in_tool)
+```
+
+#### Defining components' domain for coverage
+
+A domain captures the possible values or ranges thereof for a component. By defining the domain of a component, one can
+assess the portion of said domain covered by a set of observations, and whether additional observations might be of
+interest. The notion of coverage extends to sets of components and their domains; covering a set of components requires
+covering all value combinations of their domains. A domain can be defined for a component upon declaration. A domain
+only requires to define a conversion operation, from an observed value to a domain one, capturing in which value/range
+thereof the observation fits, and a length if applicable. The framework offers a number of primitives to define common
+domains:
+
+```python
+from csi.situation import domain_values, domain_identity, domain_threshold_range
+from csi.situation import Context, Component
+
+
+class Entity(Context):
+    # Domain values, exact set of values of interest
+    is_moving = Component(domain_values({True, False}))
+    
+    # Identity domain, unbounded, all encountered values are recorded
+    status = Component(domain_identity())
+    
+    # Range domain, the interval [0; 16) is divided into equal-length (0.25) intervals
+    velocity = Component(domain_threshold_range(0.0, 16.0, 0.25, upper=True))
+```
+
+Note that the domain is mostly used in the computation of coverage metrics for one or more event traces. Event traces
+are collected by processing the outputs of a twin instance and discussed in the following sections.
 
 ### Running the twin
+
+
+
+Experiment definition
+Gotcha of concurrent runs from same build folder
+Getting data in
+Retrieving outputs
+Processing outputs
+
 
 ### Building a trace of events
 
