@@ -63,11 +63,11 @@ class JsonSerializable(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def from_json(cls: Type[_S], obj: JSONObject) -> _S:
+    def from_json(cls: Type[_S], obj: JSONValue) -> _S:
         """Create instance from json-compatible dictionary"""
 
     @abc.abstractmethod
-    def to_json(self) -> JSONObject:
+    def to_json(self) -> JSONValue:
         """Encode instance into json-compatible dictionary"""
 
 
