@@ -1,8 +1,7 @@
-> **WARNING**: The package is currently undergoing significant refactoring in preparation for a clean release. Things will break, but they shall be repaired soon after.
+> **WARNING**: The package is currently undergoing significant refactoring in preparation for a clean release. Things will break, but they may be repaired soon after.
 
-# py-csi-cobotics
 
-![py-csi-cobotics logo](assets/csi-cobotics-logo.png?raw=true)
+# ![py-csi-cobotics logo](assets/csi-cobotics-logo.png?raw=true)
 
 TODO:ci/pypi/licence badges
 
