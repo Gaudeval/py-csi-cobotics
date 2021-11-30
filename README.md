@@ -2,7 +2,7 @@
 
 # py-csi-cobotics
 
-TODO: logo
+![py-csi-cobotics logo](assets/csi-cobotics-logo.png?raw=true)
 
 TODO:ci/pypi/licence badges
 
