@@ -94,16 +94,17 @@ Python wrapper to ease the execution of multiple instances of the build under
 different initial configurations. The harness provides a primitive for the
 exploration of the system to assess its behaviour in different scenarios.
 This sections looks at how to define such a harness, to understand how to
-formalise a build configuration format using the `csi` package, and how to
+formalise a build configuration format using the `csi` library, and how to
 wrap the execution of the build to easily evaluate specific configurations.
 
 ### Generating Configuration
 
 The configuration file, if presents, specifies a set of values to overload the 
-default ones embedded in the build. Unknown entries will be ignored. The first
-step is thus to understand what configuration points are available for 
-configuration, and how those can be mapped to more convenient objects for
-generation.
+default ones embedded in the build. It defines the scenario that will play out
+in the Digital Twin, and the possible events that will be observed. Unknown 
+entries in the configuration file will be ignored. The first step is thus to 
+understand what configuration points are available for configuration, and how 
+those can be mapped to more convenient objects for generation.
 
 Open the folder for the build corresponding to your target platform, and remove
 the configuration file if any (under 
@@ -140,7 +141,7 @@ Let us first consider the configuration of a waypoint. Three pairs of fields
 capture the constraint defined by the waypoint and its configuration, i.e. 
 should the entity reach the waypoint position, rotation, or waiting time. Note
 that the waypoint position and rotation themselves are not exposed for
-configuration. The first step for the `csi` module is to define `dataclasses`
+configuration. The first step for the `csi` library is to define `dataclasses`
 capturing the required configuration points. The `_encoded_fieldnames`
 dictionary defines the mapping between names in Python and the configuration
 file.
@@ -217,18 +218,179 @@ covering sensor and controller configuration, is available under
 
 ### Running the Digital Twin
 
-Windows only.
+The execution of the Digital Twin build under a specific configuration runs the system through a scenario which varies
+based on said configuration. The definition of a wrapper around a build eases the evaluation of the system under various
+configuration, and the collection and archival of the generated data.
 
-Linux build, and the creation of a Docker container, left as an exercise to the
-reader. See xxx for example.
+A wrapper should thus take a configuration as an input, run the build with said configuration, and collect the resulting
+output for processing. The build considered for the present example takes a single configuration file as an input,
+under `StreamingAssets/CSI/gcc-configuration.json`, and produces a log of all messages exchanged during a run, under
+`StreamingAssets/CSI/gcc-messages.db`. The log should be cleared before running the build lest messages from prior
+executions are included as well.
+
+The `csi` library defines the `Experiment` class to support the definition of small environments to collect experiment
+parameters, results, and errors if any. The wrapper needs to define an `execute` method to drive the Digital Twin, based
+on a specified build and configuration. Note that each experiment is executed in its own working directory, if paths to
+specific resources are required by the wrapper configuration only absolute paths should be considered. The complete
+wrapper definition is available under `example/wrapper.py`.
+
+```python
+from dataclasses import dataclass
+from pathlib import Path
+from shutil import copy
+from subprocess import run, CalledProcessError
+
+from csi import Experiment, ConfigurationManager
+from .configuration import Configuration
+
+
+@dataclass
+class GccRunnerConfiguration:
+  build_root: Path
+  run_configuration: Configuration
+
+
+class GccRunner(Experiment):
+  configuration: GccRunnerConfiguration
+  
+  def execute(self) -> None:
+    assert self.configuration.build_root.is_absolute()
+    # Configure build input/output paths
+    assets_path = self.configuration.build_root / "CSI Digital Twin_Data" / "StreamingAssets" / "CSI"
+    configuration_path = assets_path / "gcc-configuration.json"
+    messages_path = assets_path / "gcc-messages.db"
+    executable_path = self.configuration.build_root / "CSI Digital Twin.exe"
+    # Prepare build files
+    ConfigurationManager(Configuration).save(self.configuration.run_configuration, configuration_path)
+    messages_path.unlink(missing_ok=True)
+    # Run build
+    try:
+      run(executable_path, check=True)
+    except CalledProcessError as e:
+      # Process exception if required
+      raise e
+    # Save message log
+    copy(messages_path, Path("./messages.db"))
+```
+
+Defining and running an experiment requires the specification of the root folder where all results will be stored, and
+the configuration. In our example, the wrapper configuration needs to provide the location of the build used for the
+experiment, and a Digital Twin configuration as specified in the previous section. Calling the `run` method on the
+wrapper will result in its execution, with the collection of generated log, errors, and output.
+
+```python
+from pathlib import Path
+from configuration import Configuration
+from wrapper import GccRunnerConfiguration, GccRunner
+
+b = GccRunnerConfiguration(Path("../build/win-gui").absolute(), Configuration())
+
+r = GccRunner("experiments", b)
+r.run(retries=3)
+```
+
+Note that related experiments should use the same root folder to store related results; multiple experiment instances
+using the same root folder will not conflict as each will be assigned a unique id and sub-directory. A `csi.Repository`
+pointing to the root folder will then allow for easy access to all experiments sharing the same root, and their results.
+
+The use of the Linux build and the creation of a related Docker container are left as an exercise to the reader.
+Consider the `tcx_safety` use case for a reference container and wrapper. The overall approach is similar, with the
+volumes exposed by the containers used to save the configuration and collect the output generated by the build. Note
+that the paths for the configuration and message log files will have to be adapted. Furthermore, the `gcc_tutorial` use
+case does not need the Python IK solver included in `tcx_safety`.
 
 ## Monitoring events in the Digital Twin
 
+The wrapper allows the execution of the Digital Twin under controlled conditions, as exposed and defined by the build
+configuration. The messages collected during the execution of the build can provide insight on the events that occurred
+in the system, and whether specific situations have occurred. The first step is to define which events or metrics need
+to be exposed from the system's output. Then we need to define the steps required to generate a trace of such events
+over time from the messages collected in the Digital Twin.
+
 ### Defining the Situation space
 
-Components + domain
+The situation space aims to capture the components of situations in the system, and their domain. Components are the
+individual events and metrics extracted from the system. They are used to expressing specific conditions which
+occurrence can be monitored. As an example to assess if the robot exceeds its velocity restrictions (a situation), the
+velocity of the robot over time (a component) needs to be monitored and extracted from the collected messages. The
+situation space is defined through the `csi.situation` module, with `Component` and `Context`.
 
-Monitor + Situations of interest
+To assess the safety of the proposed setup, we need to monitor collisions in the environment, that is when a collision
+occurs and the force of such collisions:
+```python
+from csi.situation import Context, Component
+from csi.situation import domain_values, domain_threshold_range
+
+class Collision(Context):
+  occurs = Component(domain_values({True, False}))
+  force = Component(domain_threshold_range(0, 1000, 100, upper=True))
+```
+
+We also track when the robot or the operator are moving to understand which might be responsible for the collision:
+```python
+class Entity(Context):
+  is_moving = Component(domain_values({True, False}))
+```
+
+The distance measured by the LIDAR may further provide some insight into when the operator was detected if at all:
+```python
+class Lidar(Context):
+  distance = Component()
+```
+
+All components and their contexts are brought together to define a single definition of the situation space capturing
+the state of collisions, the robot, the operator, and the LIDAR. The full definition is available
+under `example/situation.py`:
+```python
+class Situation:
+  robot = Entity()
+  operator = Entity()
+  lidar = Lidar()
+  collision = Collision()
+```
+
+The situation definition allows us to define specific conditions to monitor in the system, in particular if any contact
+between the robot and the operator occur, and if such contact is hazardous:
+```python
+from situation import Situation
+
+_S = Situation()
+
+# Any contact between the robot and operator
+contact_occurs = _S.collision.occurs.eventually()
+
+# Any hazardous contact between the robot and operator
+_COLLISION_FORCE_THRESHOLD = 100
+collision_occurs = (
+        _S.collision.occurs & _S.collision.force > _COLLISION_FORCE_THRESHOLD
+).eventually()
+```
+
+We can further rule out if the contact is caused by an operator moving into an immobile robot:
+```python
+# Any contact due to the operator moving into a stopped robot
+operator_collides = (_S.collision.occurs & ~_S.robot.is_moving).eventually()
+```
+
+We can also monitor for the correct execution of the controller safety stop, that is the robot should promptly stop if
+an obstacle is detected by the LIDAR below the specified distance:
+
+```python
+# The robot stops within 250ms when an obstacle gets too close
+_SAFETY_STOP_THRESHOLD = 0.75
+robot_safety_stops = (
+  (_S.lidar.distance < _SAFETY_STOP_THRESHOLD).implies(
+    (~_S.robot.is_moving).eventually(0, 0.250)
+  )
+).always()
+```
+
+The full set of monitored conditions is described in `example/monitor.py`.
 
 ### Processing the event trace
 
+Open message database, list tables, look at contents of one
+
+Create a trace from messages
+
+Check for condition occurrence from trace
