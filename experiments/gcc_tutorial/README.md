@@ -78,7 +78,7 @@ file.
 
 All sensors included in the setup send messages capturing their status at 
 regular intervals, or upon changes. This is notably the case of the LIDAR and
-the range measurements. The builds also include a number of non-diegetic 
+the distance measurements. The builds also include a number of non-diegetic 
 sensors, observers which do only exist in the Digital Twin to provide a source 
 of ground truth on specific aspects of the system. Two observers capture 
 respectively if the operator or robot base are moving, and one observer captures
@@ -342,7 +342,7 @@ All components and their contexts are brought together to define a single defini
 the state of collisions, the robot, the operator, and the LIDAR. The full definition is available
 under `example/situation.py`:
 ```python
-class Situation:
+class Situation(Context):
   robot = Entity()
   operator = Entity()
   lidar = Lidar()
@@ -389,8 +389,101 @@ The full set of monitored conditions is described in `example/monitor.py`.
 
 ### Processing the event trace
 
-Open message database, list tables, look at contents of one
+The event traces captures the value of various system components over time, as a set of time series. It provides the
+groundwork for the evaluation of the conditions defined using the previously defined situation space. Building the event
+trace from the messages collected during a run of the Digital Twin requires considering the specifics of the modelled
+system. The conversion process needs to be defined for a specific build and target situation space.
 
-Create a trace from messages
+First, we need to initialise the trace used to capture an overview of events in the system. This is achieved through the
+`Trace` class of the `csi` library. Traces are indexed by the various situation components they monitor. Logging a new
+value requires the timestamp at which it occurs, and the value itself. As an example, to register the robot starts moving
+for 1s at time `1.0`:
+```python
+from csi.situation import Trace
+from situation import Situation
+
+s = Situation()
+t = Trace()
+t[s.robot.is_moving] = (0.0, False)
+t[s.robot.is_moving] = (1.0, True)
+t[s.robot.is_moving] = (2.0, False)
+```
+
+We need to understand the messages produced in the build, and how to map those to situation components. Running the
+included build should produce a message log under `StreamingAssets/CSI/gcc-messages.db`. The `csi` library provides
+primitives to open a message log and investigate its contents. We first list all tables in the log, each corresponds to
+a single message type or a basic field type:
+
+```python
+from csi.twin import DataBase
+
+db = DataBase("path/to/gcc-messages.db")
+for t in db.tables:
+    print(t)
+
+# Outputs:
+# boolean
+# string
+# single
+# movablestatus
+# damageablestatus
+# uint32
+# time
+# header
+# guid
+# waypointrequest
+# entitystatus
+# double
+# float32
+# waypointachieved
+# int32
+# timerexpiredevent
+```
+
+Entries named after basic types only store field data of the corresponding type for other messages. We focus on
+the `moveablestatus`, `damageablestatus`, and `float32` tables to respectively capture whether entities are moving,
+collision occurrences, and the LIDAR distance measurements. Let us have a look at the contents of a `float32` message by
+looking at the first one in the message log. Each message is returned as a JSON-object with message-generic fields (e.g.
+the topic) and specific ones (e.g. the measured data):
+```python
+m = next(db.flatten_messages("float32"))
+print(m)
+# Outputs:
+# {'__table__': 'float32',
+#  'data': 4.395541667938232,
+#  'entity_id': '',
+#  'id': 1,
+#  'label': 'std_msgs/Float32',
+#  'parent_id': 'NULL',
+#  'timestamp': 0.0,
+#  'topic': '/lidar/digital/range',
+#  'unix_toi': '2021-12-08 17:36:01'}
+```
+
+To convert a message into an entry into the event trace, we need to extract the time the message was emitted (the
+timestamp), filter only message from the LIDAR (the topic), and the sensor measurement (the data). Those operations can
+either be implemented using the JSON-object through JSON transformations, or using `from_table` function to convert
+messages into simple Python objects. The following snipped will iterate over all measurements to log the values reported
+by the LIDAR:
+```python
+from csi.situation import Trace
+from csi.twin import DataBase, from_table
+from situation import Situation
+
+db = DataBase("path/to/gcc-messages.db")
+
+s = Situation()
+t = Trace()
+
+for m in from_table(db, "float32"):
+    if m.topic == "/lidar/digital/range":
+        t[s.lidar.distance] = (m.timestamp, m.data)
+```
+
+We follow a similar process to derive a process to extract the operator and robot moving status from the `movablestatus`
+messages, and the collision occurrences from the `collisionevent` messages. Note that at least one message of a given
+type must be logged for a corresponding table to be created. In the absence of a collision, no collision event will be
+logged and no table will be available for inspection. The overall process to generate a situation-complete trace for
+this example is available in `example/trace.py`
 
 Check for condition occurrence from trace
