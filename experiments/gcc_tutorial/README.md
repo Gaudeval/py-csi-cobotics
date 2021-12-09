@@ -486,4 +486,20 @@ type must be logged for a corresponding table to be created. In the absence of a
 logged and no table will be available for inspection. The overall process to generate a situation-complete trace for
 this example is available in `example/trace.py`
 
-Check for condition occurrence from trace
+The trace can be fed into a monitor to evaluate the occurrence of specific conditions. A `Monitor` offers an evaluate
+methods which assess a number of conditions against a specific trace. The resulting dictionary maps each condition to
+its occurrence status, a boolean value. The following is an example using the conditions defined previously
+in `example/monitor.py`. This evaluation can be included as part of the processing step in the build wrapper.
+
+```python
+from monitor import monitored_conditions
+from csi.situation import Monitor, Trace
+
+t = Trace()
+# ...
+
+m = Monitor(frozenset(monitored_conditions.values()))
+e = m.evaluate(t, dt=0.01)
+for name, condition in monitored_conditions.items():
+  print(name, e[condition])
+```

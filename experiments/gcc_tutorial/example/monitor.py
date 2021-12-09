@@ -19,13 +19,13 @@ operator_collides = (_S.collision.occurs & ~_S.robot.is_moving).eventually()
 _SAFETY_STOP_THRESHOLD = 0.75
 robot_safety_stops = (
     (_S.lidar.distance < _SAFETY_STOP_THRESHOLD).implies(
-        (~_S.robot.is_moving).eventually(0, 0.250)
+        (~_S.robot.is_moving) | (~_S.robot.is_moving).eventually(hi=0.250)
     )
 ).always()
 
-monitored_conditions = [
-    contact_occurs,
-    collision_occurs,
-    operator_collides,
-    robot_safety_stops,
-]
+monitored_conditions = {
+    "Contact between operator and robot": contact_occurs,
+    "Collision between operator and robot": collision_occurs,
+    "Operator collides with robot": operator_collides,
+    "Robot performs safety stop": robot_safety_stops,
+}
