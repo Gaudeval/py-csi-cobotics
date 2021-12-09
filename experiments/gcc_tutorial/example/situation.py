@@ -12,10 +12,10 @@ class Entity(Context):
 
 
 class Lidar(Context):
-    range = Component()
+    distance = Component()
 
 
-class Situation:
+class Situation(Context):
     robot = Entity()
     operator = Entity()
     lidar = Lidar()
