@@ -7,7 +7,7 @@ from typing import Generator, List, Tuple, Union
 
 import funcy
 
-from csi.transform import json_parse
+from csi.transform import json_parse, json_transform
 
 structural_fields = {
     "id",
@@ -265,15 +265,15 @@ class DataBase:
         for message in self.messages(*tables):
             # Remove indexing by foreign table primary id
             # TODO Check if some messages still use foreign keys
-            # message = json_transform(self.path_foreign_index, message, reduce_fk)
+            message = json_transform(self.path_foreign_index, message, reduce_fk)
             # Flatten foreign tables with a single element
             # TODO Check if some messages still use foreign keys
-            # message = json_transform(self.path_foreign_data, message, lambda d: d[0])
+            message = json_transform(self.path_foreign_data, message, lambda d: d[0])
             # Flatten tables containing only data
             # TODO Check if some table still only carry foreign data
-            # message = json_transform(self.path_data_table, message, lambda d: d["data"])
+            message = json_transform(self.path_data_table, message, lambda d: d["data"])
             # Convert terms to snake_case
-            # message = json_transform(self.path_snake_case, message, keys_case)
+            message = json_transform(self.path_snake_case, message, keys_case)
             yield self.flatten_message(message)
 
     def flatten_message(self, message):
