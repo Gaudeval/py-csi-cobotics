@@ -1,9 +1,7 @@
-> **WARNING**: The package is currently undergoing significant refactoring in preparation for a clean release. Things will break, but they may be repaired soon after.
-
 
 # ![py-csi-cobotics logo](assets/csi-cobotics-logo.png?raw=true)
 
-TODO:ci/pypi/licence badges
+<!-- TODO:ci/pypi/licence badges -->
 
 A Python framework for controlling and processing experiments built upon the CSI:Cobot Digital Twin.
 
