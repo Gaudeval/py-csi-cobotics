@@ -22,7 +22,6 @@ pip install -i https://test.pypi.org/simple/ py-csi-cobotics
 
 ## Usage
 
-> **WARNING**: The twin build required to run the experiments is pending release.
 
 The CSI cobotics framework aim to control an instance of the CSI:Cobot Digital Twin, and process the resulting outputs
 to identify occurrences of specific events or situations. Through the example of an industrial use case, we introduce
