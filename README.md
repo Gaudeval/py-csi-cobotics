@@ -1,4 +1,4 @@
-# ![py-csi-cobotics logo](assets/csi-cobotics-logo.png?raw=true)
+# ![py-csi-cobotics](assets/csi-cobotics-logo.png?raw=true)
 
 <!-- TODO:ci/pypi/licence badges -->
 
