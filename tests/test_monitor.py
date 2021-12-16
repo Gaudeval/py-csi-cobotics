@@ -1,30 +1,31 @@
 import enum
-import mtl
 
 from pprint import pprint
 
 import pytest
+import mtfl
 
-from csi.monitor import Context, Monitor, Trace, Term
+from csi.situation.monitoring import Monitor, Trace
+from csi.situation.components import Context, Component
 
 
 class Constraint(Context):
-    maximum_height = Term()
+    maximum_height = Component()
 
 
 class Operator(Context):
-    has_component = Term()
-    height = Term()
-    position = Term()
+    has_component = Component()
+    height = Component()
+    position = Component()
 
 
 class World(Context):
     operator = Operator()
     constraint = Constraint()
     props = Operator()
-    height = Term()
-    speed = Term()
-    position = Term()
+    height = Component()
+    speed = Component()
+    position = Component()
 
 
 class TestMonitor:
@@ -66,7 +67,7 @@ class TestMonitor:
 
         print("== Trace eval test =====")
         print("-- Dummy -----")
-        p = mtl.parse("dummy_predicate")
+        p = mtfl.parse("dummy_predicate")
         print(p)
         print(w.evaluate(t, p))
         print("-- Op Height == 5 -----")
@@ -149,8 +150,8 @@ class TestMonitor:
         t[P.position] = (9, DummyEnum.FOO)
 
         print("t:", t.values)
-        print("s|t:", list((s | t).values[("operator", "height")].items()))
-        print("t|s:", list((t | s).values[("operator", "height")].items()))
+        print("s|t:", list((s | t).values[P.operator.height].items()))
+        print("t|s:", list((t | s).values[P.operator.height].items()))
 
         print("== Out-of-order updates =====")
         w = Monitor()
@@ -163,7 +164,7 @@ class TestMonitor:
         t[P.operator.height] = (25, 42)
         t[P.operator.height] = (5, 10)
 
-        print(list(t.values[("operator", "height")].items()))
+        print(list(t.values[P.operator.height].items()))
 
         print("== Overlapping updates =====")
         t = Trace()
@@ -172,21 +173,12 @@ class TestMonitor:
         t[P.operator.height] = (10, 160)
         t[P.operator.height] = (25, 42)
         t[P.operator.height] = (50, 200)
-        print(
-            list(
-                t.values[
-                    (
-                        "operator",
-                        "height",
-                    )
-                ].items()
-            )
-        )
+        print(list(t.values[P.operator.height].items()))
 
         t[P.height] = (0, 100)
         t[P.height] = (11, 161)
         t[P.height] = (49, 40)
         t[P.height] = (50, 150)
-        print(list(t.values[("height",)].items()))
+        print(list(t.values[P.height].items()))
 
         print(t)

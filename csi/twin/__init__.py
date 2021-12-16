@@ -1,2 +1,2 @@
-from .runner import DigitalTwinRunner, DigitalTwinConfiguration
 from .orm import DataBase
+from .importer import from_table

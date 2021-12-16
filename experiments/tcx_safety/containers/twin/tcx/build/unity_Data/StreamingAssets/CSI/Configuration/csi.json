@@ -1,0 +1,122 @@
+{
+  "$version": "0.0.0.2",
+  "$Generated": "02/22/2021 13:13:27",
+  "/Operators/Tim/Operator": {
+    "Entity.label": "Operator",
+    "Entity.position": {
+      "x": 1.506362,
+      "y": 0.0,
+      "z": 0.06550217
+    },
+    "Entity.eulerAngles": {
+      "x": 0.0,
+      "y": 270.0,
+      "z": 0.0
+    },
+    "Entity.scale": {
+      "x": 1.16666663,
+      "y": 1.16666663,
+      "z": 1.16666663
+    },
+    "Twin.twinBehaviour": 0,
+    "Operator.height": 1.75,
+    "Operator.weight": 90.0,
+    "Operator.dominantHand": 0
+  },
+  "/ur10/ArmController": {
+    "RobotController.useVelocityLimits": true,
+    "ArmController.usePositionLimits": true
+  },
+  "/ur10/UR10": {
+    "Entity.label": "cobot",
+    "Entity.position": {
+      "x": -0.907,
+      "y": 0.778844,
+      "z": 0.699
+    },
+    "Entity.eulerAngles": {
+      "x": 0.0,
+      "y": 180.0,
+      "z": 0.0
+    },
+    "Entity.scale": {
+      "x": 1.0,
+      "y": 1.0,
+      "z": 1.0
+    },
+    "Twin.twinBehaviour": 0,
+    "Device.model": "UR10",
+    "Device.manufacturer": "Universal Robotics",
+    "Device.notes": "The initial robotic manipulator used in the development of the CSI project",
+    "Arm.jointStateChannel": {
+      "Topic": "jointStates",
+      "Message": "CSI.Messages.Sensor.JointState, CSI, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "_topic": "jointStates",
+      "_messageIdentifier": "JointState"
+    }
+  },
+  "/Cobot Controller/Trajectory/Waypoint Platform/Waypoint": {
+    "Waypoint.isTemporalConstraint": true,
+    "Waypoint.duration": 1.0,
+    "Waypoint.isPositionConstraint": true,
+    "Waypoint.positionTolerance": 0.01,
+    "Waypoint.isRotationConstraint": false,
+    "Waypoint.rotationTolerance": 0.01,
+    "Waypoint.label": "Waypoint Platform",
+    "Waypoint.position": {
+      "x": -0.139187649,
+      "y": 0.968524933,
+      "z": 0.04784143
+    }
+  },
+  "/Tecconex Cell/Spot Welder Assembly/StaticEntity": {
+    "Entity.label": "welder",
+    "Entity.position": {
+      "x": -2.097,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "Entity.eulerAngles": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "Entity.scale": {
+      "x": 1.0,
+      "y": 1.0,
+      "z": 1.0
+    }
+  },
+  "/Tecconex Cell/TT7302-mandrel/StaticEntity": {
+    "Entity.label": "assembly",
+    "Entity.position": {
+      "x": -0.105,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "Entity.eulerAngles": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 90.0
+    },
+    "Entity.scale": {
+      "x": 1.0,
+      "y": 1.0,
+      "z": 1.0
+    }
+  },
+  "/Cobot Controller/Trajectory/Waypoint Welder/Waypoint": {
+    "Waypoint.isTemporalConstraint": true,
+    "Waypoint.duration": 1.0,
+    "Waypoint.isPositionConstraint": true,
+    "Waypoint.positionTolerance": 0.01,
+    "Waypoint.isRotationConstraint": true,
+    "Waypoint.rotationTolerance": 0.01,
+    "Waypoint.label": "Waypoint Welder",
+    "Waypoint.position": {
+      "x": -1.33918762,
+      "y": 0.8685249,
+      "z": -0.00215858221
+    }
+  }
+}

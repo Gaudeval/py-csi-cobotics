@@ -3,11 +3,11 @@ import collections.abc
 import re
 import sqlite3
 from pathlib import Path
-from typing import Any, Generator, List, MutableMapping, Tuple, Union
+from typing import Generator, List, Tuple, Union
 
 import funcy
 
-from csi.transform import json_transform, json_parse
+from csi.transform import json_parse, json_transform
 
 structural_fields = {
     "id",
@@ -20,6 +20,8 @@ scalar_fields = {
 
 
 class DataTable:
+    """Representation of a single message table in the database"""
+
     def __init__(self, db, table_name):
         self.db = db
         self.table_name = table_name.lower()
@@ -61,12 +63,14 @@ class DataTable:
             yield from self.all("{}.parent_id == 'NULL'".format(self.table_name))
 
 
+# TODO Clarify or remove filter parameter to queries. What is the expected format, SQL string or rich data?
 class SelectionQuery:
     def __init__(self, table: DataTable):
         self.table = table
         self.fields = self.compute_query_fields()
         self.clauses = self.compute_query_clauses()
 
+    # TODO Refactor return value to use structure with names to clarify intent
     def compute_query_fields(self) -> List[Tuple[bool, Tuple, List[Tuple[str, str]]]]:
         """Prepare a list of fields selected by the query, with metadata.
 
@@ -79,6 +83,7 @@ class SelectionQuery:
         foreign key. As an example, `(True, ('label', 'id'), [('String', 'parent_id')])` describes the path to the `id`
         field of the `String` table. The current table `label` field is linked to table `String` on field `parent_id`.
         """
+        fields: List[Tuple[bool, Tuple, List[Tuple[str, str]]]]
         fields = []
         # First query for the table primary keys
         for primary_key in self.table.primary_keys:
@@ -215,6 +220,8 @@ class SelectionQuery:
 
 
 class DataBase:
+    """Representation of a digital twin message database"""
+
     path_foreign_index = json_parse("$[*]..[?(@.__table__)]")
     path_foreign_data = json_parse(
         "$..[?(@.length() = 1 and @[0][?(@.__table__ and @.__pk__)])]"
@@ -224,7 +231,7 @@ class DataBase:
 
     def __init__(self, path: Union[str, Path]):
         self.db_path = Path(path)
-        self.connection = sqlite3.connect(path.absolute().as_uri(), uri=True)
+        self.connection = sqlite3.connect(self.db_path.absolute().as_uri(), uri=True)
         # Retrieve the list of tables in the database
         all_tbl_query = "SELECT name FROM sqlite_master WHERE type='table'"
         tables = self.connection.execute(all_tbl_query).fetchall()
@@ -235,6 +242,7 @@ class DataBase:
         }
 
     def messages(self, *tables) -> Generator:
+        """List all raw messages in the database"""
         if tables:
             from_tables = [self.tables[t] for t in tables if t in self.tables]
         else:
@@ -243,6 +251,7 @@ class DataBase:
             yield from table.messages()
 
     def flatten_messages(self, *tables) -> Generator:
+        """List all messages in the database, with Python-compliant key names"""
         reduce_fk = lambda c: {
             k: v for k, v in c.items() if k not in ["__table__", "__pk__"]
         }
@@ -256,15 +265,15 @@ class DataBase:
         for message in self.messages(*tables):
             # Remove indexing by foreign table primary id
             # TODO Check if some messages still use foreign keys
-            # message = json_transform(self.path_foreign_index, message, reduce_fk)
+            message = json_transform(self.path_foreign_index, message, reduce_fk)
             # Flatten foreign tables with a single element
             # TODO Check if some messages still use foreign keys
-            # message = json_transform(self.path_foreign_data, message, lambda d: d[0])
+            message = json_transform(self.path_foreign_data, message, lambda d: d[0])
             # Flatten tables containing only data
             # TODO Check if some table still only carry foreign data
-            # message = json_transform(self.path_data_table, message, lambda d: d["data"])
+            message = json_transform(self.path_data_table, message, lambda d: d["data"])
             # Convert terms to snake_case
-            # message = json_transform(self.path_snake_case, message, keys_case)
+            message = json_transform(self.path_snake_case, message, keys_case)
             yield self.flatten_message(message)
 
     def flatten_message(self, message):
@@ -276,6 +285,7 @@ class DataBase:
         return funcy.walk_keys(snake_case, message)
 
 
+# TODO Feasibility/usability of following TODOs, remove if necessary
 # TODO Index the database when first accessed to fasten queries -> Compare cost of indexing+query vs. query
 # TODO Check if IO or CPU bound by loading database in memory first
 # TODO Add immutable and nolock to db uri to increase access speed

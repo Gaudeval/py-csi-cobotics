@@ -1,0 +1,15 @@
+import contextlib
+import os
+from pathlib import Path
+
+
+# TODO Unify definition with tcx validation equivalent
+@contextlib.contextmanager
+def as_working_directory(path):
+    """Changes working directory and returns to previous on exit."""
+    prev_cwd = Path.cwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(prev_cwd)
