@@ -16,7 +16,7 @@ A Python framework for controlling and processing experiments built upon the CSI
 
 There is an experimental release of the library available on `test.pypi.org`:
 ```shell
-pip install -i https://test.pypi.org/simple/ py-csi-cobotics
+pip install py-csi-cobotics
 ```
 
 ## Usage
