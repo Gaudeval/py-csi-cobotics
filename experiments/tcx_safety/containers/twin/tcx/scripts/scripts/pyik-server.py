@@ -38,7 +38,9 @@ def compute_ik():
 @click.argument("urdf", type=click.Path(exists=True, path_type=pathlib.Path))
 @click.option("--port", "-p", default=21000, help="IK server query port")
 @click.option("--debug/--no-debug", default=False, help="Verbose server output")
-@click.option("--root-link", "-r", default="base_link", help="Selected arm base link name")
+@click.option(
+    "--root-link", "-r", default="base_link", help="Selected arm base link name"
+)
 @click.option("--end-link", "-e", default="ee_link", help="Selected arm end link name")
 def pyik_start_server(urdf, port, debug, root_link, end_link):
     """Start IK solver for a robot arm described by URDF

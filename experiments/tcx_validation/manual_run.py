@@ -1,6 +1,10 @@
 from pathlib import Path
 
-from wrapper.configuration import RunnerConfiguration, SceneConfiguration, BuildConfiguration
+from wrapper.configuration import (
+    RunnerConfiguration,
+    SceneConfiguration,
+    BuildConfiguration,
+)
 from wrapper.runner import SafetyDigitalTwinRunner
 
 

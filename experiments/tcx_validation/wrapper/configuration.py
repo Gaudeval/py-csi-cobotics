@@ -72,6 +72,4 @@ class RunnerConfiguration:
 
     world: SceneConfiguration
     build: BuildConfiguration
-    ltl: MonitorConfiguration = dataclasses.field(
-        default_factory=MonitorConfiguration
-    )
+    ltl: MonitorConfiguration = dataclasses.field(default_factory=MonitorConfiguration)

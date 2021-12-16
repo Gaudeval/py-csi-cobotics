@@ -1,5 +1,4 @@
-# <img alt="py-csi-cobotics" src="https://raw.githubusercontent.com/Gaudeval/py-csi-cobotics/master/assets/csi-cobotics-logo.png" width="400" /> 
-
+# ![py-csi-cobotics logo](assets/csi-cobotics-logo.png?raw=true)
 
 <!-- TODO:ci/pypi/licence badges -->
 

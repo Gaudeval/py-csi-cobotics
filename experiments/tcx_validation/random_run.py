@@ -2,7 +2,11 @@ from pathlib import Path
 from drs import drs
 from tqdm import trange
 
-from wrapper.configuration import SceneConfiguration, BuildConfiguration, RunnerConfiguration
+from wrapper.configuration import (
+    SceneConfiguration,
+    BuildConfiguration,
+    RunnerConfiguration,
+)
 from wrapper.runner import SafetyDigitalTwinRunner
 
 if __name__ == "__main__":
