@@ -8,3 +8,5 @@
 /experiments/tcx_validation/build-server/
 /experiments-safecomp2021/
 /dist/
+/experiments/gcc_tutorial/build/
+/experiments/tcx_safety/containers/twin/tcx/build/
