@@ -31,16 +31,16 @@ thus collide with the robot of its own volition.
 
 ## Digital Twin Build
 
-The tutorial includes two different instances of the Digital Twin with the GCC 
-setup under the `build/` folder. Both builds expose the same configuration and
-logging file formats:
-- `build/win-gui/` is a GUI-enabled build for Windows machines. It provides 
-  visual feedback on the behaviour of the system while experimenting with 
-  various configurations. The executable for the build is 
+The tutorial uses two different instances of the Digital Twin with the GCC setup. Those are available from the CSI
+artefacts repository, under
+the [builds for `py-csi-cobotics`](https://github.com/CSI-Cobot/CSI-artefacts/tree/master/py-csi-cobotics-examples/gcc_tutorial)
+. The two archives should be extracted under the `build/` folder. Both builds expose the same configuration and logging
+file formats:
+- `build/win-gui/` is a GUI-enabled build for Windows machines. It provides visual feedback on the behaviour of the
+  system while experimenting with various configurations. The executable for the build is
   `build/win-gui/CSI Digital Twin.exe`.
-- `build/lin-server` is a command line build for Linux machines. It is 
-  intended for use in containers for larger scale evaluations. The executable 
-  for the build is `build/linux-server/gcc-tutorial.x86_64`
+- `build/lin-server` is a command line build for Linux machines. It is intended for use in containers for larger scale
+  evaluations. The executable for the build is `build/linux-server/gcc-tutorial.x86_64`
 
 The simulation is set to run for 60 seconds of simulated time, allowing the
 operator and the robot to complete multiple loops through their respective

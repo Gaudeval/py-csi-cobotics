@@ -17,6 +17,14 @@ distance between welder and operator. The twin of the system features a safety c
 risk to the operator, by notably interrupting any ongoing processing should the operator enter the cell at an
 inopportune time.
 
+## Reference build
+
+The reference build to run this experiment, i.e. the compiled Digital Twin instance implementing the scenario, is
+located on the CSI artefacts repository.
+The [`tcx_safety` build](https://github.com/CSI-Cobot/CSI-artefacts/tree/master/py-csi-cobotics-examples/tcx_safety)
+must be extracted under the `containers/twin/tcx` folder. The resulting `build/` folder contains all files required to
+create the expected container for running experiments.
+
 ## Executing the use case
 
 An example of randomised search linking all components of the framework and using this setup is included
